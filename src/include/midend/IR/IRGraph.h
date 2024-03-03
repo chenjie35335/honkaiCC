@@ -3,13 +3,16 @@
 #include <vector>
 #include <cstdint>
 using namespace std;
-
+typedef struct ValueKind ValueKind;
+typedef struct RawValue RawValue;
 /// A raw slice that can store any kind of items.
-typedef struct RawSlice {
+typedef struct {
     /// Buffer of slice item
     const void ** buffer;   
     /// The length of array buffer
     uint32_t len;
+    /// kind of RawSlice
+    uint32_t kind;
 }RawSlice;
 
 /// programme
@@ -37,7 +40,50 @@ typedef struct RawBasicBlock{
 /// instructions
     RawSlice insts;
 }RawBasicBlock;
+//这里还是将regsiter和memory分开，不放在一起
+/// integer
+typedef struct {
+    int32_t value;
+}RawInteger;
+/// load
+typedef struct {
+    RawValue* src;
+} RawLoad;
 
+/// store
+typedef struct{
+    RawValue* value;
+    RawValue* dest;
+} RawStore;
 
+/// binary
+typedef struct{
+    /// kind of op
+    uint32_t op;
+    RawValue* lhs;
+    RawValue* rhs;
+} RawBinary;
+
+typedef struct{
+    RawValue* value;
+} RawReturn;
+
+struct ValueKind {
+    uint32_t tag;
+    union {
+        RawInteger integer;
+        RawLoad load;
+        RawStore store;
+        RawBinary binary;
+        RawReturn ret;
+        // 其他数据类型
+    } data;
+};
+
+struct RawValue {
+    const char* name;
+    ValueKind* value;
+};
 
 #endif
+
