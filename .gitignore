@@ -30,3 +30,15 @@
 *.exe
 *.out
 *.app
+
+#project
+build/
+prj/
+.idea/
+.vscode/
+user/
+*.c
+*.koopa
+*.o
+*.S
+hello
