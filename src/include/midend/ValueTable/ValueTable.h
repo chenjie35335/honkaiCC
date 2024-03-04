@@ -1,3 +1,5 @@
+#ifndef STORMY_VALUETABLE
+#define STORMY_VALUETABLE
 #include <iostream>
 #include <memory>
 #include <string>
@@ -27,3 +29,4 @@ class IdentTableNode {
             child  = nullptr;
         }  
 };
+#endif

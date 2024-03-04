@@ -4,7 +4,26 @@
 #include "../../../include/backend/Generator/generator.h"
 #include <cassert>
 #include <iostream>
+// Integer
+void Visit(const RawInteger &integer,string &sign){
 
+}
+// Return
+void Visit(const RawReturn &ret,string &sign) {
+
+}
+//store
+void Visit(const RawStore &store, string &sign) {
+
+}
+//load
+void Visit(const RawLoad &load,string &sign) {
+
+}
+//binary
+void Visit(const RawBinary &binary, string &sign) {
+    
+}
 //defination
 void Visit(const RawValue* &value,string &sign) {       
     const auto& kind = value->value;
@@ -49,12 +68,12 @@ void Visit(const RawValue* &value,string &sign) {
         assert(false);
 }
 }
-}
 
+// Visit RawBlock
 void Visit(const RawBasicBlock* &bb,string &sign){
      Visit(bb->insts,sign);
 } 
-
+// Visit RawFunction
 void Visit(const RawFunction* &func,string &sign)
 {
          printf("  .globl %s\n",func->name+1);
