@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cstring>
 #include <random>
+#include <iostream>
 using namespace std;
 /// @brief 栈区域管理
 MemoryManager memoryManager;
@@ -29,6 +30,7 @@ void RegisterManagerAlloc() {
     registerManager.RegisterFull = false;
     registerManager.tempRegister = 5;
 }
+
 /// @brief 判断分配的寄存器是否合法
 /// @param loc 
 /// @return 
@@ -36,11 +38,23 @@ bool isValid(int loc) {
     return loc != 10 && loc != 11 && !registerManager.RegisterLock[loc];
 }
 
+/// @brief 获取value分配的内存地址偏移
+/// @param value 
+/// @return 
+int getTargetOffset(const RawValue *value) {
+    if(memoryManager.StackManager.find(value) != memoryManager.StackManager.end()){
+                return memoryManager.StackManager[value];
+    }
+    else assert(0);
+}
+
 /// @brief 将寄存器值存入内存
 /// @param value 
 /// @return 
 void StoreReg(int RandSelected){
     const RawValue* value;
+    const char *TargetReg;
+    int TargetOffset;
     for(const auto &pair : registerManager.registerLook) {
         if(pair.second == RandSelected) 
         {
@@ -48,7 +62,17 @@ void StoreReg(int RandSelected){
             break;
         }
     }
-    
+    TargetReg    = regs[RandSelected];
+    TargetOffset = getTargetOffset(value);
+    cout << "  sw " << TargetReg << ", " << TargetOffset  << "(sp)"<< endl;
+    registerManager.registerLook.erase(value);
+}
+
+const char *LoadFromMemory(const RawValue* value) {
+    const char *reg = AllocRegister(value);
+    int TargetOffset = getTargetOffset(value);
+    cout << " load" << reg << ", " << TargetOffset << "(sp)" << endl;
+    return reg;
 }
 
 /// @brief 给RawValue分配寄存器
