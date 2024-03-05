@@ -3,7 +3,7 @@ using namespace std;
 
 extern FILE *yyin;
 extern int yyparse(unique_ptr<BaseAST> &ast);
-extern void backend();
+extern void backend(const RawProgramme& programme);
 
 int main(int argc, const char *argv[]) {
   // 解析命令行参数. 测试脚本/评测平台要求你的编译器能接收如下参数:

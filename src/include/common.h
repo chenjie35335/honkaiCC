@@ -16,6 +16,8 @@
 #include "midend/AST/OpAST.h"
 #include "midend/AST/StmtAST.h"
 
+#include "midend/IR/IRGraph.h"
+
 using namespace std;
 #pragma once
 

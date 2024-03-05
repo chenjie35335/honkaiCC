@@ -82,4 +82,9 @@ const char *GetRegister(const RawValueP &value);
 /// @param value 
 /// @return 
 void AllocX0(const RawValueP &value);
+
+/// @brief 获取栈地址
+/// @param value 
+/// @return 
+int getTargetOffset(const RawValueP &value);
 #endif

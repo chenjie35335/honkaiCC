@@ -16,6 +16,12 @@ void ManagerAlloc(int maxSize)
     memoryManager.maxSize = maxSize;
     memoryManager.Offset = 0;
 }
+//栈地址合适分配？
+/*
+    1、 开始时候只有变量分配内存
+    2、 当需要换出寄存器时候，分配内存
+    3、 当值从内存中取出时，这里为了简化不进行内存删除操作（这里可能是一个需要优化的过程）
+*/
 /// @brief 分配栈地址给RawValue
 /// @param value
 void StackAlloc(const RawValue *value)
@@ -48,7 +54,7 @@ bool isValid(int loc)
 /// @brief 获取value分配的内存地址偏移
 /// @param value
 /// @return
-int getTargetOffset(const RawValue *value)
+int getTargetOffset(const RawValueP &value)
 {
     if (memoryManager.StackManager.find(value) != memoryManager.StackManager.end())
     {
@@ -63,22 +69,22 @@ int getTargetOffset(const RawValue *value)
 /// @return
 void StoreReg(int RandSelected)
 {
-    const RawValue *value;
     const char *TargetReg;
     int TargetOffset;
     for (const auto &pair : registerManager.registerLook)
     {
         if (pair.second == RandSelected)
         {
-            value = pair.first;
+            const auto &value = pair.first;
+            TargetReg = regs[RandSelected];
+            TargetOffset = getTargetOffset(value);
+            registerManager.registerLook.erase(value);
             break;
         }
     }
-    TargetReg = regs[RandSelected];
-    TargetOffset = getTargetOffset(value);
     cout << "  sw " << TargetReg << ", " << TargetOffset << "(sp)" << endl;
-    registerManager.registerLook.erase(value);
 }
+
 /// @brief 将原始值从内存load到寄存器中
 /// @param value
 /// @return
@@ -86,7 +92,7 @@ void LoadFromMemory(const RawValueP value)
 {
     AllocRegister(value);
     const char *reg = GetRegister(value);
-        int TargetOffset = getTargetOffset(value);
+    int TargetOffset = getTargetOffset(value);
     cout << " load" << reg << ", " << TargetOffset << "(sp)" << endl;
 }
 

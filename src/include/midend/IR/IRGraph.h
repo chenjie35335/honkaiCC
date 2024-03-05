@@ -59,21 +59,21 @@ typedef struct {
 }RawInteger;
 /// load
 typedef struct {
-    RawValue* src;
+    RawValueP src;
 } RawLoad;
 
 /// store
 typedef struct{
-    RawValue* value;
-    RawValue* dest;
+    RawValueP value;
+    RawValueP dest;
 } RawStore;
 
 /// binary
 typedef struct{
     /// kind of op
     uint32_t op;
-    RawValue* lhs;
-    RawValue* rhs;
+    RawValueP lhs;
+    RawValueP rhs;
 } RawBinary;
 
 typedef struct{
@@ -94,7 +94,7 @@ struct ValueKind {
 
 struct RawValue {
     const char* name;
-    ValueKind* value;
+    ValueKind value;
 };
 
 #endif

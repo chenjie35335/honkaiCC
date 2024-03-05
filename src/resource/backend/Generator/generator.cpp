@@ -5,6 +5,92 @@
 #include "../../../include/backend/hardware/hardwareManager.h"
 #include <cassert>
 #include <iostream>
+//处理load运算
+void Visit(const RawLoad &data, const RawValueP &value) {
+    const auto &src = data.src;
+    if(!IsMemory(src)) {
+        assert(0);
+    }
+    else {
+        AllocRegister(value);
+        const char *TargetReg = GetRegister(value);
+        int srcAddress = getTargetOffset(value); 
+        cout << " load" << TargetReg << ", " << srcAddress << "(sp)" << endl;
+    }
+}
+//处理store运算
+void Visit(const RawStore &data, const RawValueP &value) {
+    const auto &src = data.value;
+    const auto &dest= data.dest;
+    if(!IsMemory(src)) assert(0);
+    else {
+        const char *SrcReg = GetRegister(src);
+        int srcAddress = getTargetOffset(dest);
+        cout << " store" << SrcReg << ", " << srcAddress << "(sp)" << endl;
+    }
+}
+
+//处理二进制运算
+void Visit(const RawBinary &data,const RawValueP &value) {
+    const auto &lhs = data.lhs;
+    const auto &rhs = data.rhs;
+    const auto &op  = data.op;
+    Visit(lhs);Visit(rhs);
+    addLockRegister(lhs);addLockRegister(rhs);
+    AllocRegister(value);
+    LeaseLockRegister(lhs);LeaseLockRegister(rhs);
+    const char *LhsRegister = GetRegister(lhs);
+    const char *RhsRegister = GetRegister(rhs);
+    const char *ValueRegister = GetRegister(value);
+    switch(op) {
+        case RBO_ADD:
+            cout << "  add  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
+            break;
+        case RBO_SUB:
+            cout << "  sub  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
+            break;
+        case RBO_EQ:
+            cout << "  xor  " << ValueRegister <<", "<< LhsRegister << ", " << RhsRegister <<endl;
+            cout << "  seqz " << ValueRegister <<", "<< ValueRegister  <<endl;
+            break;
+        case RBO_NOT_EQ:
+            cout << "  xor  " << ValueRegister <<", "<< LhsRegister << ", " << RhsRegister <<endl;
+            cout << "  snez "  << ValueRegister <<", "<< ValueRegister  <<endl;
+            break;
+        case RBO_MUL:
+            cout << "  mul  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
+            break;
+        case RBO_DIV:
+            cout << "  div  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
+            break;
+        case RBO_MOD:
+            cout << "  div  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
+            break;
+        case RBO_LT:
+            cout << "  lt  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
+            break;
+        case RBO_GT:
+            cout << "  lt  " <<ValueRegister<<", "<< RhsRegister << ", " << LhsRegister <<endl;
+            break;
+        case RBO_GE:
+            cout << "  slt  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
+            cout << "  seqz " << ValueRegister <<", "<< ValueRegister  <<endl;
+            break;
+        case RBO_LE:
+            cout << "  sgt  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
+            cout << "  seqz " << ValueRegister <<", "<< ValueRegister  <<endl;
+            break;   
+        case RBO_OR:
+            cout << "  or  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
+            break;
+        case RBO_XOR:
+            cout << "  xor  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
+            break;
+        case RBO_AND:
+            cout << "  and  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
+            break;
+    }
+}
 
 //这个Value是重点，如果value已经被分配了寄存器，直接返回
 //如果存在内存当中，调用loadreg后直接返回
@@ -20,9 +106,9 @@ void Visit(const RawValueP &value) {
     }
     else {
     const auto& kind = value->value;
-    switch(kind->tag) {
+    switch(kind.tag) {
     case RVT_RETURN: {
-        const auto& ret = kind->data.ret.value; 
+        const auto& ret = kind.data.ret.value; 
         Visit(ret);
         const char *RetRegister = GetRegister(ret);
         cout << "  mv   a0, "<< RetRegister << endl;
@@ -31,7 +117,7 @@ void Visit(const RawValueP &value) {
         break;
     }
     case RVT_INTEGER: {
-        const auto& integer = kind->data.integer.value;
+        const auto& integer = kind.data.integer.value;
         if(value == 0) {
             AllocX0(value);
         } else {
@@ -42,15 +128,22 @@ void Visit(const RawValueP &value) {
         break;
     }
     case RVT_BINARY: {
+        const auto &binary = kind.data.binary;
+        Visit(binary,value);
         break;
     }
     case RVT_ALLOC: {
+        StackAlloc(value);
         break;
     }
     case RVT_LOAD: {
+        const auto &load = kind.data.load;
+        Visit(load,value);
         break;
     }
     case RVT_STORE: {
+        const auto &store = kind.data.store;
+        Visit(store,value);
         break;
     }
     default:
@@ -76,20 +169,14 @@ void Visit(const RawFunctionP &func)
 //Visit RawSlice
 void Visit(const RawSlice &slice){
     for(size_t i = 0; i < slice.len; i++) {
-        //cout << endl;
-        //printf("slice.len == %d, i == %d\n",slice.len,i);
-        //auto ptr = slice.buffer[slice.len-1];
         auto ptr = slice.buffer[i];
         switch(slice.kind) {
             case RSK_FUNCTION:
-                //printf("begin parse function\n");
                 Visit(reinterpret_cast<RawFunctionP>(ptr));
                 break;
             case RSK_BASICBLOCK:
-                //printf("begin parse block\n");
                 Visit(reinterpret_cast<RawBasicBlockP>(ptr));break;
             case RSK_BASICVALUE:
-                //printf("begin parse value\n");
                 Visit(reinterpret_cast<RawValueP>(ptr));break;
             default:
                 assert(false);
