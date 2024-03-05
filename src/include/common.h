@@ -6,7 +6,6 @@
 #include <cstring>
 #include <cstdlib>
 
-#include "koopa.h"
 
 #include "midend/AST/BaseAST.h"
 #include "midend/AST/BlockAST.h"
@@ -17,7 +16,6 @@
 #include "midend/AST/OpAST.h"
 #include "midend/AST/StmtAST.h"
 
-#include "ValueTable.h"
 using namespace std;
 #pragma once
 

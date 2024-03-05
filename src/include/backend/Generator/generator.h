@@ -2,36 +2,19 @@
 #define STORMY_GENERATOR_T
 #include <string>
 #include "../../midend/IR/IRGraph.h"
-/// @brief Visit RawSlice Node
+/// @brief Visit RawSlice
 /// @param slice 
-/// @param sign 
-void Visit(const  RawSlice& slice,string &sign);
-/// @brief Visit RawValue Node
+void Visit(const RawSlice &slice);
+/// @brief Visit RawValue
 /// @param value 
-/// @param sign 
-void Visit(const RawValue* &value,string &sign);
-/// @brief Visit RawBasicBlock Node
+void Visit(const RawValueP &value);
+/// @brief Visit RawBasicBlock
+/// @param bb 
+void Visit(const RawBasicBlockP &bb);
+/// @brief Visit Function
+/// @param func 
+void Visit(const RawFunctionP &func);
+/// @brief Visit Programme and Generate ASM
 /// @param value 
-/// @param sign 
-void Visit(const RawBasicBlock* &value,string &sign);
-/// @brief Visit RawInteger
-/// @param integer 
-/// @param sign 
-void Visit(const RawInteger &integer,string &sign);
-/// @brief Visit RawReturn
-/// @param ret 
-/// @param sign 
-void Visit(const RawReturn &ret,string &sign);
-/// @brief Visit RawStore
-/// @param store 
-/// @param sign 
-void Visit(const RawStore &store, string &sign);
-/// @brief Visit RawLoad
-/// @param load 
-/// @param sign 
-void Visit(const RawLoad &load,string &sign);
-/// @brief Visit Binary
-/// @param binary 
-/// @param sign 
-void Visit(const RawBinary &binary, string &sign);
+void generateASM(const RawProgramme& value);
 #endif

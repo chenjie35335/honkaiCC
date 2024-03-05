@@ -23,10 +23,9 @@ int main(int argc, const char *argv[]) {
   unique_ptr<BaseAST> ast;
   auto ret = yyparse(ast);
   assert(!ret);
-
+  freopen(output,"w",stdout);
   // 输出解析得到的 AST, 其实就是个字符串
   if(strcmp(mode,"-koopa") == 0) {
-      freopen(output,"w",stdout);
       ast->Dump();
   }
   if(strcmp(mode,"-riscv") == 0){

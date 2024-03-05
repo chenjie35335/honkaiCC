@@ -3,8 +3,20 @@
 #include <vector>
 #include <cstdint>
 using namespace std;
+
 typedef struct ValueKind ValueKind;
+
 typedef struct RawValue RawValue;
+
+typedef struct RawFunction RawFunction;
+
+typedef const RawFunction * RawFunctionP;
+
+typedef struct RawBasicBlock RawBasicBlock;
+
+typedef const RawBasicBlock * RawBasicBlockP;
+
+typedef const RawValue *RawValueP;
 /// A raw slice that can store any kind of items.
 typedef struct {
     /// Buffer of slice item
@@ -23,23 +35,23 @@ typedef struct RawProgramme{
     RawSlice Funcs;
 }RawProgramme;
 /// function
-typedef struct RawFunction{
+struct RawFunction{
     /// name of function
     const char *name;
     /// parameter(not used until now)
     RawSlice params;
     /// basic blocks
     RawSlice bbs;
-}RawFunction;
+};
 /// basic block
-typedef struct RawBasicBlock{
+struct RawBasicBlock{
 /// name of bb
     const char *name;
 /// parameter(not used until now)
     RawSlice params;
 /// instructions
     RawSlice insts;
-}RawBasicBlock;
+};
 //这里还是将regsiter和memory分开，不放在一起
 /// integer
 typedef struct {
@@ -65,7 +77,7 @@ typedef struct{
 } RawBinary;
 
 typedef struct{
-    RawValue* value;
+    RawValueP value;
 } RawReturn;
 
 struct ValueKind {

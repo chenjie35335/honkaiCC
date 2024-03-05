@@ -47,6 +47,39 @@ void RegisterManagerAlloc();
 /// @brief 给RawValue分配寄存器
 /// @param value 
 /// @return 
-const char * AllocRegister(const RawValue *value);
+void AllocRegister(const RawValueP &value);
 
+/// @brief 从内存中取出值
+/// @param value 
+/// @return 
+void LoadFromMemory(const RawValueP value);
+
+/// @brief 判断是否已经在寄存器中
+/// @param value 
+/// @return 
+bool IsRegister(const RawValueP &value);
+
+/// @brief 对于任意一个需要中间变量的value来说（也就是说需要别的RawValue访问的变量）一定在内存中有映射
+/// 这里找的是已经分配的但是只在内存中RawValue
+/// @param value 
+/// @return 
+bool IsMemory(const RawValueP &value);
+
+/// @brief 给寄存器加锁
+/// @param value 
+void addLockRegister(const RawValueP &value);
+
+/// @brief 释放寄存器锁
+/// @param value 
+void LeaseLockRegister(const RawValueP &value);
+
+/// @brief 获取RawValue所在的寄存器的名称
+/// @param value 
+/// @return 
+const char *GetRegister(const RawValueP &value);
+
+/// @brief 分配零号寄存器
+/// @param value 
+/// @return 
+void AllocX0(const RawValueP &value);
 #endif
