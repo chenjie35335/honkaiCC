@@ -44,3 +44,9 @@ This is a compiler for Huawei Bisheng Cup.
 
 #### 16日-31日
     lxh,csj: 完成对于AST的优化
+
+### 参考文档
+
+https://www.cnblogs.com/zhangleo/p/15963442.html
+https://pku-minic.github.io/online-doc/#/
+https://compiler.educg.net/#/
