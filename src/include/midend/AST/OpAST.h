@@ -1,4 +1,6 @@
 #include "BaseAST.h"
+#ifndef OPAST_STORMY
+#define OPAST_STORMY
 //比较运算符
 class RelOpAST : public BaseAST {
   public:
@@ -27,6 +29,9 @@ class RelOpAST : public BaseAST {
         sign = "%"+to_string(alloc_now);
     }
     [[nodiscard]] int calc() const override{return type;}
+    void generateGraph(RawProgramme &IR) const override{}
+    void generateGraph(RawSlice &IR) const override{}
+    void generateGraph(RawSlice &IR, string &sign) const override{}
 } 
 ;
 //单目运算符
@@ -55,6 +60,9 @@ class UnaryOpAST : public BaseAST {
     [[nodiscard]] int calc() const override{
         return op;
     }
+    void generateGraph(RawProgramme &IR) const override{}
+    void generateGraph(RawSlice &IR) const override{}
+    void generateGraph(RawSlice &IR, string &sign) const override{}
 };
 //加减运算符
 class AddOpAST : public BaseAST {
@@ -78,6 +86,9 @@ class AddOpAST : public BaseAST {
         sign = "%"+to_string(alloc_now);
     }
     [[nodiscard]] int calc() const override{return (int)op;}
+    void generateGraph(RawProgramme &IR) const override{}
+    void generateGraph(RawSlice &IR) const override{}
+    void generateGraph(RawSlice &IR, string &sign) const override{}
 };
 //乘除运算符
 class MulOpAST : public BaseAST {
@@ -104,6 +115,9 @@ class MulOpAST : public BaseAST {
         sign = "%"+to_string(alloc_now);
     }
     [[nodiscard]] int calc() const override{return op;}
+    void generateGraph(RawProgramme &IR) const override{}
+    void generateGraph(RawSlice &IR) const override{}
+    void generateGraph(RawSlice &IR, string &sign) const override{}
 };
 
 class EqOpAST : public BaseAST {
@@ -127,9 +141,12 @@ class EqOpAST : public BaseAST {
         sign = "%"+to_string(alloc_now);
     }
     [[nodiscard]] int calc() const override{return (int)type;}
+    void generateGraph(RawProgramme &IR) const override{}
+    void generateGraph(RawSlice &IR) const override{}
+    void generateGraph(RawSlice &IR, string &sign) const override{}
 } 
 ;
-
+#endif
 //现在存在两个问题：一个问题是是否使用共用体来完成这个过程
 //op其实不需要这么弄，因为可以直接比较来判断，但是如果是其他的话
 //需要添加enum数据结构，可以考虑弄一下，然后使用共用体。

@@ -1,5 +1,6 @@
 #include "BaseAST.h"
-
+#ifndef DECLAST_STORMY
+#define DECLAST_STORMY
 class DeclAST : public BaseAST {
   public:
     std::unique_ptr<BaseAST> ConstDecl;
@@ -17,6 +18,9 @@ class DeclAST : public BaseAST {
     void Dump(int value) const override{}
     void Dump(string &sign1,string &sign2,string &sign) const override{}
     [[nodiscard]] int calc() const override{return 0;}
+    void generateGraph(RawProgramme &IR) const override{}
+    void generateGraph(RawSlice &IR) const override{}
+    void generateGraph(RawSlice &IR, string &sign) const override{}
 };
 
 class ConstDeclAST : public BaseAST {
@@ -30,6 +34,9 @@ class ConstDeclAST : public BaseAST {
     void Dump(int value) const override{}
     void Dump(string &sign1,string &sign2,string &sign) const override{}
     [[nodiscard]] int calc() const override{return 0;}
+    void generateGraph(RawProgramme &IR) const override{}
+    void generateGraph(RawSlice &IR) const override{}
+    void generateGraph(RawSlice &IR, string &sign) const override{}
 };
 
 class BtypeAST : public BaseAST {
@@ -40,6 +47,9 @@ class BtypeAST : public BaseAST {
     void Dump(int value) const override{}
     void Dump(string &sign,string  &sign1,string &sign2) const override{}
     [[nodiscard]] int calc() const override{return 0;}
+    void generateGraph(RawProgramme &IR) const override{}
+    void generateGraph(RawSlice &IR) const override{}
+    void generateGraph(RawSlice &IR, string &sign) const override{}
 };
 //这里使用mulConstDef递归嵌套的方式实现多个，而且使用vector存储可以提高树的平衡性
 class MulConstDefAST : public BaseAST {
@@ -54,6 +64,9 @@ class MulConstDefAST : public BaseAST {
     void Dump(int value) const override{}
     void Dump(string &sign1,string &sign2,string &sign) const override{}
     [[nodiscard]] int calc() const override{return 0;}
+   void generateGraph(RawProgramme &IR) const override{}
+    void generateGraph(RawSlice &IR) const override{}
+    void generateGraph(RawSlice &IR, string &sign) const override{}
 };
 
 class SinConstDefAST : public BaseAST{
@@ -74,6 +87,9 @@ class SinConstDefAST : public BaseAST{
     void Dump(int value) const override{}
     void Dump(string &sign1,string &sign2,string &sign) const override{}
     [[nodiscard]] int calc() const override{return 0;}
+    void generateGraph(RawProgramme &IR) const override{}
+    void generateGraph(RawSlice &IR) const override{}
+    void generateGraph(RawSlice &IR, string &sign) const override{}
 };
 
 class VarDeclAST : public BaseAST {
@@ -86,6 +102,9 @@ public:
      void Dump(int value) const override{}
      void Dump(string &sign1, string &sign2,string &sign)const override{}
      [[nodiscard]] int calc() const override {return 0;}
+     void generateGraph(RawProgramme &IR) const override{}
+    void generateGraph(RawSlice &IR) const override{}
+    void generateGraph(RawSlice &IR, string &sign) const override{}
 };
 
 class MulVarDefAST : public BaseAST {
@@ -100,6 +119,9 @@ public:
     void Dump(int value) const override{}
     void Dump(string &sign1, string &sign2,string &sign)const override{}
     [[nodiscard]] int calc() const override {return 0;}
+    void generateGraph(RawProgramme &IR) const override{}
+    void generateGraph(RawSlice &IR) const override{}
+    void generateGraph(RawSlice &IR, string &sign) const override{}
 };
 
 class SinVarDefAST : public BaseAST {
@@ -137,6 +159,9 @@ public:
     void Dump(string & sign) const override {}
     void Dump(string &sign1, string &sign2,string &sign)const override{}
     [[nodiscard]] int calc() const override {return 0;}
+    void generateGraph(RawProgramme &IR) const override{}
+    void generateGraph(RawSlice &IR) const override{}
+    void generateGraph(RawSlice &IR, string &sign) const override{}
 };
 
 class InitValAST : public BaseAST {
@@ -147,6 +172,9 @@ public:
     void Dump(int value) const override{}
     void Dump(string & sign1, string & sign2,string & sign)const override{}
     [[nodiscard]] int calc() const override {return Exp->calc();}
+    void generateGraph(RawProgramme &IR) const override{}
+    void generateGraph(RawSlice &IR) const override{}
+    void generateGraph(RawSlice &IR, string &sign) const override{}
 };
 
 class ConstExpAST : public BaseAST {
@@ -159,4 +187,8 @@ class ConstExpAST : public BaseAST {
     [[nodiscard]] int calc() const override{
         return Exp->calc();
     }
+    void generateGraph(RawProgramme &IR) const override{}
+    void generateGraph(RawSlice &IR) const override{}
+    void generateGraph(RawSlice &IR, string &sign) const override{}
 };
+#endif

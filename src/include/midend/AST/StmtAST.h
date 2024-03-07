@@ -1,4 +1,6 @@
 #include "BaseAST.h"
+#ifndef STMTAST_STORMY
+#define STMTAST_STORMY
 //无论是左值还是右值，都需要在全体作用域中寻找
 class StmtAST : public BaseAST {
  public:
@@ -64,6 +66,9 @@ class StmtAST : public BaseAST {
     void Dump(int value) const override{}
     void Dump(string &sign1,string &sign2,string &sign) const override{}
     [[nodiscard]] int calc() const override{return type;};
+    void generateGraph(RawProgramme &IR) const override{}
+    void generateGraph(RawSlice &IR) const override;
+    void generateGraph(RawSlice &IR, string &sign) const override{}
 };
 
 //非终结符不存在类
@@ -81,6 +86,9 @@ class IfStmtAST : public BaseAST{
     void Dump(int value) const override{}
     void Dump(string &sign1,string &sign2,string &sign) const override{}
     [[nodiscard]] int calc() const override{return 0;}
+    void generateGraph(RawProgramme &IR) const override{}
+    void generateGraph(RawSlice &IR) const override{}
+        void generateGraph(RawSlice &IR, string &sign) const override{}
 };
 
 //非终结符不存在类
@@ -136,6 +144,9 @@ class SinIfStmtAST : public BaseAST{
     void Dump(int value) const override{}
     void Dump(string &sign1,string &sign2,string &sign) const override{}
     [[nodiscard]] int calc() const override{return 20;}
+    void generateGraph(RawProgramme &IR) const override{}
+        void generateGraph(RawSlice &IR) const override{}
+        void generateGraph(RawSlice &IR, string &sign) const override{}
 };
 
 class MultElseStmtAST : public BaseAST{
@@ -172,9 +183,6 @@ class MultElseStmtAST : public BaseAST{
           cout<<"\tjump %end"<<if_flag_level[if_level]<<endl;
         }
       }
-        
-
-
       //执行else_stmt序列的内容
       cout<<endl;
       cout<<"%else"<<if_flag_level[if_level]<<":"<<endl;
@@ -194,7 +202,6 @@ class MultElseStmtAST : public BaseAST{
           cout<<"\tjump %end"<<if_flag_level[if_level]<<endl;
         }
       }
-        
       cout<<endl;
       cout<<"%end"<<if_flag_level[if_level]<<":"<<endl;
       
@@ -206,6 +213,9 @@ class MultElseStmtAST : public BaseAST{
     void Dump(int value) const override{}
     void Dump(string &sign1,string &sign2,string &sign) const override{}
     [[nodiscard]] int calc() const override{ return 0;}
+    void generateGraph(RawProgramme &IR) const override{}
+    void generateGraph(RawSlice &IR) const override{}
+    void generateGraph(RawSlice &IR, string &sign) const override{}
 
 };
 
@@ -221,5 +231,9 @@ class If_return : BaseAST{
     void Dump(int value) const override{}
     void Dump(string &sign1,string &sign2,string &sign) const override{}
     [[nodiscard]] int calc() const override{return 7;}
+    void generateGraph(RawProgramme &IR) const override{}
+    void generateGraph(RawSlice &IR) const override{}
+    void generateGraph(RawSlice &IR, string &sign) const override{}
     //返回7标识return标志
 };
+#endif

@@ -29,7 +29,8 @@ int main(int argc, const char *argv[]) {
       ast->Dump();
   }
   if(strcmp(mode,"-riscv") == 0){
-      auto &irGraph = ast->generateGraph();
+      RawProgramme irGraph;
+      ast->generateGraph(irGraph);
       backend(irGraph);
   }
   return 0;

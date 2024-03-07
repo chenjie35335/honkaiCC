@@ -1,4 +1,6 @@
 #include "BaseAST.h"
+#ifndef EXPAST_STORMY
+#define EXPAST_STORMY
 class ExpAST : public BaseAST {
   public:
     std::unique_ptr<BaseAST> LOrExp;
@@ -12,6 +14,9 @@ class ExpAST : public BaseAST {
     [[nodiscard]] int calc() const override{
         return LOrExp->calc();
     }
+    void generateGraph(RawProgramme &IR) const override{}
+    void generateGraph(RawSlice &IR) const override{}
+    void generateGraph(RawSlice &IR, string &sign) const override;
 };
 
 class SinExpAST : public BaseAST {
@@ -33,6 +38,9 @@ class SinExpAST : public BaseAST {
     }
     void Dump(string &sign,string &sign1,string &sign2) const override{}
     int calc() const override {return 0; }
+    void generateGraph(RawProgramme &IR) const override{}
+    void generateGraph(RawSlice &IR) const override{}
+    void generateGraph(RawSlice &IR, string &sign) const override;
 };
 
 class LOrExpAST : public BaseAST {
@@ -82,6 +90,9 @@ class LOrExpAST : public BaseAST {
        }
        return value;
    }
+   void generateGraph(RawProgramme &IR) const override{}
+    void generateGraph(RawSlice &IR) const override{}
+    void generateGraph(RawSlice &IR, string &sign) const override;
 }
 ;
 
@@ -137,6 +148,9 @@ class LAndExpAST : public BaseAST {
        }
        return value;
    }
+   void generateGraph(RawProgramme &IR) const override{}
+    void generateGraph(RawSlice &IR) const override{}
+    void generateGraph(RawSlice &IR, string &sign) const override;
 }
 ;
 
@@ -164,9 +178,7 @@ class EqExpAST : public BaseAST {
           assert(0);
      }
    }
-   void Dump(string &sign1,string &sign2,string &sign)const override{
-
-   }
+   void Dump(string &sign1,string &sign2,string &sign)const override{}
    [[nodiscard]] int calc() const override{
        int value = 0;
        switch(type) {
@@ -187,6 +199,9 @@ class EqExpAST : public BaseAST {
        }
        return value;
    }
+   void generateGraph(RawProgramme &IR) const override{}
+    void generateGraph(RawSlice &IR) const override{}
+    void generateGraph(RawSlice &IR, string &sign) const override;
 }
 ;
 
@@ -241,7 +256,9 @@ class RelExpAST : public BaseAST {
        }
        return value;
    }
-
+  void generateGraph(RawProgramme &IR) const override{}
+  void generateGraph(RawSlice &IR) const override{}
+  void generateGraph(RawSlice &IR, string &sign) const override;
 }
 ;
 
@@ -295,6 +312,9 @@ class AddExpAST : public BaseAST {
         }
         return value;
     }
+    void generateGraph(RawProgramme &IR) const override{}
+    void generateGraph(RawSlice &IR) const override{}
+    void generateGraph(RawSlice &IR, string &sign) const override;
 };
 
 class MulExpAST : public BaseAST {
@@ -341,6 +361,9 @@ class MulExpAST : public BaseAST {
         }
         return value;
     }
+    void generateGraph(RawProgramme &IR) const override{}
+    void generateGraph(RawSlice &IR) const override{}
+    void generateGraph(RawSlice &IR, string &sign) const override;
 };
 
 class UnaryExpAST_P : public BaseAST {
@@ -356,6 +379,9 @@ class UnaryExpAST_P : public BaseAST {
     [[nodiscard]] int calc() const override{
         return PrimaryExp->calc();
     }
+    void generateGraph(RawProgramme &IR) const override{}
+    void generateGraph(RawSlice &IR) const override{}
+    void generateGraph(RawSlice &IR, string &sign) const override;
 };
 
 class UnaryExpAST_U : public BaseAST {
@@ -382,6 +408,9 @@ class UnaryExpAST_U : public BaseAST {
         }
         return value;
     }
+    void generateGraph(RawProgramme &IR) const override{}
+    void generateGraph(RawSlice &IR) const override{}
+    void generateGraph(RawSlice &IR, string &sign) const override{}
 };
 
 class PrimaryExpAST : public BaseAST {
@@ -415,5 +444,9 @@ class PrimaryExpAST : public BaseAST {
         }
       return value;
   }
+  void generateGraph(RawProgramme &IR) const override{}
+    void generateGraph(RawSlice &IR) const override{}
+    void generateGraph(RawSlice &IR, string &sign) const override;
 };
+#endif
 

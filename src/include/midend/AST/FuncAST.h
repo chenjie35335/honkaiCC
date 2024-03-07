@@ -1,5 +1,6 @@
 #include "BaseAST.h"
-
+#ifndef FUNCAST_STORMY
+#define FUNCAST_STORMY
 class FuncDefAST : public BaseAST {
  public:
   std::unique_ptr<BaseAST> func_type;
@@ -18,6 +19,9 @@ class FuncDefAST : public BaseAST {
   void Dump(string &sign) const override {}
   void Dump(string &sign1,string &sign2,string &sign) const override{}
   [[nodiscard]] int calc() const override{return 0;}
+  void generateGraph(RawProgramme &IR) const override{}
+  void generateGraph(RawSlice &IR) const override;
+  void generateGraph(RawSlice &IR, string &sign) const override{}
 };
 
 class FuncTypeAST : public BaseAST {
@@ -30,4 +34,8 @@ class FuncTypeAST : public BaseAST {
     void Dump(string &sign) const override {}
     void Dump(string &sign1,string &sign2,string &sign) const override{}
     [[nodiscard]] int calc() const override{return 0;}
+    void generateGraph(RawProgramme &IR) const override{}
+    void generateGraph(RawSlice &IR) const override{}
+    void generateGraph(RawSlice &IR, string &sign) const override{}
 };
+#endif

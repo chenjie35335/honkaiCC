@@ -1,5 +1,6 @@
 #include "BaseAST.h"
-
+#ifndef LVALAST_STORMY
+#define LVALAST_STORMY
 class LValLAST : public BaseAST {
   public:
     string ident;
@@ -10,6 +11,9 @@ class LValLAST : public BaseAST {
     void Dump(string &sign, string &sign1, string &sign2) const override {}
     void Dump(int value) const override {}  
     int calc() const override {return 0; }
+    void generateGraph(RawProgramme &IR) const override{}
+    void generateGraph(RawSlice &IR) const override{}
+    void generateGraph(RawSlice &IR, string &sign) const override{}
 };
 
 class LValRAST : public BaseAST {
@@ -65,4 +69,8 @@ class LValRAST : public BaseAST {
           exit(-1);
         } 
       }
+    void generateGraph(RawProgramme &IR) const override{}
+    void generateGraph(RawSlice &IR) const override{}
+    void generateGraph(RawSlice &IR, string &sign) const override{}
 };
+#endif

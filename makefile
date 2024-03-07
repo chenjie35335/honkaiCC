@@ -110,7 +110,7 @@ test:
 	build/compiler $(TARGET) hello.c -o hello.koopa
 
 autotest:
-	autotest -koopa -s lv6 /root/compiler
+	autotest -riscv -s lv1 /root/compiler
 
 koopa-test:
 	./build/compiler -koopa hello.c -o hello.koopa
@@ -124,5 +124,7 @@ riscv-test:
 	ld.lld hello.o -L$$CDE_LIBRARY_PATH/riscv32 -lsysy -o hello
 	qemu-riscv32-static hello
 
+gdb:
+	gdb --args ./build/compiler -riscv hello.c -o hello.S
 
 -include $(DEPS)

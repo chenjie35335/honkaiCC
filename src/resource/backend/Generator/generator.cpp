@@ -118,12 +118,12 @@ void Visit(const RawValueP &value) {
     }
     case RVT_INTEGER: {
         const auto& integer = kind.data.integer.value;
-        if(value == 0) {
+        if(integer == 0) {
             AllocX0(value);
         } else {
             AllocRegister(value);
             const char *reg = GetRegister(value);
-            cout << "  li"  <<  reg  << ","  << integer << endl;
+            cout << "  li   "  <<  reg  << ", "  << integer << endl;
         }
         break;
     }
@@ -160,8 +160,10 @@ void Visit(const RawBasicBlockP &bb){
 // Visit RawFunction
 void Visit(const RawFunctionP &func)
 {
-         printf("  .globl %s\n",func->name+1);
-         printf("%s:\n",func->name+1);
+         printf("  .globl %s\n",func->name);
+         RegisterManagerAlloc();
+         ManagerAlloc(255);
+         printf("%s:\n",func->name);
          cout << "  addi sp, sp, -256" <<  endl;
          Visit(func->bbs);
        
@@ -185,7 +187,7 @@ void Visit(const RawSlice &slice){
 }
 
 void generateASM(const RawProgramme& value) {
-    cout << "\ttext" << endl;
+    cout << "\t.text" << endl;
     Visit(value.Funcs);
 }
 

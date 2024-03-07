@@ -4,9 +4,11 @@
 #include <cassert>
 #include <unordered_map>
 #include <vector>
-#include <ValueTable.h>
+#include "../ValueTable/ValueTable.h"
+#include "../IR/IRGraph.h"
 using namespace std;
-#pragma once
+#ifndef BASEAST_STORMY
+#define BASEAST_STORMY
 // 所有 AST 的基类
 //这个是所有类别的标记
 //如果是这样的，做出以下约定：
@@ -74,6 +76,9 @@ class BaseAST {
   //这个用来带有双目运算符的遍历
   virtual void Dump(int value) const = 0; // 这个用来传递整形变量
   [[nodiscard]] virtual int calc() const = 0;//计算表达式的值
+  virtual void generateGraph(RawProgramme &IR) const = 0;
+  virtual void generateGraph(RawSlice &IR) const = 0;
+  virtual void generateGraph(RawSlice &IR, string &sign) const = 0;
 };
 // CompUnit 是 BaseAST
 class CompUnitAST : public BaseAST {
@@ -92,8 +97,11 @@ class CompUnitAST : public BaseAST {
   void Dump(string &sign) const override {}//这两个不需要在此处重载
   void Dump(string &sign1,string &sign2,string &sign) const override{}
   [[nodiscard]] int calc() const override{return 0;}
+  void generateGraph(RawProgramme &IR) const override;
+  void generateGraph(RawSlice &IR) const override{}
+  void generateGraph(RawSlice &IR, string &sign) const override{}
 };
-
+#endif
 // FuncDef 也是 BaseAST
 
 //这里就是返回值的问题，但是这里考虑可以把返回值设为string,直接将常数改为string返回就可以了
