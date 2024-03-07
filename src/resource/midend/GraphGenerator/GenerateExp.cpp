@@ -4,7 +4,7 @@
 #include <cstdlib>
 #include <unordered_map>
 using namespace std;
-static int ValueNumber = 0;
+int ValueNumber = 0;
 unordered_map <string,RawValueP> MidVarTable;
 //这里这个RawProgramme是生成好
 void CompUnitAST::generateGraph(RawProgramme &IR) const {
@@ -56,7 +56,7 @@ void StmtAST::generateGraph(RawSlice &IR) const {
       auto p = IdentTable;
       string sign;
       switch(type) {
-          case STMTAST_RET:
+          case STMTAST_RET:{
               SinExp->generateGraph(IR,sign);
               RawValue* p = (RawValue *) malloc(sizeof(RawFunction));
               p->name = nullptr;
@@ -66,6 +66,8 @@ void StmtAST::generateGraph(RawSlice &IR) const {
               IR.buffer[IR.len] = (const void *)p;
               IR.len++;
               break;
+          }
+          case STMTAST_SINE: break;
       }
 }
 
@@ -158,7 +160,7 @@ void UnaryOpAST::generateGraph(RawSlice &IR,string &sign) const {
     
     switch(op) {
       case '+': break;
-      case '-': {
+      case '-':case '!': {
           RawValue *p = (RawValue *) malloc(sizeof(RawValue));
           RawValue *zero, *exp;
           if(MidVarTable.find(to_string(0)) == MidVarTable.end()){
@@ -175,33 +177,7 @@ void UnaryOpAST::generateGraph(RawSlice &IR,string &sign) const {
           else exp = (RawValue *) MidVarTable.at(sign);
           p->value.tag = RVT_BINARY;
           p->value.data.binary.lhs = zero;
-          p->value.data.binary.op  = RBO_SUB;
-          p->value.data.binary.rhs = exp;
-          p->name = nullptr;
-          IR.buffer[IR.len++] = (const void *)p;
-          sign = "%"+to_string(alloc_now);
-          MidVarTable.insert(pair<string,RawValueP>(to_string(0),zero));
-          MidVarTable.insert(pair<string,RawValueP>(sign,p));
-          break;
-      }
-      case '!': {
-        RawValue *p = (RawValue *) malloc(sizeof(RawValue));
-          RawValue *zero, *exp;
-          if(MidVarTable.find(to_string(0)) == MidVarTable.end()){
-          zero = (RawValue *) malloc(sizeof(RawValue));
-          zero->value.tag = RVT_INTEGER;
-          zero->value.data.integer.value = 0;
-          zero->name = nullptr;
-          IR.buffer[IR.len++] = (const void *)zero;
-          }
-          else {
-            zero = (RawValue *)MidVarTable.at("0");
-          }
-          if(MidVarTable.find(sign) == MidVarTable.end()) assert(0);
-          else exp = (RawValue *) MidVarTable.at(sign);
-          p->value.tag = RVT_BINARY;
-          p->value.data.binary.lhs = zero;
-          p->value.data.binary.op  = RBO_EQ;
+          p->value.data.binary.op  = (op == '-') ? RBO_SUB:RBO_EQ;
           p->value.data.binary.rhs = exp;
           p->name = nullptr;
           IR.buffer[IR.len++] = (const void *)p;
@@ -217,7 +193,7 @@ void UnaryOpAST::generateGraph(RawSlice &IR,string &sign) const {
 
 void PrimaryExpAST::generateGraph(RawSlice &IR, string &sign) const{
       switch(kind) {
-        // case UNARYEXP: Exp->Dump(sign); break;
+        case UNARYEXP: Exp->generateGraph(IR,sign); break;
         // case LVAL: Lval->Dump(sign);break;
         case NUMBER:
               sign = to_string(number);

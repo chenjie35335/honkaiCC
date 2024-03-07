@@ -24,13 +24,14 @@ void ManagerAlloc(int maxSize)
 */
 /// @brief 分配栈地址给RawValue
 /// @param value
-void StackAlloc(const RawValue *value)
+int StackAlloc(const RawValue *value)
 {
     if (memoryManager.Offset > memoryManager.maxSize)
         assert(0);
     else
     {
         memoryManager.StackManager.insert(pair<const RawValue *, int>(value, memoryManager.Offset));
+        return memoryManager.Offset;
     }
 }
 
@@ -48,7 +49,7 @@ void RegisterManagerAlloc()
 /// @return
 bool isValid(int loc)
 {
-    return loc > 4 && loc != 10 && loc != 11 && !registerManager.RegisterLock[loc];
+    return loc > 4 && loc != 10 && loc != 11 && !registerManager.RegisterLock[loc] && loc < 32;
 }
 
 /// @brief 获取value分配的内存地址偏移
@@ -77,12 +78,18 @@ void StoreReg(int RandSelected)
         {
             const auto &value = pair.first;
             TargetReg = regs[RandSelected];
+            if(IsMemory(value)) {
             TargetOffset = getTargetOffset(value);
+            }
+            else
+            {
+            TargetOffset = StackAlloc(value);
+            }
             registerManager.registerLook.erase(value);
             break;
         }
     }
-    cout << "  sw " << TargetReg << ", " << TargetOffset << "(sp)" << endl;
+    cout << "  sw   " << TargetReg << ", " << TargetOffset << "(sp)" << endl;
 }
 
 /// @brief 将原始值从内存load到寄存器中
@@ -101,6 +108,7 @@ void LoadFromMemory(const RawValueP value)
 /// @return
 void AllocRegister(const RawValueP &value)
 {
+    //cout << "registerManager.RegisterFull = " << registerManager.RegisterFull << endl;
     if (registerManager.RegisterFull)
     {
         int RandSelected;
@@ -110,7 +118,7 @@ void AllocRegister(const RawValueP &value)
         do
         {
             RandSelected = dis(gen);
-        } while (isValid(RandSelected));
+        } while (!isValid(RandSelected));
         StoreReg(RandSelected);
         registerManager.registerLook.insert(pair<RawValueP, int>(value, RandSelected));
     }
@@ -121,7 +129,9 @@ void AllocRegister(const RawValueP &value)
         do
         {
             RegLoc++;
-        } while (RegLoc == 10 || RegLoc == 11 || registerManager.RegisterLock[RegLoc]);
+        } while ((RegLoc == 10 || RegLoc == 11 || registerManager.RegisterLock[RegLoc]) && RegLoc < 32);
+        //cout << "RegLoc ==" << RegLoc << endl;
+        if(RegLoc == 32) registerManager.RegisterFull = true;
     }
 }
 // 这里还需要一个查找表的算法

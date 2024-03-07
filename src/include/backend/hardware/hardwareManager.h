@@ -36,7 +36,7 @@ typedef struct RegisterManager{
 }RegisterManager;
 
 /// @brief 用于将RawValue和栈空间绑定
-void StackAlloc(const RawValue *value);
+int StackAlloc(const RawValue *value);
 
 /// @brief 分配MemoryManager对象
 void ManagerAlloc(int maxSize);
@@ -53,6 +53,11 @@ void AllocRegister(const RawValueP &value);
 /// @param value 
 /// @return 
 void LoadFromMemory(const RawValueP value);
+
+/// @brief 判断是否已经分配内存 
+/// @param value 
+/// @return 
+bool IsMemory(const RawValueP &value);
 
 /// @brief 判断是否已经在寄存器中
 /// @param value 
