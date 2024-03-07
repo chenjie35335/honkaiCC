@@ -410,7 +410,7 @@ class UnaryExpAST_U : public BaseAST {
     }
     void generateGraph(RawProgramme &IR) const override{}
     void generateGraph(RawSlice &IR) const override{}
-    void generateGraph(RawSlice &IR, string &sign) const override{}
+    void generateGraph(RawSlice &IR, string &sign) const override;
 };
 
 class PrimaryExpAST : public BaseAST {

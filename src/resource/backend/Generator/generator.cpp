@@ -187,7 +187,7 @@ void Visit(const RawSlice &slice){
 }
 
 void generateASM(const RawProgramme& value) {
-    cout << "\t.text" << endl;
+    cout << "  .text" << endl;
     Visit(value.Funcs);
 }
 

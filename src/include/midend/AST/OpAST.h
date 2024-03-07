@@ -62,7 +62,7 @@ class UnaryOpAST : public BaseAST {
     }
     void generateGraph(RawProgramme &IR) const override{}
     void generateGraph(RawSlice &IR) const override{}
-    void generateGraph(RawSlice &IR, string &sign) const override{}
+    void generateGraph(RawSlice &IR, string &sign) const override;    
 };
 //加减运算符
 class AddOpAST : public BaseAST {
