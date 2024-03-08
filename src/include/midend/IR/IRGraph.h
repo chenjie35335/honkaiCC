@@ -2,6 +2,7 @@
 #define STORMY_IRGRAPH_DEF
 #include <vector>
 #include <cstdint>
+#include <string>
 using namespace std;
 
 typedef struct ValueKind ValueKind;
@@ -96,6 +97,15 @@ struct RawValue {
     const char* name;
     ValueKind value;
 };
+/// @brief 创建RawValue对象（其实这里由于是面向过程的，结果比较差）
+/// @param value 
+/// @param sign 
+void generateRawValue(RawValueP &value, string &sign);
 
+void generateRawValue(RawValue *&value, RawValueP lhs, RawValueP rhs, uint32_t op);
+
+void generateRawValue(RawValue *&value, RawValueP src);
+
+void generateRawValue(RawValue *&value, int32_t number,RawSlice &IR);
 #endif
 

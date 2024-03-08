@@ -81,7 +81,7 @@ void Visit(const RawBinary &data,const RawValueP &value) {
             cout << "  seqz " << ValueRegister <<", "<< ValueRegister  <<endl;
             break;   
         case RBO_OR:
-            cout << "  or  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
+            cout << "  or   " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
             break;
         case RBO_XOR:
             cout << "  xor  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
