@@ -64,13 +64,13 @@ void Visit(const RawBinary &data,const RawValueP &value) {
             cout << "  div  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
             break;
         case RBO_MOD:
-            cout << "  div  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
+            cout << "  rem  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
             break;
         case RBO_LT:
-            cout << "  lt  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
+            cout << "  slt  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
             break;
         case RBO_GT:
-            cout << "  lt  " <<ValueRegister<<", "<< RhsRegister << ", " << LhsRegister <<endl;
+            cout << "  slt  " <<ValueRegister<<", "<< RhsRegister << ", " << LhsRegister <<endl;
             break;
         case RBO_GE:
             cout << "  slt  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
@@ -89,6 +89,7 @@ void Visit(const RawBinary &data,const RawValueP &value) {
         case RBO_AND:
             cout << "  and  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
             break;
+        default: assert(0);
     }
 }
 
