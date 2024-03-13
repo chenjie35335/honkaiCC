@@ -3,14 +3,38 @@
 #include "../../../include/midend/IR/ValueKind.h"
 #include <cstdlib>
 #include <unordered_map>
+#include "../../../include/midend/AST/BaseAST.h"
 using namespace std;
 extern int ValueNumber;
 extern unordered_map <string,RawValueP> MidVarTable;
 
 void CompUnitAST::generateGraph(RawProgramme &IR) const {
-    func_def->generateGraph(IR.Funcs);
+    multCompUnit->generateGraph(IR.Funcs);
 }
 
+void MultCompUnitAST::generateGraph(RawSlice &IR) const{
+    for(auto &sinComp : sinCompUnit) {
+        sinComp->generateGraph(IR);
+    }
+}
+
+void SinCompUnitAST::generateGraph(RawSlice &IR) const{
+    switch(type){
+        case COMP_FUNC: {
+            funcDef->generateGraph(IR);
+            break;
+        }
+        case COMP_CON:
+            //constGlobal->Dump();
+            break;
+        case COMP_VAR:{
+            //varGlobal->Dump(DECL_GLOB);
+            break;
+        }
+        default:
+            assert(0);
+      }
+}
 //这里访问的是RawFunction
 void FuncDefAST::generateGraph(RawSlice &IR) const{
     IR.kind = RSK_FUNCTION;

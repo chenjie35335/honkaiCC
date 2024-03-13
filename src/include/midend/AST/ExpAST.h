@@ -1,31 +1,20 @@
 #include "BaseAST.h"
-#ifndef EXPAST_STORMY
-#define EXPAST_STORMY
 class ExpAST : public BaseAST {
   public:
     std::unique_ptr<BaseAST> LOrExp;
-    void Dump() const override {}
-    void Dump(int value) const override{}
     void Dump(string &sign) const override{
-      //cout << "enter Exp" << endl;
         LOrExp->Dump(sign);
     }
-    void Dump(string &sign1,string &sign2,string &sign) const override{}
     [[nodiscard]] int calc() const override{
         return LOrExp->calc();
     }
-    void generateGraph(RawProgramme &IR) const override{}
-    void generateGraph(RawSlice &IR) const override{}
-    void generateGraph(RawSlice &IR, string &sign) const override;
+    void generateGraph(RawSlice &IR,string &sign) const override;
 };
 
 class SinExpAST : public BaseAST {
   public:
     std::unique_ptr<BaseAST> Exp;
     uint32_t type;
-    void Dump() const override {}
-    void Dump(int value) const override {
-    }
     void Dump(string &sign) const override {
       switch(type) {
           case SINEXPAST_EXP:
@@ -36,11 +25,7 @@ class SinExpAST : public BaseAST {
           assert(0); 
       }
     }
-    void Dump(string &sign,string &sign1,string &sign2) const override{}
-    int calc() const override {return 0; }
-    void generateGraph(RawProgramme &IR) const override{}
-    void generateGraph(RawSlice &IR) const override{}
-    void generateGraph(RawSlice &IR, string &sign) const override;
+    void generateGraph(RawSlice &IR,string &sign) const override;
 };
 
 class LOrExpAST : public BaseAST {
@@ -48,15 +33,11 @@ class LOrExpAST : public BaseAST {
    std::unique_ptr<BaseAST> LAndExp;
    std::unique_ptr<BaseAST> LOrExp;
    uint32_t type;
-   void Dump() const override{}
-   void Dump(int value) const override{}
    void Dump(string &sign) const override{
-        //cout << "enter lorexp" << endl;
         string sign1;
         string sign2;
         switch(type) {
           case LOREXPAST_LAN:
-          //cout << "enter lorexp2" << endl;
             LAndExp->Dump(sign);break;
           case LOREXPAST_LOR:
             {
@@ -90,9 +71,7 @@ class LOrExpAST : public BaseAST {
        }
        return value;
    }
-   void generateGraph(RawProgramme &IR) const override{}
-    void generateGraph(RawSlice &IR) const override{}
-    void generateGraph(RawSlice &IR, string &sign) const override;
+   void generateGraph(RawSlice &IR,string &sign) const override;
 }
 ;
 
@@ -101,8 +80,6 @@ class LAndExpAST : public BaseAST {
    std::unique_ptr<BaseAST> EqExp;
    std::unique_ptr<BaseAST> LAndExp;
    uint32_t type;
-   void Dump() const override{}
-   void Dump(int value) const override{}
    void Dump(string &sign) const override{
     string s1,s2;
     switch(type) {
@@ -148,9 +125,7 @@ class LAndExpAST : public BaseAST {
        }
        return value;
    }
-   void generateGraph(RawProgramme &IR) const override{}
-    void generateGraph(RawSlice &IR) const override{}
-    void generateGraph(RawSlice &IR, string &sign) const override;
+   void generateGraph(RawSlice &IR,string &sign) const override;
 }
 ;
 
@@ -160,8 +135,6 @@ class EqExpAST : public BaseAST {
    std::unique_ptr<BaseAST> RelExp;
    std::unique_ptr<BaseAST> EqOp;
    uint32_t type;
-   void Dump() const override{}
-   void Dump(int value) const override{}
    void Dump(string &sign) const override{
      string s1,s2;
      switch(type) {
@@ -178,7 +151,6 @@ class EqExpAST : public BaseAST {
           assert(0);
      }
    }
-   void Dump(string &sign1,string &sign2,string &sign)const override{}
    [[nodiscard]] int calc() const override{
        int value = 0;
        switch(type) {
@@ -199,9 +171,7 @@ class EqExpAST : public BaseAST {
        }
        return value;
    }
-   void generateGraph(RawProgramme &IR) const override{}
-    void generateGraph(RawSlice &IR) const override{}
-    void generateGraph(RawSlice &IR, string &sign) const override;
+   void generateGraph(RawSlice &IR,string &sign) const override;
 }
 ;
 
@@ -212,8 +182,6 @@ class RelExpAST : public BaseAST {
    std::unique_ptr<BaseAST> RelExp;
    std::unique_ptr<BaseAST> RelOp;
    uint32_t type;
-   void Dump() const override{}
-   void Dump(int value) const override{}
    void Dump(string &sign) const override{
       string s1,s2;
       switch(type) {
@@ -230,7 +198,6 @@ class RelExpAST : public BaseAST {
         assert(0);
       }
    }
-   void Dump(string &sign1,string &sign2,string &sign)const override{}
    [[nodiscard]] int calc() const override{
        int value;
        int value1,value2;
@@ -256,9 +223,7 @@ class RelExpAST : public BaseAST {
        }
        return value;
    }
-  void generateGraph(RawProgramme &IR) const override{}
-  void generateGraph(RawSlice &IR) const override{}
-  void generateGraph(RawSlice &IR, string &sign) const override;
+    void generateGraph(RawSlice &IR,string &sign) const override;
 }
 ;
 
@@ -268,8 +233,6 @@ class AddExpAST : public BaseAST {
     std::unique_ptr<BaseAST> AddExp;
     uint32_t type;
     std::unique_ptr<BaseAST> AddOp;
-    void Dump() const override{}
-    void Dump(int value) const override{}
     void Dump(string &sign) const override{
       //cout << "enter AddExp" << endl;
       switch(type) {
@@ -312,9 +275,7 @@ class AddExpAST : public BaseAST {
         }
         return value;
     }
-    void generateGraph(RawProgramme &IR) const override{}
-    void generateGraph(RawSlice &IR) const override{}
-    void generateGraph(RawSlice &IR, string &sign) const override;
+    void generateGraph(RawSlice &IR,string &sign) const override;
 };
 
 class MulExpAST : public BaseAST {
@@ -323,8 +284,6 @@ class MulExpAST : public BaseAST {
     std::unique_ptr<BaseAST> MulExp;
     uint32_t type;
     std::unique_ptr<BaseAST> MulOp;
-    void Dump() const override{}
-    void Dump(int value) const override{}
     void Dump(string &sign) const override{
       switch(type) {
         case MULEXPAST_MUL: {
@@ -361,17 +320,14 @@ class MulExpAST : public BaseAST {
         }
         return value;
     }
-    void generateGraph(RawProgramme &IR) const override{}
-    void generateGraph(RawSlice &IR) const override{}
-    void generateGraph(RawSlice &IR, string &sign) const override;
+    void generateGraph(RawSlice &IR,string &sign) const override;
 };
 
 class UnaryExpAST_P : public BaseAST {
   public:
   //UnaryExp第一种情况
     std::unique_ptr<BaseAST> PrimaryExp;
-    void Dump() const override {}
-    void Dump(int value) const override{}
+    int type;
     void Dump(string &sign) const override{
       PrimaryExp->Dump(sign);
     }
@@ -379,9 +335,7 @@ class UnaryExpAST_P : public BaseAST {
     [[nodiscard]] int calc() const override{
         return PrimaryExp->calc();
     }
-    void generateGraph(RawProgramme &IR) const override{}
-    void generateGraph(RawSlice &IR) const override{}
-    void generateGraph(RawSlice &IR, string &sign) const override;
+    void generateGraph(RawSlice &IR,string &sign) const override;
 };
 
 class UnaryExpAST_U : public BaseAST {
@@ -389,8 +343,6 @@ class UnaryExpAST_U : public BaseAST {
   //UnaryExp的递归第二种情况
     std::unique_ptr<BaseAST> UnaryOp;
     std::unique_ptr<BaseAST> UnaryExp;
-    void Dump() const override{}
-    void Dump(int value) const override{}
     void Dump(string &sign) const override{
         UnaryExp->Dump(sign);
         UnaryOp->Dump(sign);
@@ -408,9 +360,69 @@ class UnaryExpAST_U : public BaseAST {
         }
         return value;
     }
-    void generateGraph(RawProgramme &IR) const override{}
-    void generateGraph(RawSlice &IR) const override{}
-    void generateGraph(RawSlice &IR, string &sign) const override;
+    void generateGraph(RawSlice &IR,string &sign) const override;
+};
+
+
+class UnaryExpAST_F : public BaseAST {
+  public:
+  //UnaryExp第一种情况
+    std::unique_ptr<BaseAST> PrimaryExp;
+    int type;
+    void Dump(string &sign) const override{
+      //cout<<"let's begin"<<endl;
+      PrimaryExp->Dump(sign);
+    }
+    void Dump(string &sign1,string &sign2,string &sign) const override{}
+    [[nodiscard]] int calc() const override{
+        return PrimaryExp->calc();
+    }
+};
+
+class FuncExpAST : public BaseAST {
+ public:
+    string ident;
+    unique_ptr<BaseAST> para;
+    void Dump(string &sign) const override {
+      vector<string> ParaSign;
+      para->Dump(sign,ParaSign);
+      funcTable.init();
+      if(funcTable.FuncTable.at(ident)){
+      alloc_now++;
+      sign = "%"+to_string(alloc_now);
+      cout<<"\t"<<sign<<" = ";
+      }
+        cout<<"  call @";
+        cout<<ident;
+        cout<<"(";
+        for(auto it = ParaSign.begin(); it != ParaSign.end();it++) {
+          if(it != ParaSign.begin()) cout << ",";
+          cout << (*it);
+        }
+        cout<<")"<<endl;
+      
+      }
+    void Dump(string &sign1,string &sign2,string &sign) const override{}
+    [[nodiscard]] int calc() const override{return 37;}
+};
+
+class ParamsAST : public BaseAST {
+  public:
+    vector <unique_ptr <BaseAST>> sinParams;
+    void Dump(string &sign,vector<string> &Para) const override{
+      for(auto &sinParam : sinParams) {
+        sinParam->Dump(sign);
+        Para.push_back(sign);
+      }
+    }
+};
+
+class SinParamsAST : public BaseAST {
+  public:
+    unique_ptr<BaseAST> exp; 
+    void Dump(string &sign) const override{
+      exp->Dump(sign);
+    }
 };
 
 class PrimaryExpAST : public BaseAST {
@@ -418,23 +430,19 @@ class PrimaryExpAST : public BaseAST {
     std::unique_ptr<BaseAST> Exp;
     std::unique_ptr<BaseAST> Lval;
     int number;
-  uint32_t kind;
-    /*这里不带参数的不实现*/
-  void Dump() const override{}
-  void Dump(int value) const override{}
+    uint32_t kind;
     /*如果遍历结果为常数，直接返回，如果不是，继续遍历*/
   void Dump(string &sign) const override{
-      //if(kind == UNARYEXP)
-        //  Exp->Dump(sign);
-      //else 
-        //  sign = to_string(number);
       switch(kind) {
         case UNARYEXP: Exp->Dump(sign); break;
         case LVAL: Lval->Dump(sign);break;
-        case NUMBER:sign = to_string(number);break;
+        case NUMBER:{
+          sign = to_string(number);
+          funcTable.registerTable[rank_name].push_back(sign);
+          break;
+        }
       }
   }
-    void Dump(string &sign1,string &sign2,string &sign) const override{}
     [[nodiscard]] int calc() const override{
         int value;
         switch(kind) {
@@ -444,9 +452,6 @@ class PrimaryExpAST : public BaseAST {
         }
       return value;
   }
-  void generateGraph(RawProgramme &IR) const override{}
-    void generateGraph(RawSlice &IR) const override{}
-    void generateGraph(RawSlice &IR, string &sign) const override;
+  void generateGraph(RawSlice &IR,string &sign) const override;
 };
-#endif
 

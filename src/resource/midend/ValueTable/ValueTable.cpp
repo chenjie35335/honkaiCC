@@ -2,3 +2,4 @@
 
 int ScopeLevel = 0;
 IdentTableNode* IdentTable = nullptr;
+FuncTable funcTable;

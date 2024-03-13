@@ -164,6 +164,7 @@ void RelExpAST::generateGraph(RawSlice &IR, string &sign) const
     alloc_now++;
     sign = "%" + to_string(alloc_now);
     RawValue *StmtR;
+    //cout << "OpRel"<< OpRel << endl;
     switch (OpRel)
     {
     case RELOPAST_GE:

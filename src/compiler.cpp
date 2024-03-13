@@ -28,6 +28,7 @@ int main(int argc, const char *argv[]) {
   if(strcmp(mode,"-koopa") == 0) {
       ast->Dump();
   }
+  //生成后端代码
   if(strcmp(mode,"-riscv") == 0){
       RawProgramme irGraph;
       ast->generateGraph(irGraph);

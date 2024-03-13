@@ -1,19 +1,11 @@
 #include "BaseAST.h"
-#ifndef LVALAST_STORMY
-#define LVALAST_STORMY
+
 class LValLAST : public BaseAST {
   public:
     string ident;
-    void Dump() const override {}
     void Dump(string &sign) const override {
       sign = ident;
     }
-    void Dump(string &sign, string &sign1, string &sign2) const override {}
-    void Dump(int value) const override {}  
-    int calc() const override {return 0; }
-    void generateGraph(RawProgramme &IR) const override{}
-    void generateGraph(RawSlice &IR) const override{}
-    void generateGraph(RawSlice &IR, string &sign) const override{}
 };
 
 class LValRAST : public BaseAST {
@@ -36,6 +28,7 @@ class LValRAST : public BaseAST {
           alloc_now++;
           sign = "%"+to_string(alloc_now);
           cout << "  "<<sign << " = " << "load " << "@"+ident+"_"+to_string(dep)<<endl;
+          //is_lva = 1;
           break;
        }
        p = p->father;
@@ -46,8 +39,6 @@ class LValRAST : public BaseAST {
          exit(-1);
        }
     }
-    void Dump(string &sign, string &sign1, string &sign2) const override {}
-    void Dump(int value) const override {}  
     int calc() const override {
       auto p           = IdentTable;
       while(p != nullptr) {
@@ -69,8 +60,4 @@ class LValRAST : public BaseAST {
           exit(-1);
         } 
       }
-    void generateGraph(RawProgramme &IR) const override{}
-    void generateGraph(RawSlice &IR) const override{}
-    void generateGraph(RawSlice &IR, string &sign) const override{}
 };
-#endif

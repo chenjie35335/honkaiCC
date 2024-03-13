@@ -1,3 +1,5 @@
+#ifndef STORMY_VALUETABLE
+#define STORMY_VALUETABLE
 #include <iostream>
 #include <memory>
 #include <string>
@@ -5,7 +7,7 @@
 #include <unordered_map>
 #include <vector>
 using namespace std;
-#pragma once
+
 /*
     这下改变一下策略：
     1、这里使用一个双向链表实现，当离开一个作用域的时候直接回收就行
@@ -23,11 +25,31 @@ class IdentTableNode {
         int level;
         unordered_map<string,int> ConstTable; //常量表
         unordered_map<string,int> VarTable;  //变量表
-        vector<string> FuncTable; //funcTable
-        //构造函数 
+        //构造函数
         IdentTableNode() {
             father = nullptr;
             child  = nullptr;
             //child2 = nullptr;
-        }  
+        }
 };
+
+
+class FuncTable{
+    public:
+    unordered_map<string,bool> FuncTable; //bool表示函数是否存在返回值
+    unordered_map<int,vector<string>> registerTable;
+    unordered_map<int,string> FuncRank;
+
+     void init() {
+        FuncTable["getch"] = true;
+        FuncTable["getint"] = true;
+        FuncTable["getarrary"] = true;
+        FuncTable["putint"] = false;
+        FuncTable["putch"] = false;
+        FuncTable["putarrary"] = false;
+        FuncTable["starttime"] = false;
+        FuncTable["stoptime"] = false;
+    }
+};
+
+#endif

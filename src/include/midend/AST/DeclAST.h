@@ -1,6 +1,5 @@
 #include "BaseAST.h"
-#ifndef DECLAST_STORMY
-#define DECLAST_STORMY
+
 class DeclAST : public BaseAST {
   public:
     std::unique_ptr<BaseAST> ConstDecl;
@@ -10,17 +9,10 @@ class DeclAST : public BaseAST {
       //cout<< "declinto" << endl; 
         switch(type) {
             case DECLAST_CON: ConstDecl->Dump(); break;
-            case DECLAST_VAR: VarDecl->Dump(); break;
+            case DECLAST_VAR: VarDecl->Dump(DECL_LOC); break;
             default: assert(0);
         }
     }
-    void Dump(string &sign) const override {}
-    void Dump(int value) const override{}
-    void Dump(string &sign1,string &sign2,string &sign) const override{}
-    [[nodiscard]] int calc() const override{return 0;}
-    void generateGraph(RawProgramme &IR) const override{}
-    void generateGraph(RawSlice &IR) const override{}
-    void generateGraph(RawSlice &IR, string &sign) const override{}
 };
 
 class ConstDeclAST : public BaseAST {
@@ -30,26 +22,11 @@ class ConstDeclAST : public BaseAST {
     void Dump() const override {
        MulConstDef->Dump();
     }
-    void Dump(string &sign) const override {}
-    void Dump(int value) const override{}
-    void Dump(string &sign1,string &sign2,string &sign) const override{}
-    [[nodiscard]] int calc() const override{return 0;}
-    void generateGraph(RawProgramme &IR) const override{}
-    void generateGraph(RawSlice &IR) const override{}
-    void generateGraph(RawSlice &IR, string &sign) const override{}
 };
 
 class BtypeAST : public BaseAST {
   public:
     string type;
-    void Dump() const override {}
-    void Dump(string &sign) const override {}
-    void Dump(int value) const override{}
-    void Dump(string &sign,string  &sign1,string &sign2) const override{}
-    [[nodiscard]] int calc() const override{return 0;}
-    void generateGraph(RawProgramme &IR) const override{}
-    void generateGraph(RawSlice &IR) const override{}
-    void generateGraph(RawSlice &IR, string &sign) const override{}
 };
 //这里使用mulConstDef递归嵌套的方式实现多个，而且使用vector存储可以提高树的平衡性
 class MulConstDefAST : public BaseAST {
@@ -60,13 +37,6 @@ class MulConstDefAST : public BaseAST {
           sinConstDef->Dump();
         }
     }
-    void Dump(string &sign) const override {}
-    void Dump(int value) const override{}
-    void Dump(string &sign1,string &sign2,string &sign) const override{}
-    [[nodiscard]] int calc() const override{return 0;}
-   void generateGraph(RawProgramme &IR) const override{}
-    void generateGraph(RawSlice &IR) const override{}
-    void generateGraph(RawSlice &IR, string &sign) const override{}
 };
 
 class SinConstDefAST : public BaseAST{
@@ -83,53 +53,33 @@ class SinConstDefAST : public BaseAST{
       int value = ConstExp->calc();
       ValueTable.insert(pair<string,int>(ident,value));
     }
-    void Dump(string &sign) const override {} 
-    void Dump(int value) const override{}
-    void Dump(string &sign1,string &sign2,string &sign) const override{}
-    [[nodiscard]] int calc() const override{return 0;}
-    void generateGraph(RawProgramme &IR) const override{}
-    void generateGraph(RawSlice &IR) const override{}
-    void generateGraph(RawSlice &IR, string &sign) const override{}
 };
 
 class VarDeclAST : public BaseAST {
 public:
      unique_ptr <BaseAST> MulVarDef;
-     void Dump() const override{
-        MulVarDef->Dump();
+     void Dump(int sign) const override{
+        MulVarDef->Dump(sign);
      }
-     void Dump(string & sign) const override {}
-     void Dump(int value) const override{}
-     void Dump(string &sign1, string &sign2,string &sign)const override{}
-     [[nodiscard]] int calc() const override {return 0;}
-     void generateGraph(RawProgramme &IR) const override{}
-    void generateGraph(RawSlice &IR) const override{}
-    void generateGraph(RawSlice &IR, string &sign) const override{}
 };
 
 class MulVarDefAST : public BaseAST {
 public:
     vector <unique_ptr<BaseAST>> SinValDef;
-    void Dump() const override{
+    void Dump(int sign) const override{
       for(auto &sinValDef : SinValDef) {
-          sinValDef->Dump();
+          sinValDef->Dump(sign);
       }
     }
-    void Dump(string & sign) const override {}
-    void Dump(int value) const override{}
-    void Dump(string &sign1, string &sign2,string &sign)const override{}
-    [[nodiscard]] int calc() const override {return 0;}
-    void generateGraph(RawProgramme &IR) const override{}
-    void generateGraph(RawSlice &IR) const override{}
-    void generateGraph(RawSlice &IR, string &sign) const override{}
 };
 
 class SinVarDefAST : public BaseAST {
 public:
     string ident;
     unique_ptr<BaseAST>InitVal;
+    unique_ptr<BaseAST>func_exp;
     uint32_t type;
-    void Dump() const override{
+    void Dump(int sign) const override{
       //cout<< "sinconstdef" << endl;
       int value;
       auto &ValueTable = IdentTable->ConstTable;
@@ -138,57 +88,65 @@ public:
       if(ValueTable.find(ident) != ValueTable.end()){
           cerr << '"' << ident << '"' << " has been defined as constant" <<endl;
           exit(-1);
-      }
+      } 
        if(VarTable.find(ident) != VarTable.end()){
           cerr << '"' << ident << '"' << " redefined" <<endl;
           exit(-1);
         }
-      cout << "  @"+ident+"_"+to_string(dep) <<" = " << "alloc i32" << endl;
+      string sign1;
       switch(type) {
-        case SINVARDEFAST_UIN: break;
+        //we need add type
+        case SINVARDEFAST_UIN: {
+          if(sign == DECL_GLOB) 
+            cout << "global @"+ident+"_"+to_string(dep) <<" = " << "alloc i32," <<  " zeroinit" << endl;
+              break;
+        }
         case SINVARDEFAST_INI:
         {
-          value = InitVal->calc();
-          cout << "  store " << value<< ", " << "@"+ident+"_"+to_string(dep)<<endl;
+          if(sign == DECL_GLOB) {
+            cout << "global @"+ident+"_"+to_string(dep) <<" = " << "alloc i32," <<  " "<<InitVal->calc() << endl;  
+            cout<<endl;
+          }else {
+          cout << "  @"+ident+"_"+to_string(dep) <<" = " << "alloc i32" << endl;
+          InitVal->Dump(sign1);
+          cout << "  store " << sign1<< ", " << "@"+ident+"_"+to_string(dep)<<endl;
+          }
           break;
         }
+        default: assert(0);
       }
       VarTable.insert(pair<string,int>(ident,value));
     }
-    void Dump(int value) const override{}
-    void Dump(string & sign) const override {}
-    void Dump(string &sign1, string &sign2,string &sign)const override{}
-    [[nodiscard]] int calc() const override {return 0;}
-    void generateGraph(RawProgramme &IR) const override{}
-    void generateGraph(RawSlice &IR) const override{}
-    void generateGraph(RawSlice &IR, string &sign) const override{}
 };
 
 class InitValAST : public BaseAST {
 public:
     unique_ptr<BaseAST>Exp;
-    void Dump() const override{}
-    void Dump(string & sign) const override {}
-    void Dump(int value) const override{}
-    void Dump(string & sign1, string & sign2,string & sign)const override{}
+    void Dump(string & sign) const override {
+      Exp->Dump(sign);
+    }
     [[nodiscard]] int calc() const override {return Exp->calc();}
-    void generateGraph(RawProgramme &IR) const override{}
-    void generateGraph(RawSlice &IR) const override{}
-    void generateGraph(RawSlice &IR, string &sign) const override{}
 };
 
 class ConstExpAST : public BaseAST {
   public:
     unique_ptr<BaseAST>Exp;
-    void Dump() const override{}
-    void Dump(string &sign) const override {} 
-    void Dump(int value) const override{}
-    void Dump(string &sign1,string &sign2,string &sign) const override{}
     [[nodiscard]] int calc() const override{
         return Exp->calc();
     }
-    void generateGraph(RawProgramme &IR) const override{}
-    void generateGraph(RawSlice &IR) const override{}
-    void generateGraph(RawSlice &IR, string &sign) const override{}
 };
-#endif
+
+// global vare
+class GlobalDeclAST : public BaseAST
+{
+  public:
+    std::unique_ptr<BaseAST> global;
+    // std::unique_ptr<BaseAST> mul;
+    void Dump() const override
+    {
+      cout << "global"
+          << " ";
+      global->Dump();
+      cout << endl;
+    } 
+};
