@@ -1,4 +1,7 @@
 #include "BaseAST.h"
+
+#ifndef BLOCKAST_STORMY
+#define BLOCKAST_STORMY
 //每个SinBlock生成一个TreeNode
 class BlockAST : public BaseAST {
  public:
@@ -58,3 +61,5 @@ class SinBlockItemAST : public BaseAST {
     }
     void generateGraph(RawSlice &IR) const override;
 };
+
+#endif

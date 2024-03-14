@@ -1,4 +1,6 @@
 #include "BaseAST.h"
+#ifndef EXPAST_STORMY
+#define EXPAST_STORMY
 class ExpAST : public BaseAST {
   public:
     std::unique_ptr<BaseAST> LOrExp;
@@ -405,6 +407,8 @@ class FuncExpAST : public BaseAST {
     void Dump(string &sign1,string &sign2,string &sign) const override{}
     [[nodiscard]] int calc() const override{return 37;}
 };
+
+#endif
 
 class ParamsAST : public BaseAST {
   public:

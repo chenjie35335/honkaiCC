@@ -1,5 +1,6 @@
 #include "BaseAST.h"
-
+#ifndef LVALAST_STORMY
+#define LVALAST_STORMY
 class LValLAST : public BaseAST {
   public:
     string ident;
@@ -61,3 +62,5 @@ class LValRAST : public BaseAST {
         } 
       }
 };
+
+#endif

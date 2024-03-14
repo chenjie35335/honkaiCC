@@ -1,4 +1,6 @@
 #include "BaseAST.h"
+#ifndef OPAST_STORMY
+#define OPAST_STORMY
 //比较运算符
 class RelOpAST : public BaseAST {
   public:
@@ -115,6 +117,7 @@ class EqOpAST : public BaseAST {
 } 
 ;
 
+#endif
 //现在存在两个问题：一个问题是是否使用共用体来完成这个过程
 //op其实不需要这么弄，因为可以直接比较来判断，但是如果是其他的话
 //需要添加enum数据结构，可以考虑弄一下，然后使用共用体。

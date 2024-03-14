@@ -1,5 +1,7 @@
 #include "BaseAST.h"
 
+#ifndef DECLAST_STORMY
+#define DECLAST_STORMY
 class DeclAST : public BaseAST {
   public:
     std::unique_ptr<BaseAST> ConstDecl;
@@ -150,3 +152,5 @@ class GlobalDeclAST : public BaseAST
       cout << endl;
     } 
 };
+
+#endif

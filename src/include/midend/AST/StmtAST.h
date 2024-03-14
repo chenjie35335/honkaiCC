@@ -1,4 +1,6 @@
 #include "BaseAST.h"
+#ifndef STMTAST_STORMY
+#define STMTAST_STORMY
 //无论是左值还是右值，都需要在全体作用域中寻找
 class StmtAST : public BaseAST {
  public:
@@ -290,3 +292,5 @@ class InWhileAST : public BaseAST{
        }    
     }
 };
+
+#endif
