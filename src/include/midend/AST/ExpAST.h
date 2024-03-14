@@ -442,7 +442,6 @@ class PrimaryExpAST : public BaseAST {
         case LVAL: Lval->Dump(sign);break;
         case NUMBER:{
           sign = to_string(number);
-          funcTable.registerTable[rank_name].push_back(sign);
           break;
         }
       }
