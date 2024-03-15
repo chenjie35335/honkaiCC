@@ -86,10 +86,9 @@ extern int record_while[100];
 extern int while_level;
 extern int break_cnt;
 extern int continue_cnt;
-extern int ret_func;
-extern int func_call_cnt;
-extern int is_lva;
-extern int rank_name;
+extern int basicblock_cnt;
+extern int shortcircuit_cnt;
+extern int ScNum;
 class BaseAST {
  public:
   virtual ~BaseAST() = default;
