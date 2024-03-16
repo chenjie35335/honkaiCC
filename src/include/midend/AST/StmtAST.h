@@ -15,57 +15,26 @@ class StmtAST : public BaseAST {
     uint32_t type;
     void Dump() const override {
       auto p = IdentTable;
-      //auto& ValueTable = IdentTable->ConstTable;
-      //auto& VarTable   = IdentTable->VarTable;
-      
       string sign;
-      //cout<<"666"<<endl;
       if(break_cnt == 0 && continue_cnt == 0){
       switch(type) {
           case STMTAST_RET:{
-              //cout<<tmp<<"tmp"<<endl;
-              //ret_cnt++;
               SinExp->Dump(sign);
               cout << "  " << "ret " << sign << endl; 
               break;
           } 
           case STMTAST_LVA:{
-            //cout << "parsing Lval" << endl;
             string sign1,sign2;
-            //cout<<"hello world"<<endl;
             Lval->Dump(sign1);
             Exp->Dump(sign2);
             int value = Exp->calc();
-            //scope bianli
-            while(p != nullptr) {
-              auto &ValueTable = p->ConstTable;
-              auto &VarTable   = p->VarTable; 
-              int dep = p->level;
-            if(ValueTable.find(sign1) != ValueTable.end()) {
-              cerr << '"' << sign1 << "is a constant and can't be altered" << endl;
-              exit(-1);
-            }
-            if(VarTable.find(sign1) != VarTable.end()){
-              cout << "  " << "store " << sign2 << "," << "@"+sign1+"_"+to_string(dep) << endl;
-              VarTable[sign1] = value;
-              break;
-              //exit(-1);
-            }
-              p = p->father;
-            }
-            //suo you scope zhong mei you zhe ge bian liang jiu shu chu cuo wu
-            if(p == nullptr) {
-              cerr << '"' << sign1 << "is not defined" << endl;
-              exit(-1);
-            }
+            p->VarAlter(sign1,sign2,value);
             break;
           }
         case STMTAST_SINE: {
-            //cout<<"666";
             SinExp->Dump(sign);
             break;
         }
-        
         case STMTAST_BLO: Block->Dump(); break;
         case STMTAST_IF: IfHead->Dump(); break;
         case STMTAST_WHILE: WhileHead->Dump(); break;

@@ -15,6 +15,7 @@ class DeclAST : public BaseAST {
             default: assert(0);
         }
     }
+    void generateGraph(RawSlice &IR) const override;
 };
 
 class ConstDeclAST : public BaseAST {
@@ -46,14 +47,9 @@ class SinConstDefAST : public BaseAST{
     string ident;
     unique_ptr<BaseAST>ConstExp;
     void Dump() const override{
-      //cout<< "sinconstdef" << endl;
-      auto &ValueTable = IdentTable->ConstTable;
-      auto &VarTable   = IdentTable->VarTable;
-      if(ValueTable.find(ident) != ValueTable.end()) {
-        assert(0);
-      } 
+      IdentTable->ValueMultDef(ident);
       int value = ConstExp->calc();
-      ValueTable.insert(pair<string,int>(ident,value));
+      IdentTable->addValue(ident,value);
     }
 };
 
@@ -82,31 +78,27 @@ public:
     unique_ptr<BaseAST>func_exp;
     uint32_t type;
     void Dump(int sign) const override{
-      //cout<< "sinconstdef" << endl;
-      int value;
-      auto &ValueTable = IdentTable->ConstTable;
-      auto &VarTable = IdentTable->VarTable;
+      int value = 0;
       int dep = IdentTable->level;
-      if(ValueTable.find(ident) != ValueTable.end()){
-          cerr << '"' << ident << '"' << " has been defined as constant" <<endl;
-          exit(-1);
-      } 
-       if(VarTable.find(ident) != VarTable.end()){
-          cerr << '"' << ident << '"' << " redefined" <<endl;
-          exit(-1);
-        }
+      IdentTable->VarContrdef(ident);
+      IdentTable->VarMultDef(ident);
       string sign1;
       switch(type) {
         //we need add type
         case SINVARDEFAST_UIN: {
-          if(sign == DECL_GLOB) 
+          if(sign == DECL_GLOB) {
             cout << "global @"+ident+"_"+to_string(dep) <<" = " << "alloc i32," <<  " zeroinit" << endl;
+          }
+          else {
+            cout << "  @"+ident+"_"+to_string(dep) <<" = " << "alloc i32" << endl;
+          }
               break;
         }
         case SINVARDEFAST_INI:
         {
+          value = InitVal->calc();
           if(sign == DECL_GLOB) {
-            cout << "global @"+ident+"_"+to_string(dep) <<" = " << "alloc i32," <<  " "<<InitVal->calc() << endl;  
+            cout << "global @"+ident+"_"+to_string(dep) <<" = " << "alloc i32," <<  " "<< value << endl;  
             cout<<endl;
           }else {
           cout << "  @"+ident+"_"+to_string(dep) <<" = " << "alloc i32" << endl;
@@ -117,7 +109,7 @@ public:
         }
         default: assert(0);
       }
-      VarTable.insert(pair<string,int>(ident,value));
+      IdentTable->addVariable(ident,value);
     }
 };
 

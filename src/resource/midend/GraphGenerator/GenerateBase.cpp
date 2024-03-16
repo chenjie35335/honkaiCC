@@ -69,6 +69,7 @@ void MulBlockItemAST::generateGraph(RawSlice &IR) const {
 void SinBlockItemAST::generateGraph(RawSlice &IR) const{
     switch(type) {
        case SINBLOCKITEM_DEC: 
+                decl->generateGraph(IR);break;
                 break;
         case SINBLOCKITEM_STM: 
                 stmt->generateGraph(IR);break;

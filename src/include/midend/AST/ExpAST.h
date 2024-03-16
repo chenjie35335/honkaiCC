@@ -594,10 +594,10 @@ public:
       Lval->Dump(sign);
       break;
     case NUMBER:
-    {
       sign = to_string(number);
       break;
-    }
+    default:
+      assert(0);
     }
   }
   [[nodiscard]] int calc() const override

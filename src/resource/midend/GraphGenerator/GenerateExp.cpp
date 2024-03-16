@@ -325,6 +325,8 @@ void PrimaryExpAST::generateGraph(RawSlice &IR, string &sign) const
     RawValue *p;
     generateRawValue(p, number, IR);
     break;
-    // default: assert(0);
+  case LVAL:
+    break;
+  default: assert(0);
   }
 }
