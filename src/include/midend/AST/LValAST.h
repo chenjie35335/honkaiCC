@@ -23,6 +23,7 @@ class LValRAST : public BaseAST {
       auto p = IdentTable;
       return p->IdentCalc(ident);
       }
+    void generateGraph(RawSlice &IR, string &sign) const override;
 };
 
 #endif

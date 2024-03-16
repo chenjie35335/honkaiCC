@@ -3,8 +3,6 @@
 #include "../../../include/midend/IR/ValueKind.h"
 #include <cstdlib>
 #include <unordered_map>
-using namespace std;
-extern int ValueNumber;
 extern unordered_map <string,RawValueP> MidVarTable;
 
 /// @brief 这个是通过查RawValue表实现创建RawValue

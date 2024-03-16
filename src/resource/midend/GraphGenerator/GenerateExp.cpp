@@ -4,7 +4,6 @@
 #include <cstdlib>
 #include <unordered_map>
 using namespace std;
-int ValueNumber = 0;
 unordered_map<string, RawValueP> MidVarTable;
 // 这里这个RawProgramme是生成好
 
@@ -326,6 +325,7 @@ void PrimaryExpAST::generateGraph(RawSlice &IR, string &sign) const
     generateRawValue(p, number, IR);
     break;
   case LVAL:
+    Lval->generateGraph(IR,sign);
     break;
   default: assert(0);
   }

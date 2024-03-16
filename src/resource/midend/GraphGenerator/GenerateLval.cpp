@@ -6,12 +6,12 @@
 using namespace std;
 extern unordered_map <string,RawValueP> MidVarTable;
 
-void DeclAST::generateGraph(RawSlice &IR) const {
-    switch(type) {
-        case DECLAST_CON : 
-                ConstDecl->Dump(); break;
-        case DECLAST_VAR : 
-                //VarDecl->generateGraph(IR); break;
-        default:assert(0);
+void LValRAST::generateGraph(RawSlice &IR, string &sign) const {
+    auto p = IdentTable;
+    int type;
+    p->IdentSearch(ident,sign,type);
+    RawValue *value;
+    if(type == FIND_CONST) {
+        generateRawValue(value,stoi(sign),IR);
     }
 }

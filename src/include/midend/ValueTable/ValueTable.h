@@ -13,8 +13,10 @@ extern int alloc_now;
 enum
 {
     RET_VOID,
-    RET_INT
-} RET_TYPE;
+    RET_INT,
+    FIND_CONST,
+    FIND_VAR
+} TYPE;
 /*
     这下改变一下策略：
     1、这里使用一个双向链表实现，当离开一个作用域的时候直接回收就行
@@ -167,6 +169,37 @@ public:
            return this->father->IdentCalc(ident);
         }
     }
+
+    void IdentSearch(const string &ident, string &sign,int &type)
+    {
+        if (!findValue(ident))
+        {
+            int CalValue = ConstTable.at(ident);
+            sign = to_string(CalValue);
+            type = FIND_CONST;
+            return;
+        }
+        else if (!findVariable(ident))
+        {
+            type = FIND_VAR;
+            alloc_now++;
+            sign = "%" + to_string(alloc_now);
+            cout << "  " << sign << " = "
+                 << "load "
+                 << "@" + ident + "_" + to_string(this->level) << endl;
+            return;
+        }
+        else if (!this->father)
+        {
+            cerr << "Error: " << '"' << ident << '"' << " is not defined" << endl;
+            exit(-1);
+        }
+        else
+        {
+            this->father->IdentSearch(ident, sign);
+        }
+    }
+
 };
 
 // 这个FuncTable该如何处理？
