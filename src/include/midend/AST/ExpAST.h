@@ -55,7 +55,7 @@ public:
       break;
     case LOREXPAST_LOR:
     {
-      string MidValue = "@a" + to_string(ScNum++);
+      string MidValue = "@a" + to_string(ScNum++)+"_";
       cout << "  " << MidValue << " = alloc i32" << endl;
       cout << "  store " << 0 << ", " << MidValue << endl;
       LOrExp->Dump(sign1);
@@ -119,7 +119,7 @@ public:
     case LANDEXPAST_LAN:
     {
       // cout << "enter landexp1" << endl;
-      string MidValue = "@a" + to_string(ScNum++);
+      string MidValue = "@a" + to_string(ScNum++)+"_";
       cout << "  " << MidValue << " = alloc i32" << endl;
       cout << "  store " << 1 << ", " << MidValue << endl;
       LAndExp->Dump(sign1);
