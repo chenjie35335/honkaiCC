@@ -110,7 +110,7 @@ test:
 	build/compiler $(TARGET) hello.c -o hello.koopa
 
 autotest:
-	autotest -riscv -s lv4 /root/compiler
+	autotest -riscv -s lv1 /root/compiler
 
 koopa-test:
 	./build/compiler -koopa hello.c -o hello.koopa

@@ -51,7 +51,9 @@ enum {
     /// binary
     RVT_BINARY,
     /// return 
-    RVT_RETURN
+    RVT_RETURN,
+    /// branch
+    RVT_BRANCH
 }RawValueTag;
 
 // kind of RawSlice

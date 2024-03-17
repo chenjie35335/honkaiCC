@@ -41,14 +41,22 @@ void SinCompUnitAST::generateGraph(RawSlice &IR) const{
 //这里访问的是RawFunction
 void FuncDefAST::generateGraph(RawSlice &IR) const{
     IR.kind = RSK_FUNCTION;
-    IR.len  = 1;
+    IR.len  = 0;
     RawFunction* p = (RawFunction *) malloc(sizeof(RawFunction));
     p->name = ident.c_str();
     IR.buffer = (const void **) malloc(sizeof(const void *));
-    IR.buffer[0] = (const void *) p;
-    block->generateGraph(p->bbs);
+    IR.buffer[IR.len++] = (const void *) p;
+    auto &bbs = p->bbs;
+    bbs.kind = RSK_BASICBLOCK;bbs.len = 0;
+    bbs.buffer = (const void **) malloc(sizeof(const void *));
+    RawBasicBlock *q = (RawBasicBlock *) malloc(sizeof(RawFunction));
+    q->name = nullptr;
+    bbs.buffer[bbs.len++] = (const void *)q;
+    block->generateGraph(q->insts);
 }
-
+//这个blockAST的generateGraph对于分支语句来说是个重点
+//所以需要一个数据结构来存储当前的RawFunction下的RawSlice
+//到了函数阶段以后，由于产生了函数调用，所以可能还需要添加当前RawProgram下的RawSlice
 void BlockAST::generateGraph(RawSlice &IR) const {
     auto BlockScope = new IdentTableNode();
     if(IdentTable->child == NULL){
@@ -58,17 +66,9 @@ void BlockAST::generateGraph(RawSlice &IR) const {
       IdentTable->child  = BlockScope;
     }
     IdentTable = IdentTable->child;
-    IR.kind = RSK_BASICBLOCK;
-    IR.len = 1;
-    RawBasicBlock* p = (RawBasicBlock *) malloc(sizeof(RawFunction));
-    p->name = nullptr;
-    IR.buffer = (const void **) malloc(sizeof(const void *));
-    IR.buffer[0] = (const void *) p;
-    auto &inst = p->insts;
-    inst.kind = RSK_BASICVALUE;
-    inst.len = 0;
-    inst.buffer = (const void **) malloc(sizeof(const void *) * 100);
-    MulBlockItem->generateGraph(p->insts);
+    IR.kind = RSK_BASICVALUE;IR.len = 0;
+    IR.buffer = (const void **) malloc(sizeof(const void *) * 100);
+    MulBlockItem->generateGraph(IR);
     IdentTable = IdentTable->father;
     IdentTable->child = NULL;
     delete BlockScope;

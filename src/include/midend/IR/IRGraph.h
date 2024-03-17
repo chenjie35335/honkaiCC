@@ -77,9 +77,19 @@ typedef struct{
     RawValueP rhs;
 } RawBinary;
 
+/// return 
 typedef struct{
     RawValueP value;
 } RawReturn;
+
+typedef struct{//其他剩余两个参数貌似当前用不到
+    /// condition
+    RawValueP cond;
+    /// Target if condition is true
+    RawBasicBlockP true_bb;
+    /// Target if condition is false
+    RawBasicBlockP false_bb;
+} RawBranch;
 
 struct ValueKind {
     uint32_t tag;
@@ -89,6 +99,7 @@ struct ValueKind {
         RawStore store;
         RawBinary binary;
         RawReturn ret;
+        RawBranch branch;
         // 其他数据类型
     } data;
 };
