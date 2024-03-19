@@ -14,19 +14,19 @@ void Visit(const RawLoad &data, const RawValueP &value) {
     else {
         AllocRegister(value);
         const char *TargetReg = GetRegister(value);
-        int srcAddress = getTargetOffset(value); 
-        cout << " load" << TargetReg << ", " << srcAddress << "(sp)" << endl;
+        int srcAddress = getTargetOffset(src); 
+        cout << "  lw  " << TargetReg << ", " << srcAddress << "(sp)" << endl;
     }
 }
 //处理store运算
 void Visit(const RawStore &data, const RawValueP &value) {
     const auto &src = data.value;
     const auto &dest= data.dest;
-    if(!IsMemory(src)) assert(0);
+    if(!IsMemory(dest)) assert(0);
     else {
         const char *SrcReg = GetRegister(src);
         int srcAddress = getTargetOffset(dest);
-        cout << " store" << SrcReg << ", " << srcAddress << "(sp)" << endl;
+        cout << "  sw  " << SrcReg << ", " << srcAddress << "(sp)" << endl;
     }
 }
 
@@ -116,13 +116,9 @@ void Visit(const RawJump &data, const RawValueP &value){
 //如果这个处于未分配时，这时应该是遍历的时候访问的，分配内存和寄存器
 //这个Visit的方法就是要将RawValue值存到寄存器中，至于具体如何访问无需知道
 void Visit(const RawValueP &value) {    
-    if(IsRegister(value)) {
+    if(IsRegister(value) || IsMemory(value)) {
         return;
     }  
-    else if(IsMemory(value)) {
-        LoadFromMemory(value);
-        return;
-    }
     else {
     const auto& kind = value->value;
     switch(kind.tag) {
@@ -152,7 +148,7 @@ void Visit(const RawValueP &value) {
         break;
     }
     case RVT_ALLOC: {
-        StackAlloc(value);
+        StackAlloc(value); 
         break;
     }
     case RVT_LOAD: {

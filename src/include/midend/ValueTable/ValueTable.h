@@ -184,9 +184,6 @@ public:
             type = FIND_VAR;
             alloc_now++;
             sign = "%" + to_string(alloc_now);
-            cout << "  " << sign << " = "
-                 << "load "
-                 << "@" + ident + "_" + to_string(this->level) << endl;
             return;
         }
         else if (!this->father)

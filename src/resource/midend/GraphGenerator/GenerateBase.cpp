@@ -104,6 +104,23 @@ void StmtAST::generateGraph(RawSlice &IR) const {
               IR.len++;
               break;
           }
+          case STMTAST_LVA: 
+          {//这里虽然能过测试，但是这里没有考虑作用域的问题lv5的时候要考虑起来
+              int dep = p->level; 
+              string sign1,sign2;
+              cout << sign1 << endl;
+              Lval->Dump(sign1);
+              Exp->generateGraph(IR,sign2);
+              sign1 = "@"+sign1+"_"+to_string(dep);
+              RawValueP src,dest;
+              generateRawValue(dest,sign1);
+              generateRawValue(src,sign2);
+              int value = Exp->calc();
+              //p->VarAlter(sign1,sign2,value);
+              generateRawValue(src,dest,IR);
+              break;
+          }
           case STMTAST_SINE: break;
+          default: assert(0);
       }
 }

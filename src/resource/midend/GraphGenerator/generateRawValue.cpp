@@ -45,3 +45,12 @@ void generateRawValue(RawValue *&value, int32_t number,RawSlice &IR){
         MidVarTable.insert(pair<string,RawValueP>(to_string(number),value));
     }
 }
+
+void generateRawValue(RawValueP &src, RawValueP &dest,RawSlice &IR){
+    RawValue *store = (RawValue *) malloc(sizeof(RawValue));
+    store->name = nullptr;
+    store->value.tag = RVT_STORE;
+    store->value.data.store.value = src;
+    store->value.data.store.dest = dest;
+    IR.buffer[IR.len++] = (const void *) store;
+}

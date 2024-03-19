@@ -110,7 +110,7 @@ struct ValueKind {
 };
 
 struct RawValue {
-    const char* name;
+    const char * name;
     ValueKind value;
 };
 /// @brief 创建RawValue对象（其实这里由于是面向过程的，结果比较差）
@@ -123,5 +123,7 @@ void generateRawValue(RawValue *&value, RawValueP lhs, RawValueP rhs, uint32_t o
 void generateRawValue(RawValue *&value, RawValueP src);
 
 void generateRawValue(RawValue *&value, int32_t number,RawSlice &IR);
+
+void generateRawValue(RawValueP &src, RawValueP &dest,RawSlice &IR);
 #endif
 

@@ -31,7 +31,7 @@ int StackAlloc(const RawValue *value)
     else
     {
         memoryManager.StackManager.insert(pair<const RawValue *, int>(value, memoryManager.Offset));
-        return memoryManager.Offset;
+        return 4*(memoryManager.Offset++);
     }
 }
 
@@ -59,7 +59,7 @@ int getTargetOffset(const RawValueP &value)
 {
     if (memoryManager.StackManager.find(value) != memoryManager.StackManager.end())
     {
-        return memoryManager.StackManager[value];
+        return memoryManager.StackManager[value]*4;
     }
     else
         assert(0);
