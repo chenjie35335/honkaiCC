@@ -53,7 +53,9 @@ enum {
     /// return 
     RVT_RETURN,
     /// branch
-    RVT_BRANCH
+    RVT_BRANCH,
+    /// jump
+    RVT_JUMP
 }RawValueTag;
 
 // kind of RawSlice

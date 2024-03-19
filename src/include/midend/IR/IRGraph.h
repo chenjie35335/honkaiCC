@@ -82,6 +82,10 @@ typedef struct{
     RawValueP value;
 } RawReturn;
 
+typedef struct{
+    RawBasicBlockP target;
+} RawJump;
+
 typedef struct{//其他剩余两个参数貌似当前用不到
     /// condition
     RawValueP cond;
@@ -100,6 +104,7 @@ struct ValueKind {
         RawBinary binary;
         RawReturn ret;
         RawBranch branch;
+        RawJump jump;
         // 其他数据类型
     } data;
 };

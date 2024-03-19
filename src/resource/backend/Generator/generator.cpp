@@ -93,6 +93,24 @@ void Visit(const RawBinary &data,const RawValueP &value) {
     }
 }
 
+//处理branch指令
+void Visit(const RawBranch &data, const RawValueP &value){
+    Visit(data.cond);
+    const char *CondRegister = GetRegister(data.cond);
+    const char *TrueBB = data.true_bb->name;
+    const char *FalseBB = data.false_bb->name;
+    cout << "  bnez  " << CondRegister << ",  " << TrueBB << endl;
+    cout << "  j  " << FalseBB << endl;
+}
+
+//处理jump运算
+void Visit(const RawJump &data, const RawValueP &value){
+    const char *TargetBB = data.target->name;
+    cout << "  j  " << TargetBB << endl;
+}
+
+
+
 //这个Value是重点，如果value已经被分配了寄存器，直接返回
 //如果存在内存当中，调用loadreg后直接返回
 //如果这个处于未分配时，这时应该是遍历的时候访问的，分配内存和寄存器
@@ -146,6 +164,14 @@ void Visit(const RawValueP &value) {
         const auto &store = kind.data.store;
         Visit(store,value);
         break;
+    }
+    case RVT_BRANCH: {
+        const auto &branch = kind.data.branch;
+        Visit(branch,value);
+    }
+    case RVT_JUMP: {
+        const auto &jump = kind.data.jump;
+        Visit(jump,value);
     }
     default:
         assert(false);
