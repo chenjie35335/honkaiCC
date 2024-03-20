@@ -45,27 +45,19 @@ void SinVarDefAST::generateGraph(RawSlice &IR) const
     {
     case SINVARDEFAST_UIN:
     {
-        RawValue *alloc = (RawValue *)malloc(sizeof(RawValue));
-        alloc->value.tag = RVT_ALLOC;
-        IR.buffer[IR.len++] = (const void *)alloc;
-        MidVarTable.insert(pair<string, RawValueP>("@" + ident + "_" + to_string(dep), alloc));
+        string MidIdent =  "@" + ident + "_" + to_string(dep); 
+        generateRawValue(MidIdent,IR);
         break;
     }
     case SINVARDEFAST_INI:
     {
-        RawValue *alloc = (RawValue *)malloc(sizeof(RawValue));
-        alloc->value.tag = RVT_ALLOC;
-        IR.buffer[IR.len++] = (const void *)alloc;
-        MidVarTable.insert(pair<string, RawValueP>("@" + ident + "_" + to_string(dep), alloc));
+        string MidIdent =  "@" + ident + "_" + to_string(dep); 
+        generateRawValue(MidIdent,IR);
         InitVal->generateGraph(IR,sign1);
-        RawValueP src;
+        RawValueP dest,src;
         generateRawValue(src,sign1);
-        RawValue *store = (RawValue *) malloc(sizeof(RawValue));
-        store->name = nullptr;
-        store->value.tag = RVT_STORE;
-        store->value.data.store.value = src;
-        store->value.data.store.dest = alloc;
-        IR.buffer[IR.len++] = (const void *) store;
+        generateRawValue(dest,MidIdent);
+        generateRawValue(src,dest,IR);
         break;
         //store类型的变量值没有返回值，不会被使用，所以不用存中间变量表
     }
@@ -76,6 +68,5 @@ void SinVarDefAST::generateGraph(RawSlice &IR) const
 }
 
 void InitValAST::generateGraph(RawSlice &IR,string &sign) const{
-    //cout << "enter InitValAST" << endl;
     Exp->generateGraph(IR,sign);
 }

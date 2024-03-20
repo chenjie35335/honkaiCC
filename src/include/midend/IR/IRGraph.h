@@ -125,5 +125,9 @@ void generateRawValue(RawValue *&value, RawValueP src);
 void generateRawValue(RawValue *&value, int32_t number,RawSlice &IR);
 
 void generateRawValue(RawValueP &src, RawValueP &dest,RawSlice &IR);
+
+void generateRawValue(string sign,RawSlice &IR);
+
+void generateRawValue(RawValue *&load, RawValueP &src, RawSlice &IR);
 #endif
 

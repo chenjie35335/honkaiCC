@@ -17,11 +17,7 @@ void LValRAST::generateGraph(RawSlice &IR, string &sign) const {
         RawValueP LoadSrc;
         string SrcSign = "@" + ident + "_" + to_string(dep);
         generateRawValue(LoadSrc,SrcSign);
-        value = (RawValue *) malloc(sizeof(RawValue));      
-        value->name = nullptr;
-        value->value.tag = RVT_LOAD;
-        value->value.data.load.src = LoadSrc;
-        IR.buffer[IR.len++] = (const void *) value;
+        generateRawValue(value,LoadSrc,IR); 
         MidVarTable.insert(pair<string,RawValueP>(sign,value));
     } else assert(0);
 }
