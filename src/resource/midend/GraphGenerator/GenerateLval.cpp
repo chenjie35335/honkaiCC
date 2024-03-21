@@ -7,17 +7,18 @@ using namespace std;
 extern unordered_map <string,RawValueP> MidVarTable;
 
 void LValRAST::generateGraph(RawSlice &IR, string &sign) const {
-    auto p = IdentTable;
-    int type;int dep = p->level;
-    p->IdentSearch(ident,sign,type);
+    int type;
+    IdentTable->IdentSearch(ident,sign,type);
     RawValue *value;
     if(type == FIND_CONST) {
         generateRawValue(value,stoi(sign),IR);
     } else if(type == FIND_VAR) {
         RawValueP LoadSrc;
-        string SrcSign = "@" + ident + "_" + to_string(dep);
-        generateRawValue(LoadSrc,SrcSign);
+        //cout << sign << endl;
+        generateRawValue(LoadSrc,sign);
         generateRawValue(value,LoadSrc,IR); 
+        alloc_now++;
+        sign = "%"+to_string(alloc_now);
         MidVarTable.insert(pair<string,RawValueP>(sign,value));
     } else assert(0);
 }

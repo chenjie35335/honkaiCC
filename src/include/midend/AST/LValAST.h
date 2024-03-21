@@ -16,12 +16,10 @@ class LValRAST : public BaseAST {
     //这里想办法在identTable那里定义一个函数用来实现这种遍历
     //这里的遍历实际上很麻烦，主要是那个全局变量的问题
     void Dump(string &sign) const override {
-      auto p = IdentTable;
-      p->IdentSearch(ident,sign);
+      IdentTable->IdentSearch(ident,sign);
     }
     int calc() const override {
-      auto p = IdentTable;
-      return p->IdentCalc(ident);
+      return IdentTable->IdentCalc(ident);
       }
     void generateGraph(RawSlice &IR, string &sign) const override;
 };

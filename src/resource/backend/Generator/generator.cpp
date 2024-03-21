@@ -14,7 +14,7 @@ void Visit(const RawLoad &data, const RawValueP &value) {
     else {
         AllocRegister(value);
         const char *TargetReg = GetRegister(value);
-        int srcAddress = getTargetOffset(src); 
+        int srcAddress = getTargetOffset(src); //这里有点好，直接跳过了visit过程
         cout << "  lw  " << TargetReg << ", " << srcAddress << "(sp)" << endl;
     }
 }
@@ -116,9 +116,13 @@ void Visit(const RawJump &data, const RawValueP &value){
 //如果这个处于未分配时，这时应该是遍历的时候访问的，分配内存和寄存器
 //这个Visit的方法就是要将RawValue值存到寄存器中，至于具体如何访问无需知道
 void Visit(const RawValueP &value) {    
-    if(IsRegister(value) || IsMemory(value)) {
+    if(IsRegister(value)) {
         return;
     }  
+    else if(IsMemory(value)) {
+        LoadFromMemory(value);
+        return;
+    }
     else {
     const auto& kind = value->value;
     switch(kind.tag) {

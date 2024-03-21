@@ -92,4 +92,9 @@ void AllocX0(const RawValueP &value);
 /// @param value 
 /// @return 
 int getTargetOffset(const RawValueP &value);
+
+/// @brief 获取分配的栈空间
+/// @param func 
+/// @return 
+int getAllocLen(const RawFunctionP &func);
 #endif

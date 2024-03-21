@@ -51,7 +51,8 @@ void SinVarDefAST::generateGraph(RawSlice &IR) const
     }
     case SINVARDEFAST_INI:
     {
-        string MidIdent =  "@" + ident + "_" + to_string(dep); 
+        string MidIdent =  "@" + ident + "_" + to_string(dep);
+        //cout << MidIdent << endl; 
         generateRawValue(MidIdent,IR);
         InitVal->generateGraph(IR,sign1);
         RawValueP dest,src;

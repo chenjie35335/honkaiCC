@@ -14,7 +14,6 @@ class StmtAST : public BaseAST {
     std::unique_ptr<BaseAST> InWhileStmt;
     uint32_t type;
     void Dump() const override {
-      auto p = IdentTable;
       string sign;
       if(break_cnt == 0 && continue_cnt == 0){
       switch(type) {
@@ -28,7 +27,7 @@ class StmtAST : public BaseAST {
             Lval->Dump(sign1);
             Exp->Dump(sign2);
             int value = Exp->calc();
-            p->VarAlter(sign1,sign2,value);
+            IdentTable->VarAlter(sign1,sign2,value);
             break;
           }
         case STMTAST_SINE: {

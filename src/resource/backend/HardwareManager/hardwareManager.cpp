@@ -100,7 +100,7 @@ void LoadFromMemory(const RawValueP value)
     AllocRegister(value);
     const char *reg = GetRegister(value);
     int TargetOffset = getTargetOffset(value);
-    cout << " load" << reg << ", " << TargetOffset << "(sp)" << endl;
+    cout << " lw  " << reg << ", " << TargetOffset << "(sp)" << endl;
 }
 
 /// @brief 给RawValue分配寄存器

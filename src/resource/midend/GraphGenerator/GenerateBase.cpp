@@ -6,12 +6,14 @@
 #include "../../../include/midend/AST/BaseAST.h"
 using namespace std;
 extern unordered_map <string,RawValueP> MidVarTable;
+extern IdentTableNode *t;
 
 void CompUnitAST::generateGraph(RawProgramme &IR) const {
     IdentTable = new IdentTableNode();
     ScopeLevel = 0;
     IdentTable->level = ScopeLevel;
     multCompUnit->generateGraph(IR.Funcs);
+    t = IdentTable;
     delete IdentTable;
 }
 
@@ -52,23 +54,27 @@ void FuncDefAST::generateGraph(RawSlice &IR) const{
     RawBasicBlock *q = (RawBasicBlock *) malloc(sizeof(RawFunction));
     q->name = nullptr;
     bbs.buffer[bbs.len++] = (const void *)q;
-    block->generateGraph(q->insts);
+    auto &insts = q->insts;
+    insts.kind = RSK_BASICVALUE;insts.len = 0;
+    insts.buffer = (const void **) malloc(sizeof(const void *) * 1000);
+    block->generateGraph(insts);
 }
 //这个blockAST的generateGraph对于分支语句来说是个重点
 //所以需要一个数据结构来存储当前的RawFunction下的RawSlice
 //到了函数阶段以后，由于产生了函数调用，所以可能还需要添加当前RawProgram下的RawSlice
 void BlockAST::generateGraph(RawSlice &IR) const {
     auto BlockScope = new IdentTableNode();
-    if(IdentTable->child == NULL){
+    if(IdentTable->child == nullptr){
       ScopeLevel++;
       BlockScope->father = IdentTable;
       BlockScope->level  = ScopeLevel;
       IdentTable->child  = BlockScope;
+      //cout << "create level:" << ScopeLevel << endl;
     }
     IdentTable = IdentTable->child;
-    IR.kind = RSK_BASICVALUE;IR.len = 0;
-    IR.buffer = (const void **) malloc(sizeof(const void *) * 100);
+    //cout << "push level:" << IdentTable->level << endl;
     MulBlockItem->generateGraph(IR);
+    //cout << "delete level:" << IdentTable->level << endl;
     IdentTable = IdentTable->father;
     IdentTable->child = NULL;
     delete BlockScope;
@@ -92,7 +98,6 @@ void SinBlockItemAST::generateGraph(RawSlice &IR) const{
 }
 
 void StmtAST::generateGraph(RawSlice &IR) const {
-      auto p = IdentTable;
       string sign;
       switch(type) {
           case STMTAST_RET:{
@@ -106,21 +111,33 @@ void StmtAST::generateGraph(RawSlice &IR) const {
           }
           case STMTAST_LVA: 
           {//这里虽然能过测试，但是这里没有考虑作用域的问题lv5的时候要考虑起来
-              int dep = p->level; 
+              //int dep = p->level; 
               string sign1,sign2;
-              cout << sign1 << endl;
               Lval->Dump(sign1);
               Exp->generateGraph(IR,sign2);
-              sign1 = "@"+sign1+"_"+to_string(dep);
+              //p->IdentSearch(sign1,sign,type);
+              int IdentType;
+              string DestSign,SrcSign;
+              //cout << "sign1 = " << sign1 << endl;
+              IdentTable->IdentSearch(sign1,DestSign,IdentType);
+              //cout << DestSign << endl;
+              if(IdentType == FIND_CONST) {
+                cerr << "Error: " << '"' << sign1 << '"' << " is constant and can't be altered" << endl;
+                exit(-1);
+              }
+              else {
+              SrcSign = sign2;
               RawValueP src,dest;
-              generateRawValue(dest,sign1);
-              generateRawValue(src,sign2);
+              generateRawValue(dest,DestSign);
+              generateRawValue(src,SrcSign);
               int value = Exp->calc();
-              //p->VarAlter(sign1,sign2,value);
               generateRawValue(src,dest,IR);
               break;
+              }
           }
-          case STMTAST_SINE: break;
+          case STMTAST_SINE: break; 
+          case STMTAST_BLO: 
+              Block->generateGraph(IR);break;
           default: assert(0);
       }
 }

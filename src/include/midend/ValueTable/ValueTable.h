@@ -38,8 +38,8 @@ public:
     // 构造函数
     IdentTableNode()
     {
-        father = nullptr;
-        child = nullptr;
+        this->father = nullptr;
+        this->child = nullptr;
     }
     // 添加常量
     void addValue(const string &ident, int value)
@@ -109,7 +109,7 @@ public:
             VarTable[ident] = value;
             return;
         }
-        else if (!this->father)
+        else if (this->father == nullptr)
         {
             cerr << '"' << ident << "is not defined" << endl;
             exit(-1);
@@ -137,7 +137,7 @@ public:
                  << "@" + ident + "_" + to_string(this->level) << endl;
             return;
         }
-        else if (!this->father)
+        else if (this->father == nullptr)
         {
             cerr << "Error: " << '"' << ident << '"' << " is not defined" << endl;
             exit(-1);
@@ -172,6 +172,7 @@ public:
 
     void IdentSearch(const string &ident, string &sign,int &type)
     {
+        //cout << "level = " << level << endl;
         if (!findValue(ident))
         {
             int CalValue = ConstTable.at(ident);
@@ -182,18 +183,18 @@ public:
         else if (!findVariable(ident))
         {
             type = FIND_VAR;
-            alloc_now++;
-            sign = "%" + to_string(alloc_now);
+            sign = "@" + ident + "_" + to_string(this->level);
             return;
         }
-        else if (!this->father)
+        else if (this->father == nullptr)
         {
             cerr << "Error: " << '"' << ident << '"' << " is not defined" << endl;
             exit(-1);
         }
         else
         {
-            this->father->IdentSearch(ident, sign);
+            //cout << "father's level " << this->father->level << endl;
+            this->father->IdentSearch(ident,sign,type);
         }
     }
 
