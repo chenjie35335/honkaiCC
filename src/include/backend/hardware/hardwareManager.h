@@ -97,4 +97,7 @@ int getTargetOffset(const RawValueP &value);
 /// @param func 
 /// @return 
 int getAllocLen(const RawFunctionP &func);
+/// @brief 返回栈大小
+/// @return 
+int getStackSize();
 #endif

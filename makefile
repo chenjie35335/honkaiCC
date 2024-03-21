@@ -104,6 +104,11 @@ clean:
 docker:
 	docker run -it -v $(TOP_DIR):/root/compiler maxxing/compiler-dev bash
 
+debug:
+	docker run -it -v $(TOP_DIR):/root/compiler \
+  	--cap-add=SYS_PTRACE --security-opt seccomp=unconfined \
+  	maxxing/compiler-dev bash
+
 test:
 	make clean
 	make

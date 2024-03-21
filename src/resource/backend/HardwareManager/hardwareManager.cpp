@@ -24,13 +24,13 @@ void ManagerAlloc(int maxSize)
 */
 /// @brief 分配栈地址给RawValue
 /// @param value
-int StackAlloc(const RawValue *value)
+int StackAlloc(RawValueP value)
 {
     if (memoryManager.Offset > memoryManager.maxSize)
         assert(0);
     else
     {
-        memoryManager.StackManager.insert(pair<const RawValue *, int>(value, memoryManager.Offset));
+        memoryManager.StackManager.insert(pair<RawValueP, int>(value, memoryManager.Offset));
         return 4*(memoryManager.Offset++);
     }
 }
@@ -100,7 +100,7 @@ void LoadFromMemory(const RawValueP value)
     AllocRegister(value);
     const char *reg = GetRegister(value);
     int TargetOffset = getTargetOffset(value);
-    cout << " lw  " << reg << ", " << TargetOffset << "(sp)" << endl;
+    cout << "  lw  " << reg << ", " << TargetOffset << "(sp)" << endl;
 }
 
 /// @brief 给RawValue分配寄存器
@@ -197,3 +197,19 @@ void AllocX0(const RawValueP &value)
 {
     registerManager.registerLook.insert(pair<RawValueP, int>(value, 0));
 }
+
+int getAllocLen(const RawFunctionP &func) {
+    auto &bbs = func->bbs;
+    int len = 0;
+    for(int i = 0; i < bbs.len;i++) {
+        auto ptr = reinterpret_cast<RawBasicBlockP>(bbs.buffer[i]);
+        auto &insts = ptr->insts;
+        len += insts.len;
+    }
+    return len*4;
+}
+
+int getStackSize() {
+    return memoryManager.maxSize;
+}
+

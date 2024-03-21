@@ -131,7 +131,13 @@ void Visit(const RawValueP &value) {
         Visit(ret);
         const char *RetRegister = GetRegister(ret);
         cout << "  mv   a0, "<< RetRegister << endl;
-        cout << "  addi sp, sp, 256" <<  endl;
+        int StackSize = getStackSize();
+        if(StackSize <= 256) {
+        cout << "  addi sp, sp, " << StackSize  <<  endl;
+        } else {
+        cout << "  li t0, " << StackSize << endl;
+        cout << "  add sp, sp, t0" << endl;
+        }
         cout << "  ret" << endl;
         break;
     }
@@ -189,9 +195,16 @@ void Visit(const RawFunctionP &func)
 {
          printf("  .globl %s\n",func->name);
          RegisterManagerAlloc();
-         ManagerAlloc(255);
+         int len = getAllocLen(func);
+         ManagerAlloc(len);
          printf("%s:\n",func->name);
-         cout << "  addi sp, sp, -256" <<  endl;
+         if(len <= 256) {
+         cout << "  addi sp, sp," << -len <<  endl;
+         }
+         else {
+         cout << "  li t0, " << -len << endl;
+         cout << "  add sp, sp ,t0" << endl;
+         }
          Visit(func->bbs);
        
 }
