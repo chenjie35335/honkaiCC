@@ -76,16 +76,15 @@ void StoreReg(int RandSelected)
     {
         if (pair.second == RandSelected)
         {
-            const auto &value = pair.first;
             TargetReg = regs[RandSelected];
-            if(IsMemory(value)) {
-            TargetOffset = getTargetOffset(value);
+            if(IsMemory(pair.first)) {
+            TargetOffset = getTargetOffset(pair.first);
             }
             else
             {
-            TargetOffset = StackAlloc(value);
+            TargetOffset = StackAlloc(pair.first);
             }
-            registerManager.registerLook.erase(value);
+            registerManager.registerLook.erase(pair.first);
             break;
         }
     }

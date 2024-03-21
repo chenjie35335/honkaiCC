@@ -35,8 +35,10 @@ void Visit(const RawBinary &data,const RawValueP &value) {
     const auto &lhs = data.lhs;
     const auto &rhs = data.rhs;
     const auto &op  = data.op;
-    Visit(lhs);Visit(rhs);
-    addLockRegister(lhs);addLockRegister(rhs);
+    Visit(lhs);
+    addLockRegister(lhs);
+    Visit(rhs);
+    addLockRegister(rhs);
     AllocRegister(value);
     LeaseLockRegister(lhs);LeaseLockRegister(rhs);
     const char *LhsRegister = GetRegister(lhs);
@@ -150,34 +152,41 @@ void Visit(const RawValueP &value) {
             const char *reg = GetRegister(value);
             cout << "  li   "  <<  reg  << ", "  << integer << endl;
         }
+        cout << endl;
         break;
     }
     case RVT_BINARY: {
         const auto &binary = kind.data.binary;
         Visit(binary,value);
+        cout << endl;
         break;
     }
     case RVT_ALLOC: {
         StackAlloc(value); 
+        cout << endl;
         break;
     }
     case RVT_LOAD: {
         const auto &load = kind.data.load;
         Visit(load,value);
+        cout << endl;
         break;
     }
     case RVT_STORE: {
         const auto &store = kind.data.store;
         Visit(store,value);
+        cout << endl;
         break;
     }
     case RVT_BRANCH: {
         const auto &branch = kind.data.branch;
         Visit(branch,value);
+        cout << endl;
     }
     case RVT_JUMP: {
         const auto &jump = kind.data.jump;
         Visit(jump,value);
+        cout << endl;
     }
     default:
         assert(false);
