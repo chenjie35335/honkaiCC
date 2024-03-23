@@ -71,7 +71,9 @@ enum{
   FUNCTYPE_INT,
   FUNCTYPE_VOID,
   DECL_LOC,
-  DECL_GLOB
+  DECL_GLOB,
+  IFSTMT_SIN,
+  IFSTMT_MUL
 }Kind;
 
 extern int ScopeLevel;
@@ -99,9 +101,9 @@ class BaseAST {
   virtual void Dump(string &sign,vector<string> &Para) const{};
   [[nodiscard]] virtual int calc() const {return 0;}//计算表达式的值
   virtual void Dump(int sign) const {}//这个用于函数时候判断参数
-  virtual void generateGraph(RawProgramme &IR) const{}
-  virtual void generateGraph(RawSlice &IR) const{}
-  virtual void generateGraph(RawSlice &IR, string &sign) const{}
+  virtual void generateGraph(RawProgramme *IR) const{}
+  virtual void generateGraph() const{}
+  virtual void generateGraph(string &sign) const{}
 };
 
 class CompUnitAST : public BaseAST {
@@ -126,7 +128,7 @@ class CompUnitAST : public BaseAST {
     multCompUnit->Dump();
     delete IdentTable;
   }
-  void generateGraph(RawProgramme &IR) const override;
+  void generateGraph(RawProgramme *IR) const override;
 };
 
 // CompUnit 是 BaseAST
@@ -140,7 +142,7 @@ class MultCompUnitAST : public BaseAST {
       sinComp->Dump();
     }
   }
-  void generateGraph(RawSlice &IR) const override;
+  void generateGraph() const override;
 };
 
 // FuncDef 也是 BaseAST
@@ -174,7 +176,7 @@ class SinCompUnitAST : public BaseAST {
       
     }
     [[nodiscard]] int calc() const override{return type;}
-    void generateGraph(RawSlice &IR) const override;
+    void generateGraph() const override;
 };
 
 #endif

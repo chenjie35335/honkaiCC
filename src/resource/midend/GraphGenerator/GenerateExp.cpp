@@ -1,58 +1,56 @@
 #include "../../../include/midend/IR/IRGraph.h"
-#include "../../../include/midend/IR/GenerateIR.h"
+#include "../../../include/midend/IR/IRBuilder.h"
 #include "../../../include/midend/IR/ValueKind.h"
+#include "../../../include/midend/AST/ast.h"
 #include <cstdlib>
 #include <unordered_map>
 using namespace std;
 unordered_map<string, RawValueP> MidVarTable;
 // 这里这个RawProgramme是生成好
 
-void SinExpAST::generateGraph(RawSlice &IR, string &sign) const
+void SinExpAST::generateGraph(string &sign) const
 {
   switch (type)
   {
   case SINEXPAST_EXP:
-    Exp->generateGraph(IR, sign);
+    Exp->generateGraph(sign);
     break;
   default:
     assert(0);
   }
 }
 
-void ExpAST::generateGraph(RawSlice &IR, string &sign) const
+void ExpAST::generateGraph(string &sign) const
 {
-  LOrExp->generateGraph(IR, sign);
+  LOrExp->generateGraph(sign);
 }
 
-void LOrExpAST::generateGraph(RawSlice &IR, string &sign) const
+void LOrExpAST::generateGraph(string &sign) const
 {
   string sign1, sign2;
   switch (type)
   {
   case LOREXPAST_LAN:
-    LAndExp->generateGraph(IR, sign);
+    LAndExp->generateGraph(sign);
     break;
   case LOREXPAST_LOR:
   {
-    LOrExp->generateGraph(IR, sign1);
-    LAndExp->generateGraph(IR, sign2);
+    LOrExp->generateGraph(sign1);
+    LAndExp->generateGraph(sign2);
     alloc_now++;
-    sign = "%" + to_string(alloc_now);
+    string OrSign = "%" + to_string(alloc_now);
     RawValueP lhs, rhs;
     generateRawValue(lhs, sign1);
     generateRawValue(rhs, sign2);
-    RawValue *StmtOR;
-    generateRawValue(StmtOR, lhs, rhs, RBO_OR);
-    MidVarTable.insert(pair<string, RawValueP>(sign, StmtOR));
-    IR.buffer[IR.len++] = (const void *)StmtOR;
+    generateRawValue(OrSign, lhs, rhs, RBO_OR);
     alloc_now++;
     sign = "%" + to_string(alloc_now);
-    RawValue *zero;
-    generateRawValue(zero, 0, IR);
-    RawValue *StmtNEQ;
-    generateRawValue(StmtNEQ, StmtOR, zero, RBO_NOT_EQ);
-    IR.buffer[IR.len++] = (const void *)StmtNEQ;
-    MidVarTable.insert(pair<string, RawValueP>(sign, StmtNEQ));
+    string ZeroSign = to_string(0);
+    RawValueP zero, StmtOR;
+    generateRawValue(0);
+    generateRawValue(zero, ZeroSign);
+    generateRawValue(StmtOR, OrSign);
+    generateRawValue(sign, StmtOR, zero, RBO_NOT_EQ);
     break;
   }
   default:
@@ -60,40 +58,37 @@ void LOrExpAST::generateGraph(RawSlice &IR, string &sign) const
   }
 }
 
-void LAndExpAST::generateGraph(RawSlice &IR, string &sign) const
+void LAndExpAST::generateGraph(string &sign) const
 {
   string s1, s2;
   switch (type)
   {
   case LANDEXPAST_EQE:
-    EqExp->generateGraph(IR, sign);
+    EqExp->generateGraph(sign);
     break;
   case LANDEXPAST_LAN:
   {
-    LAndExp->generateGraph(IR, s1);
-    EqExp->generateGraph(IR, s2);
+    LAndExp->generateGraph(s1);
+    EqExp->generateGraph(s2);
     RawValueP signL, signR;
     generateRawValue(signL, s1);
     generateRawValue(signR, s2);
+    RawValueP zero;
+    string ZeroSign = to_string(0);
+    generateRawValue(0);
+    generateRawValue(zero, ZeroSign);
+    alloc_now++;
+    string Nelsign = "%" + to_string(alloc_now);
+    RawValueP StmtNeL, StmtNeR;
+    generateRawValue(Nelsign, signL, zero, RBO_NOT_EQ);
+    alloc_now++;
+    string Nersign = "%" + to_string(alloc_now);
+    generateRawValue(Nersign, signR, zero, RBO_NOT_EQ);
     alloc_now++;
     sign = "%" + to_string(alloc_now);
-    RawValue *zero;
-    generateRawValue(zero, 0, IR);
-    RawValue *StmtNeL, *StmtNeR;
-    generateRawValue(StmtNeL, signL, zero, RBO_NOT_EQ);
-    IR.buffer[IR.len++] = (const void *)StmtNeL;
-    MidVarTable.insert(pair<string, RawValueP>(sign, StmtNeL));
-    alloc_now++;
-    sign = "%" + to_string(alloc_now);
-    generateRawValue(StmtNeR, signR, zero, RBO_NOT_EQ);
-    IR.buffer[IR.len++] = (const void *)StmtNeR;
-    MidVarTable.insert(pair<string, RawValueP>(sign, StmtNeR));
-    alloc_now++;
-    sign = "%" + to_string(alloc_now);
-    RawValue *StmtAnd;
-    generateRawValue(StmtAnd, StmtNeL, StmtNeR, RBO_AND);
-    IR.buffer[IR.len++] = (const void *)StmtNeR;
-    MidVarTable.insert(pair<string, RawValueP>(sign, StmtNeR));
+    generateRawValue(StmtNeL,Nelsign);
+    generateRawValue(StmtNeR,Nersign);
+    generateRawValue(sign, StmtNeL, StmtNeR, RBO_AND);
     break;
   }
   default:
@@ -101,40 +96,37 @@ void LAndExpAST::generateGraph(RawSlice &IR, string &sign) const
   }
 }
 
-void EqExpAST::generateGraph(RawSlice &IR, string &sign) const
+void EqExpAST::generateGraph(string &sign) const
 {
   string s1, s2;
   switch (type)
   {
   case EQEXPAST_REL:
   {
-    RelExp->generateGraph(IR, sign);
+    RelExp->generateGraph(sign);
     break;
   }
   case EQEXPAST_EQE:
   {
     int OpType = EqOp->calc();
-    EqExp->generateGraph(IR, s1);
-    RelExp->generateGraph(IR, s2);
+    EqExp->generateGraph(s1);
+    RelExp->generateGraph(s2);
     RawValueP signL, signR;
     generateRawValue(signL, s1);
     generateRawValue(signR, s2);
     alloc_now++;
     sign = "%" + to_string(alloc_now);
-    RawValue *Stmte;
     switch (OpType)
     {
     case EQOPAST_EQ:
-      generateRawValue(Stmte, signL, signR, RBO_EQ);
+      generateRawValue(sign, signL, signR, RBO_EQ);
       break;
     case EQOPAST_NE:
-      generateRawValue(Stmte, signL, signR, RBO_NOT_EQ);
+      generateRawValue(sign, signL, signR, RBO_NOT_EQ);
       break;
     default:
       assert(0);
     }
-    IR.buffer[IR.len++] = (const void *)Stmte;
-    MidVarTable.insert(pair<string, RawValueP>(sign, Stmte));
     break;
   }
   default:
@@ -142,47 +134,43 @@ void EqExpAST::generateGraph(RawSlice &IR, string &sign) const
   }
 }
 
-void RelExpAST::generateGraph(RawSlice &IR, string &sign) const
+void RelExpAST::generateGraph(string &sign) const
 {
   string s1, s2;
   switch (type)
   {
   case RELEXPAST_ADD:
   {
-    AddExp->generateGraph(IR, sign);
+    AddExp->generateGraph(sign);
     break;
   }
   case RELEXPAST_REL:
   {
-    RelExp->generateGraph(IR, s1);
-    AddExp->generateGraph(IR, s2);
+    RelExp->generateGraph(s1);
+    AddExp->generateGraph(s2);
     int OpRel = RelOp->calc();
     RawValueP signL, signR;
     generateRawValue(signL, s1);
     generateRawValue(signR, s2);
     alloc_now++;
     sign = "%" + to_string(alloc_now);
-    RawValue *StmtR;
-    //cout << "OpRel"<< OpRel << endl;
     switch (OpRel)
     {
     case RELOPAST_GE:
-      generateRawValue(StmtR, signL, signR, RBO_GE);
+      generateRawValue(sign, signL, signR, RBO_GE);
       break;
     case RELOPAST_LE:
-      generateRawValue(StmtR, signL, signR, RBO_LE);
+      generateRawValue(sign, signL, signR, RBO_LE);
       break;
     case RELOPAST_L:
-      generateRawValue(StmtR, signL, signR, RBO_LT);
+      generateRawValue(sign, signL, signR, RBO_LT);
       break;
     case RELOPAST_G:
-      generateRawValue(StmtR, signL, signR, RBO_GT);
+      generateRawValue(sign, signL, signR, RBO_GT);
       break;
     default:
       assert(0);
     }
-    IR.buffer[IR.len++] = (const void *)StmtR;
-    MidVarTable.insert(pair<string, RawValueP>(sign, StmtR));
     break;
   }
   default:
@@ -190,38 +178,35 @@ void RelExpAST::generateGraph(RawSlice &IR, string &sign) const
   }
 }
 
-void AddExpAST::generateGraph(RawSlice &IR, string &sign) const
+void AddExpAST::generateGraph(string &sign) const
 {
   string s1, s2;
   switch (type)
   {
   case MULEXP:
-    MulExp->generateGraph(IR, sign);
+    MulExp->generateGraph(sign);
     break;
   case ADDMUL:
   {
-    AddExp->generateGraph(IR, s1);
-    MulExp->generateGraph(IR, s2);
+    AddExp->generateGraph(s1);
+    MulExp->generateGraph(s2);
     int OpAdd = AddOp->calc();
     RawValueP signL, signR;
     generateRawValue(signL, s1);
     generateRawValue(signR, s2);
     alloc_now++;
     sign = "%" + to_string(alloc_now);
-    RawValue *StmtAdd;
     switch (OpAdd)
     {
     case '+':
-      generateRawValue(StmtAdd, signL, signR, RBO_ADD);
+      generateRawValue(sign, signL, signR, RBO_ADD);
       break;
     case '-':
-      generateRawValue(StmtAdd, signL, signR, RBO_SUB);
+      generateRawValue(sign, signL, signR, RBO_SUB);
       break;
     default:
       assert(0);
     }
-    IR.buffer[IR.len++] = (const void *)StmtAdd;
-    MidVarTable.insert(pair<string, RawValueP>(sign, StmtAdd));
     break;
   }
   default:
@@ -229,41 +214,38 @@ void AddExpAST::generateGraph(RawSlice &IR, string &sign) const
   }
 }
 
-void MulExpAST::generateGraph(RawSlice &IR, string &sign) const
+void MulExpAST::generateGraph(string &sign) const
 {
   string s1, s2;
   switch (type)
   {
   case MULEXPAST_UNA:
-    UnaryExp->generateGraph(IR, sign);
+    UnaryExp->generateGraph(sign);
     break;
   case MULEXPAST_MUL:
   {
-    MulExp->generateGraph(IR,s1);
-    UnaryExp->generateGraph(IR,s2);
+    MulExp->generateGraph(s1);
+    UnaryExp->generateGraph(s2);
     int OpMul = MulOp->calc();
     RawValueP signL, signR;
     generateRawValue(signL, s1);
     generateRawValue(signR, s2);
     alloc_now++;
     sign = "%" + to_string(alloc_now);
-    RawValue *StmtMul;
     switch (OpMul)
     {
     case '*':
-      generateRawValue(StmtMul, signL, signR, RBO_MUL);
+      generateRawValue(sign, signL, signR, RBO_MUL);
       break;
     case '/':
-      generateRawValue(StmtMul, signL, signR, RBO_DIV);
+      generateRawValue(sign, signL, signR, RBO_DIV);
       break;
     case '%':
-      generateRawValue(StmtMul, signL, signR, RBO_MOD);
+      generateRawValue(sign, signL, signR, RBO_MOD);
       break;
     default:
       assert(0);
     }
-    IR.buffer[IR.len++] = (const void *)StmtMul;
-    MidVarTable.insert(pair<string, RawValueP>(sign, StmtMul));
     break;
   }
   default:
@@ -271,20 +253,20 @@ void MulExpAST::generateGraph(RawSlice &IR, string &sign) const
   }
 }
 
-void UnaryExpAST_P::generateGraph(RawSlice &IR, string &sign) const
+void UnaryExpAST_P::generateGraph(string &sign) const
 {
-  PrimaryExp->generateGraph(IR, sign);
+  PrimaryExp->generateGraph(sign);
 }
 
-void UnaryExpAST_U::generateGraph(RawSlice &IR, string &sign) const
+void UnaryExpAST_U::generateGraph(string &sign) const
 {
-  UnaryExp->generateGraph(IR, sign);
-  UnaryOp->generateGraph(IR, sign);
+  UnaryExp->generateGraph(sign);
+  UnaryOp->generateGraph(sign);
 }
 
-void UnaryOpAST::generateGraph(RawSlice &IR, string &sign) const
+void UnaryOpAST::generateGraph(string &sign) const
 {
-  alloc_now++;
+
   switch (op)
   {
   case '+':
@@ -292,18 +274,18 @@ void UnaryOpAST::generateGraph(RawSlice &IR, string &sign) const
   case '-':
   case '!':
   {
-    RawValue *p;
-    RawValue *zero;
     RawValueP exp;
-    generateRawValue(zero, 0, IR);
+    RawValueP zero;
+    string ZeroSign = to_string(0);
+    generateRawValue(0);
+    generateRawValue(zero, ZeroSign);
     generateRawValue(exp, sign);
-    if (op == '-')
-      generateRawValue(p, zero, exp, RBO_SUB);
-    else
-      generateRawValue(p, zero, exp, RBO_EQ);
-    IR.buffer[IR.len++] = (const void *)p;
+    alloc_now++;
     sign = "%" + to_string(alloc_now);
-    MidVarTable.insert(pair<string, RawValueP>(sign, p));
+    if (op == '-')
+      generateRawValue(sign, zero, exp, RBO_SUB);
+    else
+      generateRawValue(sign, zero, exp, RBO_EQ);
     break;
   }
   default:
@@ -311,22 +293,21 @@ void UnaryOpAST::generateGraph(RawSlice &IR, string &sign) const
   }
 }
 
-void PrimaryExpAST::generateGraph(RawSlice &IR, string &sign) const
+void PrimaryExpAST::generateGraph(string &sign) const
 {
   switch (kind)
   {
   case UNARYEXP:
-    Exp->generateGraph(IR, sign);
+    Exp->generateGraph(sign);
     break;
-  // case LVAL: Lval->Dump(sign);break;
   case NUMBER:
     sign = to_string(number);
-    RawValue *p;
-    generateRawValue(p, number, IR);
+    generateRawValue(number);
     break;
   case LVAL:
-    Lval->generateGraph(IR,sign);
+    Lval->generateGraph(sign);
     break;
-  default: assert(0);
+  default:
+    assert(0);
   }
 }

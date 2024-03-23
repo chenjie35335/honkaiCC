@@ -125,8 +125,7 @@ void AllocRegister(const RawValueP &value)
     {
         uint32_t &RegLoc = registerManager.tempRegister;
         registerManager.registerLook.insert(pair<RawValueP, int>(value, RegLoc));
-        do
-        {
+        do{
             RegLoc++;
         } while ((RegLoc == 10 || RegLoc == 11 || registerManager.RegisterLock[RegLoc]) && RegLoc < 32);
         //cout << "RegLoc ==" << RegLoc << endl;
@@ -157,9 +156,7 @@ void addLockRegister(const RawValueP &value)
     {
         int loc = registerManager.registerLook.at(value);
         registerManager.RegisterLock[loc] = true;
-    }
-    else
-    {
+    } else {
         assert(0);
     }
 }

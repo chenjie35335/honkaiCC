@@ -20,7 +20,7 @@ class BlockAST : public BaseAST {
       IdentTable->child = NULL;
       delete BlockScope;
 }
-void generateGraph(RawSlice &IR) const override;
+void generateGraph() const override;
 };
 
 class MulBlockItemAST : public BaseAST {
@@ -35,7 +35,7 @@ class MulBlockItemAST : public BaseAST {
         }
       }
     }
-    void generateGraph(RawSlice &IR) const override;
+    void generateGraph() const override;
 };
 //单个block生成一个作用域
 class SinBlockItemAST : public BaseAST {
@@ -59,7 +59,7 @@ class SinBlockItemAST : public BaseAST {
         default: assert(0);
         }
     }
-    void generateGraph(RawSlice &IR) const override;
+    void generateGraph() const override;
 };
 
 #endif

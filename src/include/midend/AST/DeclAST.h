@@ -15,7 +15,7 @@ class DeclAST : public BaseAST {
             default: assert(0);
         }
     }
-    void generateGraph(RawSlice &IR) const override;
+    void generateGraph() const override;
 };
 
 class ConstDeclAST : public BaseAST {
@@ -59,7 +59,7 @@ public:
      void Dump(int sign) const override{
         MulVarDef->Dump(sign);
      }
-     void generateGraph(RawSlice &IR) const override;
+     void generateGraph() const override;
 };
 
 class MulVarDefAST : public BaseAST {
@@ -70,7 +70,7 @@ public:
           sinValDef->Dump(sign);
       }
     }
-    void generateGraph(RawSlice &IR) const override;
+    void generateGraph() const override;
 };
 
 class SinVarDefAST : public BaseAST {
@@ -113,7 +113,7 @@ public:
       }
       IdentTable->addVariable(ident,value);
     }
-    void generateGraph(RawSlice &IR) const override;
+    void generateGraph() const override;
 };
 
 class InitValAST : public BaseAST {
@@ -123,7 +123,7 @@ public:
       Exp->Dump(sign);
     }
     [[nodiscard]] int calc() const override {return Exp->calc();}
-    void generateGraph(RawSlice &IR,string &sign) const override;
+    void generateGraph(string &sign) const override;
 };
 
 class ConstExpAST : public BaseAST {

@@ -50,7 +50,7 @@ class UnaryOpAST : public BaseAST {
     [[nodiscard]] int calc() const override{
         return op;
     }
-    void generateGraph(RawSlice &IR,string &sign) const override;
+    void generateGraph(string &sign) const override;
 };
 //加减运算符
 class AddOpAST : public BaseAST {

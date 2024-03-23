@@ -31,7 +31,7 @@ int main(int argc, const char *argv[]) {
   //生成后端代码
   if(strcmp(mode,"-riscv") == 0){
       RawProgramme irGraph;
-      ast->generateGraph(irGraph);
+      ast->generateGraph(&irGraph);
       backend(irGraph);
   }
   return 0;

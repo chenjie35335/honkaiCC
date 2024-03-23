@@ -339,7 +339,7 @@ Stmt
     $$        = ast;
   } | IfStmt {
     auto ast = new StmtAST();
-    ast->IfHead = unique_ptr<BaseAST>($1);
+    ast->ifStmt = unique_ptr<BaseAST>($1);
     ast->type = STMTAST_IF;
     $$        = ast;
   } | WhileStmtHead {
@@ -359,11 +359,13 @@ Stmt
 IfStmt
   : SinIfStmt {
     auto ast =  new IfStmtAST();
-    ast->if_head_stmt = unique_ptr<BaseAST> ($1);
+    ast->sinIfStmt = unique_ptr<BaseAST> ($1);
+    ast->type = IFSTMT_SIN;
     $$           = ast;
   } | MultElseStmt {
     auto ast = new IfStmtAST();
-    ast->if_head_stmt = unique_ptr<BaseAST> ($1);
+    ast->multElseStmt = unique_ptr<BaseAST> ($1);
+    ast->type = IFSTMT_MUL;
     $$          = ast;
   }
   ;

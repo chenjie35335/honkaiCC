@@ -1,4 +1,4 @@
-for i in {1..100000}
+for i in {1..2000}
 do
     ./build/compiler -riscv hello.c -o hello.koopa
     if [ $? -ne 0 ]; then

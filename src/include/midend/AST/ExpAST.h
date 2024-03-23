@@ -13,7 +13,7 @@ public:
   {
     return LOrExp->calc();
   }
-  void generateGraph(RawSlice &IR, string &sign) const override;
+  void generateGraph(string &sign) const override;
 };
 
 class SinExpAST : public BaseAST
@@ -35,7 +35,7 @@ public:
       assert(0);
     }
   }
-  void generateGraph(RawSlice &IR, string &sign) const override;
+  void generateGraph(string &sign) const override;
 };
 
 class LOrExpAST : public BaseAST
@@ -98,7 +98,7 @@ public:
     }
     return value;
   }
-  void generateGraph(RawSlice &IR, string &sign) const override;
+  void generateGraph(string &sign) const override;
 };
 
 class LAndExpAST : public BaseAST
@@ -184,7 +184,7 @@ public:
     }
     return value;
   }
-  void generateGraph(RawSlice &IR, string &sign) const override;
+  void generateGraph(string &sign) const override;
 };
 
 class EqExpAST : public BaseAST
@@ -244,7 +244,7 @@ public:
     }
     return value;
   }
-  void generateGraph(RawSlice &IR, string &sign) const override;
+  void generateGraph(string &sign) const override;
 };
 
 class RelExpAST : public BaseAST
@@ -315,7 +315,7 @@ public:
     }
     return value;
   }
-  void generateGraph(RawSlice &IR, string &sign) const override;
+  void generateGraph(string &sign) const override;
 };
 
 class AddExpAST : public BaseAST
@@ -379,7 +379,7 @@ public:
     }
     return value;
   }
-  void generateGraph(RawSlice &IR, string &sign) const override;
+  void generateGraph(string &sign) const override;
 };
 
 class MulExpAST : public BaseAST
@@ -445,7 +445,7 @@ public:
     }
     return value;
   }
-  void generateGraph(RawSlice &IR, string &sign) const override;
+  void generateGraph(string &sign) const override;
 };
 
 class UnaryExpAST_P : public BaseAST
@@ -463,7 +463,7 @@ public:
   {
     return PrimaryExp->calc();
   }
-  void generateGraph(RawSlice &IR, string &sign) const override;
+  void generateGraph(string &sign) const override;
 };
 
 class UnaryExpAST_U : public BaseAST
@@ -499,7 +499,7 @@ public:
     }
     return value;
   }
-  void generateGraph(RawSlice &IR, string &sign) const override;
+  void generateGraph(string &sign) const override;
 };
 
 class UnaryExpAST_F : public BaseAST
@@ -617,7 +617,7 @@ public:
     }
     return value;
   }
-  void generateGraph(RawSlice &IR, string &sign) const override;
+  void generateGraph(string &sign) const override;
 };
 
 #endif

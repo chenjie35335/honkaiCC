@@ -21,7 +21,7 @@ class LValRAST : public BaseAST {
     int calc() const override {
       return IdentTable->IdentCalc(ident);
       }
-    void generateGraph(RawSlice &IR, string &sign) const override;
+    void generateGraph(string &sign) const override;
 };
 
 #endif

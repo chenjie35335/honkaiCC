@@ -48,7 +48,7 @@ public:
     ret_cnt = 0;
     cout << "}" << endl << endl;
   }
-  void generateGraph(RawSlice &IR) const override;
+  void generateGraph() const override;
 };
 
 class FuncTypeAST : public BaseAST

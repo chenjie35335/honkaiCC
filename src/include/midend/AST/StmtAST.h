@@ -9,7 +9,7 @@ class StmtAST : public BaseAST {
     std::unique_ptr<BaseAST> Exp;
     std::unique_ptr<BaseAST> Lval;
     std::unique_ptr<BaseAST> Block;
-    std::unique_ptr<BaseAST> IfHead;
+    std::unique_ptr<BaseAST> ifStmt;
     std::unique_ptr<BaseAST> WhileHead;
     std::unique_ptr<BaseAST> InWhileStmt;
     uint32_t type;
@@ -35,27 +35,35 @@ class StmtAST : public BaseAST {
             break;
         }
         case STMTAST_BLO: Block->Dump(); break;
-        case STMTAST_IF: IfHead->Dump(); break;
+        case STMTAST_IF: ifStmt->Dump(); break;
         case STMTAST_WHILE: WhileHead->Dump(); break;
         case STMTAST_INWHILE: InWhileStmt->Dump(); break;
-        
-          default:
+        default:
               assert(0);
       } 
     }  
     }
     [[nodiscard]] int calc() const override{return type;};
-    void generateGraph(RawSlice &IR) const override;
+    void generateGraph() const override;
 };
 
 //非终结符不存在类
 class IfStmtAST : public BaseAST{
   public:
-    std::unique_ptr<BaseAST> if_head_stmt;
-     void Dump() const override{
-      if_head_stmt->Dump();
+    std::unique_ptr<BaseAST> sinIfStmt;
+    std::unique_ptr<BaseAST> multElseStmt;
+    int type;
+    void Dump() const override{
+     switch(type) {
+      case IFSTMT_SIN:
+      sinIfStmt->Dump(); break;
+      case IFSTMT_MUL:
+      multElseStmt->Dump(); break;
+      default:
+      assert(0);
      }
-    [[nodiscard]] int calc() const override{return 0;}
+    }
+    void generateGraph() const override;
 };
 
 //非终结符不存在类
@@ -69,7 +77,6 @@ class SinIfStmtAST : public BaseAST{
       //输出对应中间变量担任名称
       if(alloc_now < 0) alloc_now = 0;
       if_flag_level[if_level] = alloc_now;
-      //alloc_now++;
       cout<<"\tbr " << sign1 <<", %then"<<if_flag_level[if_level]<<", %end"<<if_flag_level[if_level]<<endl;
       cout<<endl;
       cout<<"%then"<<if_flag_level[if_level]<<":"<<endl;
@@ -78,7 +85,6 @@ class SinIfStmtAST : public BaseAST{
       int tmp = stmt->calc();
       //执行完if条件跳转，接下来执行stmt中内容
       stmt->Dump();
-      //cout<<endl;
       if_level--;
       //we need judge before jumping end
       if(tmp != STMTAST_RET){
@@ -99,6 +105,7 @@ class SinIfStmtAST : public BaseAST{
       cout<<endl;
       cout<<"%end"<<if_flag_level[if_level]<<":"<<endl;
      }
+     void generateGraph() const override;
 };
 
 class MultElseStmtAST : public BaseAST{
@@ -123,11 +130,6 @@ class MultElseStmtAST : public BaseAST{
       int tmp1 = if_stmt->calc();
       if_stmt->Dump();
       if_level--;
-      //cout<<endl;
-
-      //break and continue in if else we need fix
-      //single if is already fixed
-
       if(tmp1 != STMTAST_RET){
         if(tmp1 == STMTAST_BLO && ret_cnt == 0 && break_cnt == 0 && continue_cnt == 0){
           cout<<"\tjump %end"<<if_flag_level[if_level]<<endl;
@@ -161,29 +163,12 @@ class MultElseStmtAST : public BaseAST{
         if(tmp2 != STMTAST_BLO && tmp2 != STMTAST_INWHILE && tmp2 != STMTAST_BREAK && tmp2 != STMTAST_CONTINUE){
           cout<<"\tjump %end"<<if_flag_level[if_level]<<endl;
         }
-      }
-        
+      } 
       cout<<endl;
       cout<<"%end"<<if_flag_level[if_level]<<":"<<endl;
-      
-      //错误异常处理退出---不知咋处理，应该可以退出
-      //end终止退出符
-
   }
 
 };
-
-
-//遇到return不继续执行，直接返回
-class If_return : public BaseAST{
-  public:
-    std::unique_ptr<BaseAST> if_return_flag;
-    void Dump() const override{
-        if_return_flag->Dump();
-    }
-    //返回7标识return标志
-};
-
 
 class WhileStmtHeadAST : public BaseAST{
   public:

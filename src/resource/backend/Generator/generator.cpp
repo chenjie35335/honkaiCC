@@ -152,41 +152,41 @@ void Visit(const RawValueP &value) {
             const char *reg = GetRegister(value);
             cout << "  li   "  <<  reg  << ", "  << integer << endl;
         }
-        cout << endl;
+        //cout << endl;
         break;
     }
     case RVT_BINARY: {
         const auto &binary = kind.data.binary;
         Visit(binary,value);
-        cout << endl;
+        //cout << endl;
         break;
     }
     case RVT_ALLOC: {
         StackAlloc(value); 
-        cout << endl;
+        //cout << endl;
         break;
     }
     case RVT_LOAD: {
         const auto &load = kind.data.load;
         Visit(load,value);
-        cout << endl;
+        //cout << endl;
         break;
     }
     case RVT_STORE: {
         const auto &store = kind.data.store;
         Visit(store,value);
-        cout << endl;
+        //cout << endl;
         break;
     }
     case RVT_BRANCH: {
         const auto &branch = kind.data.branch;
         Visit(branch,value);
-        cout << endl;
+        //cout << endl;
     }
     case RVT_JUMP: {
         const auto &jump = kind.data.jump;
         Visit(jump,value);
-        cout << endl;
+        //cout << endl;
     }
     default:
         assert(false);

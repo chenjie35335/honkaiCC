@@ -1,6 +1,7 @@
 #include "../../../include/midend/IR/IRGraph.h"
-#include "../../../include/midend/IR/GenerateIR.h"
+#include "../../../include/midend/IR/IRBuilder.h"
 #include "../../../include/midend/IR/ValueKind.h"
+#include "../../../include/midend/AST/ast.h"
 #include <cstdlib>
 #include <unordered_map>
 extern unordered_map<string, RawValueP> MidVarTable;
@@ -17,64 +18,80 @@ void generateRawValue(RawValueP &value, string &sign)
 /// @brief 创建return型value
 /// @param value
 /// @param src
-void generateRawValue(RawValue *&value, RawValueP src)
+void generateRawValue(RawValueP src)
 {
-    value = (RawValue *)malloc(sizeof(RawValue));
+    auto bb = getTempBasicBlock();
+    auto &insts = bb->insts;
+    RawValue * value = (RawValue *)malloc(sizeof(RawValue));
     value->name = nullptr;
     value->value.tag = RVT_RETURN;
     value->value.data.ret.value = src;
+    insts.buffer[insts.len++] = (const void *)value;
 }
 
-void generateRawValue(RawValue *&value, RawValueP lhs, RawValueP rhs, uint32_t op)
+void generateRawValue(string &sign, RawValueP lhs, RawValueP rhs, uint32_t op)
 {
-    value = (RawValue *)malloc(sizeof(RawValue));
+    auto bb = getTempBasicBlock();
+    auto &insts = bb->insts;
+    RawValue * value = (RawValue *)malloc(sizeof(RawValue));
     value->name = nullptr;
     value->value.tag = RVT_BINARY;
     value->value.data.binary.lhs = lhs;
     value->value.data.binary.rhs = rhs;
     value->value.data.binary.op = op;
+    insts.buffer[insts.len++] = (const void *)value;
+    MidVarTable.insert(pair<string, RawValueP>(sign, value));
 }
 
-void generateRawValue(RawValue *&value, int32_t number, RawSlice &IR)
+void generateRawValue(int32_t number)
 {
+    auto bb = getTempBasicBlock();
+    auto &insts = bb->insts;
     if (MidVarTable.find(to_string(number)) != MidVarTable.end())
     {
-        value = (RawValue *)MidVarTable.at(to_string(number));
+        return;
     }
     else
     {
-        value = (RawValue *)malloc(sizeof(RawValue));
+        RawValue * value = (RawValue *)malloc(sizeof(RawValue));
         value->name = nullptr;
         value->value.tag = RVT_INTEGER;
         value->value.data.integer.value = number;
-        IR.buffer[IR.len++] = (const void *)value;
+        insts.buffer[insts.len++] = (const void *)value;
         MidVarTable.insert(pair<string, RawValueP>(to_string(number), value));
     }
 }
 
-void generateRawValue(RawValueP &src, RawValueP &dest, RawSlice &IR)
+void generateRawValue(RawValueP &src, RawValueP &dest)
 {
+    auto bb = getTempBasicBlock();
+    auto &insts = bb->insts;
     RawValue *store = (RawValue *)malloc(sizeof(RawValue));
     store->name = nullptr;
     store->value.tag = RVT_STORE;
     store->value.data.store.value = src;
     store->value.data.store.dest = dest;
-    IR.buffer[IR.len++] = (const void *)store;
+    insts.buffer[insts.len++] = (const void *)store;
 }
 
-void generateRawValue(string sign, RawSlice &IR)
+void generateRawValue(string sign)
 {
+    auto bb = getTempBasicBlock();
+    auto &insts = bb->insts;
     RawValue *alloc = (RawValue *)malloc(sizeof(RawValue));
     alloc->value.tag = RVT_ALLOC;
-    IR.buffer[IR.len++] = (const void *)alloc;
+    insts.buffer[insts.len++] = (const void *)alloc;
     MidVarTable.insert(pair<string, RawValueP>(sign, alloc));
 }
 
-void generateRawValue(RawValue *&load, RawValueP &src, RawSlice &IR)
+void generateRawValue(string &sign, RawValueP &src)
 {
-    load = (RawValue *)malloc(sizeof(RawValue));
+    auto bb = getTempBasicBlock();
+    auto &insts = bb->insts;
+    RawValue * load = (RawValue *)malloc(sizeof(RawValue));
     load->name = nullptr;
     load->value.tag = RVT_LOAD;
     load->value.data.load.src = src;
-    IR.buffer[IR.len++] = (const void *)load;
+    insts.buffer[insts.len++] = (const void *)load;
+    MidVarTable.insert(pair<string,RawValueP>(sign,load));
 }

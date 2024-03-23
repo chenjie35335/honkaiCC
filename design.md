@@ -33,3 +33,17 @@
 8 b
 12 a
 16 b
+
+现在比较难办的事情是如何切换的问题，现在给出方案
+1、 我们知道在FuncDef时建立一个RawFunction没毛病，但是何时建立
+RawBasicBlock是个问题，如果对应到AST,如果放到multiBlock那里当前访问的BasicBlock,可能会有更好的效果，根据访问到的语句，调整语句块的;但是如何开始调整语句块呢？
+（1）首先在if-then-else那个位置，br指令之后，设定当前所在的basicblock结束
+（2）现在对于替换RawBasicBlock的算法有以下问题
+如果是返回multiBlock再判断就会存在一个问题在于跳跃的问题
+这个就涉及到我的结构的问题，RawSlice这个是大问题，无法直接访问上层的RawBasicBlock,导致这里我们没有办法直接标记RawBasicBlock结束，可能还需要表（虽然上述方法还是需要表）
+
+对此定义如下：
+1、 在multiBlockItem的循环那里判断是否需要更换RawBasicBlock
+2、 需要一个变量标志当前RawBasicBlock是否结束
+3、 需要一个变量表示当前活跃的RawBasicBlock！
+有了当前的活跃变量之后我们发现：generateGraph无需使用IR传参了，当要调取的时候调用这个全局变量即可
