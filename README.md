@@ -46,29 +46,29 @@ This is a compiler for Huawei Bisheng Cup.
 
 #### 第四周
 
-​	csj，wjh：完成lv4的中端后端适配
+​	csj，wjh：完成lv4,lv5的中端后端适配
 
 #### 第五周
 
-​	csj,wjh: 完成lv5的中端后端适配
+​	csj,wjh: 重构后端，完成lv6的中端后端适配
 
 ### 4月 
 
 #### 第六周
 
-​	wjh,csj： 完成lv6和lv7的后端的一半
+​	wjh,csj： 完成lv7的后端
 
 #### 第七周
 
-​	wjh,csj: 	完成lv7和lv8的后端的一半
+​	wjh,csj: 	完成lv8的后端
 
 #### 第八周
 
-​	wjh,csj: 	完成lv8的后端
+​	wjh,csj: 	完成lv9的后端
 
 #### 第九周、第十周
 
-​	wjh,csj:	完成lv9的后端
+​	wjh,csj:	优化开始
 
 ### 参考文档
 
