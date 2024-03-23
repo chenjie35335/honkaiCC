@@ -98,16 +98,18 @@ void Visit(const RawBinary &data,const RawValueP &value) {
 //处理branch指令
 void Visit(const RawBranch &data, const RawValueP &value){
     Visit(data.cond);
-    const char *CondRegister = GetRegister(data.cond);
-    const char *TrueBB = data.true_bb->name;
-    const char *FalseBB = data.false_bb->name;
-    cout << "  bnez  " << CondRegister << ",  " << TrueBB << endl;
+    string CondRegister = GetRegister(data.cond);
+    string TrueBB = data.true_bb->name;
+    string FalseBB = data.false_bb->name;
+    cout << "  bnez  " << CondRegister << ", " << TrueBB << endl;
     cout << "  j  " << FalseBB << endl;
+    //printf("  bnez  %s,  %s\n",CondRegister,TrueBB);
+    //printf("  j  %s\n",FalseBB);
 }
 
 //处理jump运算
 void Visit(const RawJump &data, const RawValueP &value){
-    const char *TargetBB = data.target->name;
+    string TargetBB = data.target->name;
     cout << "  j  " << TargetBB << endl;
 }
 
@@ -181,11 +183,13 @@ void Visit(const RawValueP &value) {
     case RVT_BRANCH: {
         const auto &branch = kind.data.branch;
         Visit(branch,value);
+        break;
         //cout << endl;
     }
     case RVT_JUMP: {
         const auto &jump = kind.data.jump;
         Visit(jump,value);
+        break;
         //cout << endl;
     }
     default:
@@ -196,7 +200,8 @@ void Visit(const RawValueP &value) {
 
 // Visit RawBlock
 void Visit(const RawBasicBlockP &bb){
-    //const &RawSlice *value = bb->insts;
+    cout << endl;
+     cout << bb->name + ":" << endl;
      Visit(bb->insts);
 } 
 // Visit RawFunction
@@ -208,7 +213,7 @@ void Visit(const RawFunctionP &func)
          ManagerAlloc(len);
          printf("%s:\n",func->name);
          if(len <= 256) {
-         cout << "  addi sp, sp," << -len <<  endl;
+         cout << "  addi sp, sp, " << -len <<  endl;
          }
          else {
          cout << "  li t0, " << -len << endl;
@@ -220,15 +225,21 @@ void Visit(const RawFunctionP &func)
 //Visit RawSlice
 void Visit(const RawSlice &slice){
     for(size_t i = 0; i < slice.len; i++) {
+        // cout << "i = " << i << ", len = " << slice.len << endl;
         auto ptr = slice.buffer[i];
         switch(slice.kind) {
             case RSK_FUNCTION:
+               // cout << "parsing function" << endl;
                 Visit(reinterpret_cast<RawFunctionP>(ptr));
                 break;
             case RSK_BASICBLOCK:
-                Visit(reinterpret_cast<RawBasicBlockP>(ptr));break;
+                // cout << "parsing BasicBlock" << endl;
+                Visit(reinterpret_cast<RawBasicBlockP>(ptr));
+                break;
             case RSK_BASICVALUE:
-                Visit(reinterpret_cast<RawValueP>(ptr));break;
+                // cout << "parsing Value" << endl;
+                Visit(reinterpret_cast<RawValueP>(ptr));
+                break;
             default:
                 assert(false);
         }

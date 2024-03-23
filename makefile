@@ -130,6 +130,7 @@ riscv-test:
 	qemu-riscv32-static hello
 
 gdb:
+	apt-get update && apt-get install gdb
 	gdb --args ./build/compiler -riscv hello.c -o hello.S
 
 -include $(DEPS)

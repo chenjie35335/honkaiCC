@@ -47,7 +47,7 @@ struct RawFunction{
 /// basic block
 struct RawBasicBlock{
 /// name of bb
-    const char *name;
+    string name;
 /// parameter(not used until now)
     RawSlice params;
 /// instructions
@@ -129,5 +129,9 @@ void generateRawValue(RawValueP &src, RawValueP &dest);
 void generateRawValue(string sign);
 
 void generateRawValue(string &sign, RawValueP &src);
+
+void generateRawValue(RawValueP &cond, RawBasicBlock* &Truebb, RawBasicBlock* &Falsebb);
+
+void generateRawValue(RawBasicBlock* &TargetBB);
 #endif
 

@@ -95,3 +95,25 @@ void generateRawValue(string &sign, RawValueP &src)
     insts.buffer[insts.len++] = (const void *)load;
     MidVarTable.insert(pair<string,RawValueP>(sign,load));
 }
+
+void generateRawValue(RawValueP &cond, RawBasicBlock* &Truebb, RawBasicBlock* &Falsebb){
+    auto bb = getTempBasicBlock();
+    auto &insts = bb->insts;
+    RawValue *br = (RawValue *) malloc(sizeof(RawValue));
+    br->name = nullptr;
+    br->value.tag = RVT_BRANCH;
+    br->value.data.branch.cond = cond;
+    br->value.data.branch.true_bb = (RawBasicBlockP)Truebb;
+    br->value.data.branch.false_bb = (RawBasicBlockP)Falsebb;
+    insts.buffer[insts.len++] = br;
+}
+ 
+void generateRawValue(RawBasicBlock* &TargetBB){
+    auto bb = getTempBasicBlock();
+    auto &insts = bb->insts;
+    RawValue *jump = (RawValue *) malloc(sizeof(RawValue));
+    jump->name = nullptr;
+    jump->value.tag = RVT_JUMP;
+    jump->value.data.jump.target = (RawBasicBlockP)TargetBB;
+    insts.buffer[insts.len++] = jump;
+}

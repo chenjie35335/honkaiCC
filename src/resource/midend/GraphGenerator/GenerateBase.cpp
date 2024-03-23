@@ -43,21 +43,22 @@ void SinCompUnitAST::generateGraph() const{
 }
 //这里访问的是RawFunction
 void FuncDefAST::generateGraph() const{
+    string FirstBB = "entry";
     auto programme = getTempProgramme();
     auto &funcs = programme->Funcs;
     funcs.kind = RSK_FUNCTION;funcs.len  = 0;
-    funcs.buffer = (const void **) malloc(sizeof(const void *));
+    funcs.buffer = (const void **) malloc(sizeof(const void *) * 100);
     RawFunction* p = (RawFunction *) malloc(sizeof(RawFunction));
     setTempFunction(p);
     funcs.buffer[funcs.len++] = (const void *) p;
     p->name = ident.c_str();
     auto &bbs = p->bbs;
     bbs.kind = RSK_BASICBLOCK;bbs.len = 0;
-    bbs.buffer = (const void **) malloc(sizeof(const void *));
-    RawBasicBlock *q = (RawBasicBlock *) malloc(sizeof(RawFunction));
+    bbs.buffer = (const void **) malloc(sizeof(const void *)*100);
+    RawBasicBlock *q = (RawBasicBlock *) malloc(sizeof(RawBasicBlock));
     bbs.buffer[bbs.len++] = (const void *)q;
-    setTempBasicBlock(q);
-    q->name = nullptr;
+    setTempBasicBlock(q);setFinished(false);
+    q->name = FirstBB;
     auto &insts = q->insts;
     insts.kind = RSK_BASICVALUE;insts.len = 0;
     insts.buffer = (const void **) malloc(sizeof(const void *) * 1000);
@@ -83,8 +84,10 @@ void BlockAST::generateGraph() const {
 
 void MulBlockItemAST::generateGraph() const {
     for(auto &sinBlockItem : SinBlockItem) {
+        auto finished = getFinished();
+        if(finished) break;
         sinBlockItem->generateGraph();
-      }
+    }
 }
 
 void SinBlockItemAST::generateGraph() const{
@@ -106,6 +109,7 @@ void StmtAST::generateGraph() const {
               RawValueP RetSrc;
               generateRawValue(RetSrc,sign);
               generateRawValue(RetSrc);
+              setFinished(true);
               break;
           }
           case STMTAST_LVA: 
@@ -138,3 +142,4 @@ void StmtAST::generateGraph() const {
           default: assert(0);
       }
 }
+//这里有最后一个小问题就是常数的问题，这个暂且搁置

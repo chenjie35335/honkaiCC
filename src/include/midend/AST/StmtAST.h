@@ -167,7 +167,7 @@ class MultElseStmtAST : public BaseAST{
       cout<<endl;
       cout<<"%end"<<if_flag_level[if_level]<<":"<<endl;
   }
-
+  void generateGraph() const override; 
 };
 
 class WhileStmtHeadAST : public BaseAST{
