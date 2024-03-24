@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <unordered_map>
 using namespace std;
+extern bool InWhile;
 extern IRBuilder* irBuilder;
 extern unordered_map <string,RawValueP> MidVarTable;
 
@@ -139,6 +140,15 @@ void StmtAST::generateGraph() const {
               Block->generateGraph();break;
           case STMTAST_IF:
               ifStmt->generateGraph();break;
+          case STMTAST_WHILE:
+              WhileHead->generateGraph();break;
+          case STMTAST_INWHILE:
+              if(!InWhile) {
+                cerr << "Break or Continue not in while scope" << endl;
+                exit(-1);
+              }
+              //else InWhileStmt->generateGraph();
+              break;
           default: assert(0);
       }
 }

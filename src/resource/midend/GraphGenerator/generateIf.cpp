@@ -6,6 +6,8 @@
 #include <unordered_map>
 using namespace std;
 int IfNum = 0;
+int WhileNum = 0;
+bool InWhile = false;
 extern unordered_map <string,RawValueP> MidVarTable;
 extern IdentTableNode *t;
 
@@ -94,4 +96,49 @@ generateRawValue(Endbb);
 }
 setTempBasicBlock(Endbb);setFinished(false);
 bbs.buffer[bbs.len++] = (const void *)Endbb;
+}
+
+void WhileStmtHeadAST::generateGraph() const{
+    WhileHead->generateGraph();
+}
+
+void WhileStmtAST::generateGraph() const{
+    auto tempFunction = getTempFunction();
+    auto &bbs = tempFunction->bbs;
+    string ExpSign,EntrySign,BodySign,EndSign;
+EntrySign = "while_entry"+to_string(WhileNum);
+BodySign = "while_body"+to_string(WhileNum);
+EndSign = "while_end"+to_string(WhileNum);WhileNum++;
+RawBasicBlock *Entrybb = (RawBasicBlock *) malloc(sizeof(RawBasicBlock));
+RawBasicBlock *Bodybb = (RawBasicBlock *) malloc(sizeof(RawBasicBlock));
+RawBasicBlock *Endbb  = (RawBasicBlock *) malloc(sizeof(RawBasicBlock));
+Entrybb->name = EntrySign; Endbb->name = EndSign; Bodybb->name = BodySign;
+auto &EntryInsts = Entrybb->insts;
+auto &BodyInsts = Bodybb->insts;
+auto &EndInsts = Endbb->insts;
+EntryInsts.buffer = (const void **) malloc(sizeof(const void *) * 1000);
+BodyInsts.buffer = (const void **) malloc(sizeof(const void *) * 1000);
+EndInsts.buffer = (const void **) malloc(sizeof(const void *) * 1000);
+EntryInsts.kind = RSK_BASICVALUE;
+BodyInsts.kind = RSK_BASICVALUE;
+EndInsts.kind = RSK_BASICVALUE;
+EntryInsts.len = 0;
+BodyInsts.len = 0;
+EndInsts.len = 0;
+setTempBasicBlock(Entrybb);setFinished(false);
+bbs.buffer[bbs.len++] = (const void *)Entrybb;
+exp->generateGraph(ExpSign);
+RawValueP cond;
+generateRawValue(cond,ExpSign);
+generateRawValue(cond,Bodybb,Endbb);
+setTempBasicBlock(Bodybb);setFinished(false);
+bbs.buffer[bbs.len++] = (const void *)Bodybb;
+InWhile = true;
+stmt->generateGraph();
+if(!getFinished()) {
+generateRawValue(Entrybb);
+}
+setTempBasicBlock(Endbb);setFinished(false);
+bbs.buffer[bbs.len++] = (const void *)Endbb;
+InWhile = false;
 }

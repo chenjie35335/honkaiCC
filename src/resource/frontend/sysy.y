@@ -393,7 +393,6 @@ WhileStmtHead
   : WhileStmt {
     auto ast = new WhileStmtHeadAST();
     ast->WhileHead = unique_ptr<BaseAST> ($1);
-    ast->type = STMTAST_WHILE;
   }
   ;
 

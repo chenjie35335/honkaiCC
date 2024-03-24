@@ -173,10 +173,11 @@ class MultElseStmtAST : public BaseAST{
 class WhileStmtHeadAST : public BaseAST{
   public:
     std::unique_ptr<BaseAST> WhileHead;
-    int type;
+    //int type;
     void Dump() const override{
         WhileHead->Dump();
     }
+  void generateGraph() const override; 
 };
 
 class WhileStmtAST : public BaseAST{
@@ -220,6 +221,7 @@ class WhileStmtAST : public BaseAST{
         cout<<"%end"<<flag<<":"<<endl;
         while_level--;
       }
+      void generateGraph() const override;
 };
 
 //cut stmt after break
