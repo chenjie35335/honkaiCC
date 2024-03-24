@@ -47,19 +47,17 @@ void generateRawValue(int32_t number)
 {
     auto bb = getTempBasicBlock();
     auto &insts = bb->insts;
-    if (MidVarTable.find(to_string(number)) != MidVarTable.end())
-    {
-        return;
-    }
-    else
-    {
         RawValue * value = (RawValue *)malloc(sizeof(RawValue));
         value->name = nullptr;
         value->value.tag = RVT_INTEGER;
         value->value.data.integer.value = number;
         insts.buffer[insts.len++] = (const void *)value;
+        if(MidVarTable.find(to_string(number)) != MidVarTable.end()) {
+            MidVarTable[to_string(number)] = value;
+        }
+        else {
         MidVarTable.insert(pair<string, RawValueP>(to_string(number), value));
-    }
+        }
 }
 
 void generateRawValue(RawValueP &src, RawValueP &dest)
