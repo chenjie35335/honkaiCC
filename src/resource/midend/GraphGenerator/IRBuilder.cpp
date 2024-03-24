@@ -32,3 +32,31 @@ void setTempFunction(RawFunction *tempFunction){
 void setTempBasicBlock(RawBasicBlock *tempBasicBlock){
     irBuilder->tempBasicBlock = tempBasicBlock;
 }
+
+RawBasicBlock * getTempWhileEntry(){
+    return irBuilder->WhileEntryRecord.top();
+}
+
+RawBasicBlock * getTempWhileEnd(){
+    return irBuilder->WhileEndRecord.top();
+}
+
+void pushTempWhileEntry(RawBasicBlock *we){
+    irBuilder->WhileEntryRecord.push(we); 
+}
+
+void popTempWhileEntry(){
+    irBuilder->WhileEntryRecord.pop();
+}
+
+void pushTempWhileEnd(RawBasicBlock *we){
+    irBuilder->WhileEndRecord.push(we);
+}
+
+void popTempWhileEnd(){
+    irBuilder->WhileEndRecord.pop();
+}
+
+bool InWhile() {
+    return !irBuilder->WhileEndRecord.empty();
+}

@@ -246,6 +246,7 @@ class InWhileAST : public BaseAST{
         }
        }    
     }
+    void generateGraph() const override;
 };
 
 #endif
