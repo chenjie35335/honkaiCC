@@ -55,7 +55,9 @@ enum {
     /// branch
     RVT_BRANCH,
     /// jump
-    RVT_JUMP
+    RVT_JUMP,
+    /// call
+    RVT_CALL
 }RawValueTag;
 
 // kind of RawSlice
@@ -67,5 +69,18 @@ enum {
     /// Value
     RSK_BASICVALUE
 }RawSliceKind;
+
+enum {
+    // 32-bits integer
+    RTT_INT32,
+    // void
+    RTT_UNIT,
+    // Array
+    RTT_ARRAY,
+    // pointer
+    RTT_POINTER,
+    // function
+    RTT_FUNCTION
+}RawTypeTag;
 
 #endif

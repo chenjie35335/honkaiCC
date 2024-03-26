@@ -3,7 +3,7 @@ using namespace std;
 
 extern FILE *yyin;
 extern int yyparse(unique_ptr<BaseAST> &ast);
-extern void backend(const RawProgramme& programme);
+extern void backend(RawProgramme *& programme);
 
 int main(int argc, const char *argv[]) {
   // 解析命令行参数. 测试脚本/评测平台要求你的编译器能接收如下参数:
@@ -30,8 +30,8 @@ int main(int argc, const char *argv[]) {
   }
   //生成后端代码
   if(strcmp(mode,"-riscv") == 0){
-      RawProgramme irGraph;
-      ast->generateGraph(&irGraph);
+      RawProgramme* irGraph;
+      ast->generateGraph(irGraph);
       backend(irGraph);
   }
   return 0;

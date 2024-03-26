@@ -42,162 +42,29 @@ public:
         this->child = nullptr;
     }
     // 添加常量
-    void addValue(const string &ident, int value)
-    {
-        ConstTable.insert(pair<string, int>(ident, value));
-    }
+    void addValue(const string &ident, int value);
     // 添加变量
-    void addVariable(const string &ident, int value)
-    {
-        VarTable.insert(pair<string, int>(ident, value));
-    }
+    void addVariable(const string &ident, int value);
     // 查找常量
-    bool findValue(const string &ident)
-    {
-        return ConstTable.find(ident) == ConstTable.end();
-    }
+    bool findValue(const string &ident);
     // 查找变量
-    bool findVariable(const string &ident)
-    {
-        return VarTable.find(ident) == VarTable.end();
-    }
+    bool findVariable(const string &ident);
     // 判断常量重复定义
-    void ValueMultDef(const string &ident)
-    {
-        if (!findValue(ident))
-        {
-            cerr << '"' << ident << '"' << "has been defined" << endl;
-            exit(-1);
-        }
-    }
+    void ValueMultDef(const string &ident);
     // 判断变量是否已经定义为常量
-    void VarContrdef(const string &ident)
-    {
-        if (!findValue(ident))
-        {
-            cerr << '"' << ident << '"' << " has been defined as constant" << endl;
-            exit(-1);
-        }
-    }
+    void VarContrdef(const string &ident);
     // 判断变量重复定义
-    void VarMultDef(const string &ident)
-    {
-        if (!findVariable(ident))
-        {
-            cerr << '"' << ident << '"' << " redefined" << endl;
-            exit(-1);
-        }
-    }
+    void VarMultDef(const string &ident);
     // 判断常量已被修改
-    void ValueAlter(const string &ident)
-    {
-        if (!findValue(ident))
-        {
-            cerr << '"' << ident << " is a constant and can't be altered" << endl;
-            exit(-1);
-        }
-    }
+    void ValueAlter(const string &ident);
     // 修改变量值
-    void VarAlter(const string &ident, const string &sign2, int value)
-    {
-        ValueAlter(ident);
-        if (!findVariable(ident))
-        {
-            cout << "  "
-                 << "store " << sign2 << ","
-                 << "@" + ident + "_" + to_string(this->level) << endl;
-            VarTable[ident] = value;
-            return;
-        }
-        else if (this->father == nullptr)
-        {
-            cerr << '"' << ident << "is not defined" << endl;
-            exit(-1);
-        }
-        else
-        {
-            this->father->VarAlter(ident, sign2, value);
-        }
-    }
-    // load常量和变量值
-    void IdentSearch(const string &ident, string &sign)
-    {
-        if (!findValue(ident))
-        {
-            int CalValue = ConstTable.at(ident);
-            sign = to_string(CalValue);
-            return;
-        }
-        else if (!findVariable(ident))
-        {
-            alloc_now++;
-            sign = "%" + to_string(alloc_now);
-            cout << "  " << sign << " = "
-                 << "load "
-                 << "@" + ident + "_" + to_string(this->level) << endl;
-            return;
-        }
-        else if (this->father == nullptr)
-        {
-            cerr << "Error: " << '"' << ident << '"' << " is not defined" << endl;
-            exit(-1);
-        }
-        else
-        {
-            this->father->IdentSearch(ident, sign);
-        }
-    }
-
-    int IdentCalc(const string &ident)
-    {
-        if (!findValue(ident))
-        {
-            int CalValue = ConstTable.at(ident);
-            return CalValue;
-        }
-        else if (!findVariable(ident))
-        {
-            return VarTable.at(ident);
-        }
-        else if (!this->father)
-        {
-            cerr << "Error: " << '"' << ident << '"' << " is not defined" << endl;
-            exit(-1);
-        }
-        else
-        {
-           return this->father->IdentCalc(ident);
-        }
-    }
-
-    void IdentSearch(const string &ident, string &sign,int &type)
-    {
-        //cout << "level = " << level << endl;
-        if (!findValue(ident))
-        {
-            int CalValue = ConstTable.at(ident);
-            sign = to_string(CalValue);
-            type = FIND_CONST;
-            return;
-        }
-        else if (!findVariable(ident))
-        {
-            type = FIND_VAR;
-            sign = "@" + ident + "_" + to_string(this->level);
-            return;
-        }
-        else if (this->father == nullptr)
-        {
-            cerr << "Error: " << '"' << ident << '"' << " is not defined" << endl;
-            exit(-1);
-        }
-        else
-        {
-            //cout << "father's level " << this->father->level << endl;
-            this->father->IdentSearch(ident,sign,type);
-        }
-    }
-
+    void VarAlter(const string &ident, const string &sign2, int value);
+    // 前端load常量和变量值
+    void IdentSearch(const string &ident, string &sign);
+    // 计算常量或变量值
+    int IdentCalc(const string &ident);
+    // 后端load常量和变量值
+    void IdentSearch(const string &ident, string &sign,int &type);
 };
 
 // 这个FuncTable该如何处理？
@@ -206,12 +73,21 @@ public:
 2、 链表采用尾插法的方式实现，每个节点代表一次调用
 */
 
+/*
+    由于所有的函数均属于同一个作用域，所以可以使用以下的方式
+    1、 只需要一个FuncTable来操作;
+    2、 一个函数需要存储的信息如下：
+    （1） 返回值类型
+    （2） 参数类型表（这个是函数调用的时候来判断调用的函数是否合法的）
+    （3） 参数名（这个可能需要弄，但是不一定）
+    （3） 函数名（主键）
+*/
 class FuncTable
 {
 public:
     unordered_map<string, bool> FuncTable;        // bool表示函数是否存在返回值
-    unordered_map<string, vector<int>> FuncIPara; //
-    unordered_map<string, vector<int>> FuncRPara; // 表示一个函数中的实参值,这里代表的是
+    //unordered_map<string, vector<int>> FuncIPara; //
+    //unordered_map<string, vector<int>> FuncRPara; // 表示一个函数中的实参值,这里代表的是
 
     void init()
     {

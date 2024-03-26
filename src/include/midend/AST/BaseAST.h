@@ -101,9 +101,11 @@ class BaseAST {
   virtual void Dump(string &sign,vector<string> &Para) const{};
   [[nodiscard]] virtual int calc() const {return 0;}//计算表达式的值
   virtual void Dump(int sign) const {}//这个用于函数时候判断参数
-  virtual void generateGraph(RawProgramme *IR) const{}
+  virtual void generateGraph(RawProgramme *&IR) const{}
   virtual void generateGraph() const{}
   virtual void generateGraph(string &sign) const{}
+  //这个仅限于funcType时候的遍历
+  virtual void generateGraph(int &retType) const{}
 };
 
 class CompUnitAST : public BaseAST {
@@ -128,7 +130,7 @@ class CompUnitAST : public BaseAST {
     multCompUnit->Dump();
     delete IdentTable;
   }
-  void generateGraph(RawProgramme *IR) const override;
+  void generateGraph(RawProgramme *&IR) const override;
 };
 
 // CompUnit 是 BaseAST

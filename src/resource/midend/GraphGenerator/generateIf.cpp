@@ -37,31 +37,20 @@ void IfStmtAST::generateGraph() const
 */
 void SinIfStmtAST::generateGraph() const
 {
-    auto tempFunction = getTempFunction();
-    auto &bbs = tempFunction->bbs;
     string ExpSign, ThenSign, EndSign;
+    RawBasicBlock *Thenbb, *Endbb;
     exp->generateGraph(ExpSign);
     RawValueP cond;
     generateRawValue(cond, ExpSign);
     ThenSign = "then" + to_string(IfNum);
     EndSign = "end" + to_string(IfNum);
     IfNum++;
-    RawBasicBlock *Thenbb = (RawBasicBlock *)malloc(sizeof(RawBasicBlock));
-    RawBasicBlock *Endbb = (RawBasicBlock *)malloc(sizeof(RawBasicBlock));
-    Thenbb->name = ThenSign;
-    Endbb->name = EndSign;
-    auto &ThenInsts = Thenbb->insts;
-    auto &EndInsts = Endbb->insts;
-    ThenInsts.buffer = (const void **)malloc(sizeof(const void *) * 1000);
-    EndInsts.buffer = (const void **)malloc(sizeof(const void *) * 1000);
-    ThenInsts.kind = RSK_BASICVALUE;
-    EndInsts.kind = RSK_BASICVALUE;
-    ThenInsts.len = 0;
-    EndInsts.len = 0;
+    generateRawBasicBlock(Thenbb,ThenSign);
+    generateRawBasicBlock(Endbb,EndSign);
     generateRawValue(cond, Thenbb, Endbb);
+    PushRawBasicBlock(Thenbb);
     setTempBasicBlock(Thenbb);
     setFinished(false);
-    bbs.buffer[bbs.len++] = (const void *)Thenbb;
     stmt->generateGraph();
     if (!getFinished())
     {
@@ -69,13 +58,11 @@ void SinIfStmtAST::generateGraph() const
     }
     setTempBasicBlock(Endbb);
     setFinished(false);
-    bbs.buffer[bbs.len++] = (const void *)Endbb;
+    PushRawBasicBlock(Endbb);
 }
 
 void MultElseStmtAST::generateGraph() const
 {
-    auto tempFunction = getTempFunction();
-    auto &bbs = tempFunction->bbs;
     string ExpSign, ThenSign, ElseSign, EndSign;
     exp->generateGraph(ExpSign);
     RawValueP cond;
@@ -84,44 +71,30 @@ void MultElseStmtAST::generateGraph() const
     ElseSign = "else" + to_string(IfNum);
     EndSign = "end" + to_string(IfNum);
     IfNum++;
-    RawBasicBlock *Thenbb = (RawBasicBlock *)malloc(sizeof(RawBasicBlock));
-    RawBasicBlock *Elsebb = (RawBasicBlock *)malloc(sizeof(RawBasicBlock));
-    RawBasicBlock *Endbb = (RawBasicBlock *)malloc(sizeof(RawBasicBlock));
-    Thenbb->name = ThenSign;
-    Endbb->name = EndSign;
-    Elsebb->name = ElseSign;
-    auto &ThenInsts = Thenbb->insts;
-    auto &EndInsts = Endbb->insts;
-    auto &ElseInsts = Elsebb->insts;
-    ThenInsts.buffer = (const void **)malloc(sizeof(const void *) * 1000);
-    EndInsts.buffer = (const void **)malloc(sizeof(const void *) * 1000);
-    ElseInsts.buffer = (const void **)malloc(sizeof(const void *) * 1000);
-    ThenInsts.kind = RSK_BASICVALUE;
-    EndInsts.kind = RSK_BASICVALUE;
-    ElseInsts.kind = RSK_BASICVALUE;
-    ThenInsts.len = 0;
-    EndInsts.len = 0;
-    ElseInsts.len = 0;
+    RawBasicBlock *Thenbb,*Elsebb,*Endbb;
+    generateRawBasicBlock(Thenbb,ThenSign);
+    generateRawBasicBlock(Elsebb,ElseSign);
+    generateRawBasicBlock(Endbb,EndSign);
     generateRawValue(cond, Thenbb, Elsebb);
     setTempBasicBlock(Thenbb);
+    PushRawBasicBlock(Thenbb);
     setFinished(false);
-    bbs.buffer[bbs.len++] = (const void *)Thenbb;
     if_stmt->generateGraph();
     if (!getFinished())
     {
         generateRawValue(Endbb);
     }
     setTempBasicBlock(Elsebb);
+    PushRawBasicBlock(Elsebb);
     setFinished(false);
-    bbs.buffer[bbs.len++] = (const void *)Elsebb;
     else_stmt->generateGraph();
     if (!getFinished())
     {
         generateRawValue(Endbb);
     }
+    PushRawBasicBlock(Endbb);
     setTempBasicBlock(Endbb);
     setFinished(false);
-    bbs.buffer[bbs.len++] = (const void *)Endbb;
 }
 
 void WhileStmtHeadAST::generateGraph() const
@@ -131,41 +104,25 @@ void WhileStmtHeadAST::generateGraph() const
 
 void WhileStmtAST::generateGraph() const
 {
-    auto tempFunction = getTempFunction();
-    auto &bbs = tempFunction->bbs;
     string ExpSign, EntrySign, BodySign, EndSign;
     EntrySign = "while_entry" + to_string(WhileNum);
     BodySign = "while_body" + to_string(WhileNum);
     EndSign = "while_end" + to_string(WhileNum);
     WhileNum++;
-    RawBasicBlock *Entrybb = (RawBasicBlock *)malloc(sizeof(RawBasicBlock));
-    RawBasicBlock *Bodybb = (RawBasicBlock *)malloc(sizeof(RawBasicBlock));
-    RawBasicBlock *Endbb = (RawBasicBlock *)malloc(sizeof(RawBasicBlock));
-    Entrybb->name = EntrySign;
-    Endbb->name = EndSign;
-    Bodybb->name = BodySign;
-    auto &EntryInsts = Entrybb->insts;
-    auto &BodyInsts = Bodybb->insts;
-    auto &EndInsts = Endbb->insts;
-    EntryInsts.buffer = (const void **)malloc(sizeof(const void *) * 1000);
-    BodyInsts.buffer = (const void **)malloc(sizeof(const void *) * 1000);
-    EndInsts.buffer = (const void **)malloc(sizeof(const void *) * 1000);
-    EntryInsts.kind = RSK_BASICVALUE;
-    BodyInsts.kind = RSK_BASICVALUE;
-    EndInsts.kind = RSK_BASICVALUE;
-    EntryInsts.len = 0;
-    BodyInsts.len = 0;
-    EndInsts.len = 0;
+    RawBasicBlock *Entrybb,*Bodybb,*Endbb;
+    generateRawBasicBlock(Entrybb,EntrySign);
+    generateRawBasicBlock(Bodybb,BodySign);
+    generateRawBasicBlock(Endbb,EndSign);
     setTempBasicBlock(Entrybb);
+    PushRawBasicBlock(Entrybb);
     setFinished(false);
-    bbs.buffer[bbs.len++] = (const void *)Entrybb;
     exp->generateGraph(ExpSign);
     RawValueP cond;
     generateRawValue(cond, ExpSign);
     generateRawValue(cond, Bodybb, Endbb);
     setTempBasicBlock(Bodybb);
+    PushRawBasicBlock(Bodybb);
     setFinished(false);
-    bbs.buffer[bbs.len++] = (const void *)Bodybb;
     pushTempWhileEntry(Entrybb);
     pushTempWhileEnd(Endbb);
     stmt->generateGraph();
@@ -174,8 +131,8 @@ void WhileStmtAST::generateGraph() const
         generateRawValue(Entrybb);
     }
     setTempBasicBlock(Endbb);
+    PushRawBasicBlock(Endbb);
     setFinished(false);
-    bbs.buffer[bbs.len++] = (const void *)Endbb;
     popTempWhileEntry();
     popTempWhileEnd();
 }

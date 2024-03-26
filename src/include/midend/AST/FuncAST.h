@@ -48,7 +48,7 @@ public:
     ret_cnt = 0;
     cout << "}" << endl << endl;
   }
-  void generateGraph() const override;
+  void generateGraph(int &retType) const override;
 };
 
 class FuncTypeAST : public BaseAST
@@ -59,6 +59,7 @@ public:
   {
     return type;
   }
+  void generateGraph(int &retType) const override;
 };
 
 // function params

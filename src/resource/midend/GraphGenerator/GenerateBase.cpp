@@ -8,26 +8,39 @@ using namespace std;
 extern IRBuilder* irBuilder;
 extern unordered_map <string,RawValueP> MidVarTable;
 
-void CompUnitAST::generateGraph(RawProgramme *IR) const {
+void CompUnitAST::generateGraph(RawProgramme *&IR) const {
     irBuilder = new IRBuilder();
     IdentTable = new IdentTableNode();
     IdentTable->level = 0;
+    createRawProgramme(IR);
     setTempProgramme(IR);
     multCompUnit->generateGraph();
     delete IdentTable;
     delete irBuilder;
 }
-
+/*
+现在主要解决返回值问题，做以下的分类讨论：
+1、 如果是有返回值，但是代码中（函数的最后一个bb）无返回值时，直接ret就行（到时候a0中存什么就是什么）
+2、 如果是无返回值，但是代码中存在返回值，需要报错（这时只需要看tempFunction是否有返回值就行）
+3、 如果是有返回值，且函数最后一个bb有返回值，没有任何问题，funcdef那里也无需其他处理
+4、 如果无返回值，且函数到最后一个bb都没有返回值，没有任何问题，但是funcdef那里需要一个ret值  
+5、 如何判断返回值是一个问题，关键问题在于这个东西应该存在哪里，是直接存在后端的节点当中吗
+还是说我们要重新建立一个散列表专门来表示？
+（考虑到如果函数调用时要使用返回值，还是必须一个表来存储，毕竟如果使用遍历复杂度有点高）
+ (这个散列表貌似还得建立从string到RawFunction之间的关系散列表，就需要在RawFunction当中存储返回值信息)
+*/
 void MultCompUnitAST::generateGraph() const{
     for(auto &sinComp : sinCompUnit) {
         sinComp->generateGraph();
     }
-}
-
+} 
+//确实这里需要传给下层一个参数表示返回类型
 void SinCompUnitAST::generateGraph() const{
     switch(type){
         case COMP_FUNC: {
-            funcDef->generateGraph();
+            int retType;
+            funcType->generateGraph(retType);
+            funcDef->generateGraph(retType);
             break;
         }
         case COMP_CON:
@@ -41,28 +54,26 @@ void SinCompUnitAST::generateGraph() const{
             assert(0);
       }
 }
+//访问函数类型
+void FuncTypeAST::generateGraph(int &retType) const {
+    retType = type;
+}
 //这里访问的是RawFunction
-void FuncDefAST::generateGraph() const{
+//这里设置funcs的位置应该提前
+void FuncDefAST::generateGraph(int &retType) const{
     string FirstBB = "entry";
-    auto programme = getTempProgramme();
-    auto &funcs = programme->Funcs;
-    funcs.kind = RSK_FUNCTION;funcs.len  = 0;
-    funcs.buffer = (const void **) malloc(sizeof(const void *) * 100);
-    RawFunction* p = (RawFunction *) malloc(sizeof(RawFunction));
-    setTempFunction(p);
-    funcs.buffer[funcs.len++] = (const void *) p;
-    p->name = ident.c_str();
-    auto &bbs = p->bbs;
-    bbs.kind = RSK_BASICBLOCK;bbs.len = 0;
-    bbs.buffer = (const void **) malloc(sizeof(const void *)*100);
-    RawBasicBlock *q = (RawBasicBlock *) malloc(sizeof(RawBasicBlock));
-    bbs.buffer[bbs.len++] = (const void *)q;
-    setTempBasicBlock(q);setFinished(false);
-    q->name = FirstBB;
-    auto &insts = q->insts;
-    insts.kind = RSK_BASICVALUE;insts.len = 0;
-    insts.buffer = (const void **) malloc(sizeof(const void *) * 1000);
+    RawFunction* p;
+    generateRawFunction(p,ident);
+    RawBasicBlock *q;
+    generateRawBasicBlock(q,FirstBB);
+    PushRawBasicBlock(q);
+    setTempBasicBlock(q);
+    setFinished(false);
     block->generateGraph();
+    if(!getFinished()) {
+        RawValueP RetSrc = nullptr;
+        generateRawValue(RetSrc);
+    }
 }
 //这个blockAST的generateGraph对于分支语句来说是个重点
 //所以需要一个数据结构来存储当前的RawFunction下的RawSlice

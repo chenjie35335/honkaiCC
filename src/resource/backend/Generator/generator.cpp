@@ -132,9 +132,11 @@ void Visit(const RawValueP &value) {
     switch(kind.tag) {
     case RVT_RETURN: {
         const auto& ret = kind.data.ret.value; 
+        if(ret != nullptr) {
         Visit(ret);
         const char *RetRegister = GetRegister(ret);
         cout << "  mv   a0, "<< RetRegister << endl;
+        }
         int StackSize = getStackSize();
         if(StackSize <= 256) {
         cout << "  addi sp, sp, " << StackSize  <<  endl;
@@ -200,8 +202,10 @@ void Visit(const RawValueP &value) {
 
 // Visit RawBlock
 void Visit(const RawBasicBlockP &bb){
-    cout << endl;
+     if(bb->name != "entry"){
+     cout << endl;
      cout << bb->name + ":" << endl;
+     }
      Visit(bb->insts);
 } 
 // Visit RawFunction
@@ -220,6 +224,7 @@ void Visit(const RawFunctionP &func)
          cout << "  add sp, sp ,t0" << endl;
          }
          Visit(func->bbs);
+         cout << endl;
        
 }
 //Visit RawSlice
@@ -246,9 +251,9 @@ void Visit(const RawSlice &slice){
     }
 }
 
-void generateASM(const RawProgramme& value) {
+void generateASM(RawProgramme *& value) {
     cout << "  .text" << endl;
-    Visit(value.Funcs);
+    Visit(value->Funcs);
 }
 
 

@@ -16,5 +16,5 @@ void Visit(const RawBasicBlockP &bb);
 void Visit(const RawFunctionP &func);
 /// @brief Visit Programme and Generate ASM
 /// @param value 
-void generateASM(const RawProgramme& value);
+void generateASM(RawProgramme *& value);
 #endif
