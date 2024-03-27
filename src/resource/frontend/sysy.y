@@ -48,7 +48,7 @@ using namespace std;
 %type <ast_val> FuncDef FuncType Block Stmt Exp PrimaryExp UnaryExp
 %type <ast_val> UnaryOp AddExp MulExp AddOp MulOp LOrExp LAndExp
 %type <ast_val> EqExp EqOp RelExp RelOp Decl ConstDecl MulConstDef
-%type <ast_val> SinConstDef ConstExp Btype MulBlockItem SinBlockItem LValL LValR
+%type <ast_val> SinConstDef ConstExp Btype MulBlockItem SinBlockItem LValR
 %type <ast_val> VarDecl SinVarDef MulVarDef InitVal SinExp 
 %type <ast_val> IfStmt SinIfStmt MultElseStmt WhileStmt WhileStmtHead InWhile
 %type <ast_val> FuncFParams ParaType SinFuncFParam 
@@ -321,10 +321,10 @@ Stmt
     ast->SinExp = unique_ptr<BaseAST>($2);
     ast->type= STMTAST_RET;
     $$       = ast;
-  } | LValL '=' Exp ';' {
+  } | IDENT '=' Exp ';' {
     auto ast = new StmtAST();
     ast->Exp = unique_ptr<BaseAST> ($3);
-    ast->Lval= unique_ptr<BaseAST> ($1);
+    ast->ident = *unique_ptr<string>($1);
     ast->type= STMTAST_LVA;
     $$       = ast;
   } | SinExp ';' {
@@ -559,14 +559,6 @@ MulExp
     ast->UnaryExp = unique_ptr<BaseAST>($3);
     ast->type     = MULEXPAST_MUL;
     $$            = ast;
-  }
-  ;
-
-LValL 
-  : IDENT {
-      auto ast   = new LValLAST();
-      ast->ident = *unique_ptr<string>($1);
-      $$ = ast;
   }
   ;
 

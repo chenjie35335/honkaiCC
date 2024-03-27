@@ -7,9 +7,6 @@
 using namespace std;
 int IfNum = 0;
 int WhileNum = 0;
-extern unordered_map<string, RawValueP> MidVarTable;
-extern IdentTableNode *t;
-
 void IfStmtAST::generateGraph() const
 {
     switch (type)
@@ -41,7 +38,7 @@ void SinIfStmtAST::generateGraph() const
     RawBasicBlock *Thenbb, *Endbb;
     exp->generateGraph(ExpSign);
     RawValueP cond;
-    generateRawValue(cond, ExpSign);
+    getMidVarValue(cond, ExpSign);
     ThenSign = "then" + to_string(IfNum);
     EndSign = "end" + to_string(IfNum);
     IfNum++;
@@ -66,7 +63,7 @@ void MultElseStmtAST::generateGraph() const
     string ExpSign, ThenSign, ElseSign, EndSign;
     exp->generateGraph(ExpSign);
     RawValueP cond;
-    generateRawValue(cond, ExpSign);
+    getMidVarValue(cond, ExpSign);
     ThenSign = "then" + to_string(IfNum);
     ElseSign = "else" + to_string(IfNum);
     EndSign = "end" + to_string(IfNum);
@@ -118,7 +115,7 @@ void WhileStmtAST::generateGraph() const
     setFinished(false);
     exp->generateGraph(ExpSign);
     RawValueP cond;
-    generateRawValue(cond, ExpSign);
+    getMidVarValue(cond, ExpSign);
     generateRawValue(cond, Bodybb, Endbb);
     setTempBasicBlock(Bodybb);
     PushRawBasicBlock(Bodybb);

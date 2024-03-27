@@ -2,17 +2,30 @@
 #include "../../../include/midend/IR/IRBuilder.h"
 #include "../../../include/midend/IR/ValueKind.h"
 #include "../../../include/midend/AST/ast.h"
+#include "../../../include/midend/ValueTable/SignTable.h"
 #include <cstdlib>
 #include <unordered_map>
-extern unordered_map<string, RawValueP> MidVarTable;
-
-/// @brief 这个是通过查RawValue表实现创建RawValue
+extern SignTable signTable;
+/// @brief 这个是通过查符号表获取的RawValue(包括中间变量和常数)
 /// @param value
 /// @param sign
-void generateRawValue(RawValueP &value, string &sign)
+void getMidVarValue(RawValueP &value, string &name)
 {
-    assert(MidVarTable.find(sign) != MidVarTable.end());
-    value = MidVarTable.at(sign);
+    value = (RawValueP) signTable.getMidVar(name);
+}
+/// @brief 查符号表获取变量左值
+/// @param value 
+/// @param name 
+void getVarValueL(RawValueP &value,string &name) 
+{
+    value = (RawValueP) signTable.getVarL(name);
+}
+/// @brief 查符号表获取变量右值
+/// @param value 
+/// @param name 
+void getVarValueR(RawValueP &value,string &name)
+{
+    value = (RawValueP) signTable.getVarR(name);
 }
 
 /// @brief 创建return型value
@@ -36,7 +49,7 @@ void generateRawValue(RawValueP src)
 /// @param lhs 
 /// @param rhs 
 /// @param op 
-void generateRawValue(string &sign, RawValueP lhs, RawValueP rhs, uint32_t op)
+void generateRawValue(string &name, RawValueP lhs, RawValueP rhs, uint32_t op)
 {
     auto bb = getTempBasicBlock();
     auto &insts = bb->insts;
@@ -50,14 +63,14 @@ void generateRawValue(string &sign, RawValueP lhs, RawValueP rhs, uint32_t op)
     ty->tag = RTT_INT32;
     value->ty = (RawTypeP) ty;
     insts.buffer[insts.len++] = (const void *)value;
-    MidVarTable.insert(pair<string, RawValueP>(sign, value));
+    signTable.insertMidVar(name,value);
 }
 /// @brief number型value
 /// @param number 
 void generateRawValue(int32_t number)
 {
-    auto bb = getTempBasicBlock();
-    auto &insts = bb->insts;
+        auto bb = getTempBasicBlock();
+        auto &insts = bb->insts;
         RawValue * value = (RawValue *)malloc(sizeof(RawValue));
         value->name = nullptr;
         value->value.tag = RVT_INTEGER;
@@ -66,12 +79,7 @@ void generateRawValue(int32_t number)
         ty->tag = RTT_INT32;
         value->ty = ty;
         insts.buffer[insts.len++] = (const void *)value;
-        if(MidVarTable.find(to_string(number)) != MidVarTable.end()) {
-            MidVarTable[to_string(number)] = value;
-        }
-        else {
-        MidVarTable.insert(pair<string, RawValueP>(to_string(number), value));
-        }
+        signTable.insertNumber(number,value);
 }
 /// @brief store型value
 /// @param src 
@@ -92,7 +100,7 @@ void generateRawValue(RawValueP &src, RawValueP &dest)
 }
 /// @brief alloc型value
 /// @param sign 
-void generateRawValue(string sign)
+void generateRawValue(string& name)
 {
     auto bb = getTempBasicBlock();
     auto &insts = bb->insts;
@@ -105,12 +113,12 @@ void generateRawValue(string sign)
     alloc->ty = (RawTypeP)ty;
     alloc->value.tag = RVT_ALLOC;
     insts.buffer[insts.len++] = (const void *)alloc;
-    MidVarTable.insert(pair<string, RawValueP>(sign, alloc));
+    signTable.insertVar(name,alloc);
 }
 /// @brief load型value
 /// @param sign 
 /// @param src 
-void generateRawValue(string &sign, RawValueP &src)
+void generateRawValue(string &name, RawValueP &src)
 {
     auto bb = getTempBasicBlock();
     auto &insts = bb->insts;
@@ -122,7 +130,7 @@ void generateRawValue(string &sign, RawValueP &src)
     load->value.tag = RVT_LOAD;
     load->value.data.load.src = src;
     insts.buffer[insts.len++] = (const void *)load;
-    MidVarTable.insert(pair<string,RawValueP>(sign,load));
+    signTable.insertMidVar(name,load);
 }
 /// @brief branch型value
 /// @param cond 
@@ -163,6 +171,10 @@ void createRawProgramme(RawProgramme *&Programme) {
     funcs.kind = RSK_FUNCTION;
     funcs.len  = 0;
     funcs.buffer = (const void **) malloc(sizeof(const void *) * 100);
+    auto &value = Programme->Value;
+    value.kind = RSK_BASICVALUE;
+    value.len = 0;
+    value.buffer = (const void **) malloc(sizeof(const void **)*100);
 }
 
 
@@ -186,8 +198,13 @@ void generateRawFunction(RawFunction *&function, const string &name) {
     auto &funcs = programme->Funcs;
     function = (RawFunction *) malloc(sizeof(RawFunction));
     auto &bbs = function->bbs;
-    bbs.kind = RSK_BASICBLOCK;bbs.len = 0;
+    bbs.kind = RSK_BASICBLOCK;
+    bbs.len = 0;
     bbs.buffer = (const void **) malloc(sizeof(const void *)*100);
+    auto &params = function->params;
+    params.kind = RSK_BASICVALUE;
+    params.len = 0;
+    params.buffer = (const void **) malloc(sizeof(const void *)*100);
     function->name = name.c_str();
     funcs.buffer[funcs.len++] = (const void *) function;
     setTempFunction(function);

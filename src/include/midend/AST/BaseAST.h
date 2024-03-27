@@ -4,7 +4,6 @@
 #include <cassert>
 #include <unordered_map>
 #include <vector>
-#include "../ValueTable/ValueTable.h"
 #include "../IR/IRGraph.h"
 #include "../IR/ValueKind.h"
 using namespace std;
@@ -75,61 +74,21 @@ enum{
   IFSTMT_SIN,
   IFSTMT_MUL
 }Kind;
-
-extern int ScopeLevel;
-extern IdentTableNode* IdentTable;
-extern FuncTable funcTable;
-extern int end_br[100];
 extern int alloc_now;
-extern int if_flag_level[200];
-extern int if_level;
-extern int ret_cnt;
-extern int record_while[100];
-extern int while_level;
-extern int break_cnt;
-extern int continue_cnt;
-extern int basicblock_cnt;
-extern int shortcircuit_cnt;
-extern int ScNum;
 class BaseAST {
  public:
   virtual ~BaseAST() = default;
-  virtual void Dump() const {}//这个用来无返回值遍历
-  virtual void Dump(string &sign) const {};//这个用来带有单个返回值的遍历
-  virtual void Dump(string &sign1,string &sign2,string &sign) const{};
-  //这个用来带有双目运算符的遍历
-  virtual void Dump(string &sign,vector<string> &Para) const{};
-  [[nodiscard]] virtual int calc() const {return 0;}//计算表达式的值
-  virtual void Dump(int sign) const {}//这个用于函数时候判断参数
   virtual void generateGraph(RawProgramme *&IR) const{}
   virtual void generateGraph() const{}
   virtual void generateGraph(string &sign) const{}
-  //这个仅限于funcType时候的遍历
   virtual void generateGraph(int &retType) const{}
+  virtual int calc() const { return 0; }
 };
 
 class CompUnitAST : public BaseAST {
  public:
   // 用智能指针管理对象
   std::unique_ptr<BaseAST> multCompUnit;
-  void Dump() const override {
-    printf("decl @getint(): i32\n");
-    printf("decl @getch(): i32\n");
-    printf("decl @getarray(*i32): i32\n");
-    printf("decl @putint(i32)\n");
-    printf("decl @putch(i32)\n");
-    printf("decl @putarray(i32, *i32)\n");
-    printf("decl @starttime()\n");
-    printf("decl @stoptime()\n");
-    cout<<endl;
-    //cout << "enter CompUnit" << endl;
-    IdentTable = new IdentTableNode();
-    ScopeLevel = 0;
-    IdentTable->level = ScopeLevel;
-    //alloc_now = -1;
-    multCompUnit->Dump();
-    delete IdentTable;
-  }
   void generateGraph(RawProgramme *&IR) const override;
 };
 
@@ -138,12 +97,6 @@ class MultCompUnitAST : public BaseAST {
  public:
   // 用智能指针管理对象
   vector<unique_ptr<BaseAST>> sinCompUnit;
-  void Dump() const override {
-    for(auto &sinComp : sinCompUnit) {
-      //cout << "enter MultiCompUnit" << endl;
-      sinComp->Dump();
-    }
-  }
   void generateGraph() const override;
 };
 
@@ -158,26 +111,6 @@ class SinCompUnitAST : public BaseAST {
     unique_ptr<BaseAST> varGlobal;
     unique_ptr<BaseAST> funcType;
     int type;
-    void Dump() const override {
-      switch(type){
-        case COMP_FUNC: {
-            int type = funcType->calc();
-            funcDef->Dump(type);
-            break;
-        }
-        case COMP_CON:
-            constGlobal->Dump();
-            break;
-        case COMP_VAR:{
-            varGlobal->Dump(DECL_GLOB);
-            break;
-        }
-        default:
-            assert(0);
-      }
-      
-    }
-    [[nodiscard]] int calc() const override{return type;}
     void generateGraph() const override;
 };
 

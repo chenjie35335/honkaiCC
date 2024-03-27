@@ -5,7 +5,6 @@
 #include <cstdlib>
 #include <unordered_map>
 using namespace std;
-unordered_map<string, RawValueP> MidVarTable;
 // 这里这个RawProgramme是生成好
 
 void SinExpAST::generateGraph(string &sign) const
@@ -40,16 +39,16 @@ void LOrExpAST::generateGraph(string &sign) const
     alloc_now++;
     string OrSign = "%" + to_string(alloc_now);
     RawValueP lhs, rhs;
-    generateRawValue(lhs, sign1);
-    generateRawValue(rhs, sign2);
+    getMidVarValue(lhs, sign1);
+    getMidVarValue(rhs, sign2);
     generateRawValue(OrSign, lhs, rhs, RBO_OR);
     alloc_now++;
     sign = "%" + to_string(alloc_now);
     string ZeroSign = to_string(0);
     RawValueP zero, StmtOR;
     generateRawValue(0);
-    generateRawValue(zero, ZeroSign);
-    generateRawValue(StmtOR, OrSign);
+    getMidVarValue(zero, ZeroSign);
+    getMidVarValue(StmtOR, OrSign);
     generateRawValue(sign, StmtOR, zero, RBO_NOT_EQ);
     break;
   }
@@ -71,12 +70,12 @@ void LAndExpAST::generateGraph(string &sign) const
     LAndExp->generateGraph(s1);
     EqExp->generateGraph(s2);
     RawValueP signL, signR;
-    generateRawValue(signL, s1);
-    generateRawValue(signR, s2);
+    getMidVarValue(signL, s1);
+    getMidVarValue(signR, s2);
     RawValueP zero;
     string ZeroSign = to_string(0);
     generateRawValue(0);
-    generateRawValue(zero, ZeroSign);
+    getMidVarValue(zero, ZeroSign);
     alloc_now++;
     string Nelsign = "%" + to_string(alloc_now);
     RawValueP StmtNeL, StmtNeR;
@@ -86,8 +85,8 @@ void LAndExpAST::generateGraph(string &sign) const
     generateRawValue(Nersign, signR, zero, RBO_NOT_EQ);
     alloc_now++;
     sign = "%" + to_string(alloc_now);
-    generateRawValue(StmtNeL,Nelsign);
-    generateRawValue(StmtNeR,Nersign);
+    getMidVarValue(StmtNeL,Nelsign);
+    getMidVarValue(StmtNeR,Nersign);
     generateRawValue(sign, StmtNeL, StmtNeR, RBO_AND);
     break;
   }
@@ -112,8 +111,8 @@ void EqExpAST::generateGraph(string &sign) const
     EqExp->generateGraph(s1);
     RelExp->generateGraph(s2);
     RawValueP signL, signR;
-    generateRawValue(signL, s1);
-    generateRawValue(signR, s2);
+    getMidVarValue(signL, s1);
+    getMidVarValue(signR, s2);
     alloc_now++;
     sign = "%" + to_string(alloc_now);
     switch (OpType)
@@ -150,8 +149,8 @@ void RelExpAST::generateGraph(string &sign) const
     AddExp->generateGraph(s2);
     int OpRel = RelOp->calc();
     RawValueP signL, signR;
-    generateRawValue(signL, s1);
-    generateRawValue(signR, s2);
+    getMidVarValue(signL, s1);
+    getMidVarValue(signR, s2);
     alloc_now++;
     sign = "%" + to_string(alloc_now);
     switch (OpRel)
@@ -192,8 +191,8 @@ void AddExpAST::generateGraph(string &sign) const
     MulExp->generateGraph(s2);
     int OpAdd = AddOp->calc();
     RawValueP signL, signR;
-    generateRawValue(signL, s1);
-    generateRawValue(signR, s2);
+    getMidVarValue(signL, s1);
+    getMidVarValue(signR, s2);
     alloc_now++;
     sign = "%" + to_string(alloc_now);
     switch (OpAdd)
@@ -228,8 +227,8 @@ void MulExpAST::generateGraph(string &sign) const
     UnaryExp->generateGraph(s2);
     int OpMul = MulOp->calc();
     RawValueP signL, signR;
-    generateRawValue(signL, s1);
-    generateRawValue(signR, s2);
+    getMidVarValue(signL, s1);
+    getMidVarValue(signR, s2);
     alloc_now++;
     sign = "%" + to_string(alloc_now);
     switch (OpMul)
@@ -278,8 +277,8 @@ void UnaryOpAST::generateGraph(string &sign) const
     RawValueP zero;
     string ZeroSign = to_string(0);
     generateRawValue(0);
-    generateRawValue(zero, ZeroSign);
-    generateRawValue(exp, sign);
+    getMidVarValue(zero, ZeroSign);
+    getMidVarValue(exp, sign);
     alloc_now++;
     sign = "%" + to_string(alloc_now);
     if (op == '-')

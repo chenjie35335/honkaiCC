@@ -41,8 +41,8 @@ typedef struct RawType{
             const struct RawType *base;
         }pointer;
         struct {
-            RawSlice params;
-            const struct RawType *ret;
+            RawSlice params;//存储参量的类型
+            const struct RawType *ret;//存储返回值的类型
         }function;
     }data;
 }RawType;
@@ -149,7 +149,9 @@ struct RawValue {
 /// @brief 创建RawValue对象（其实这里由于是面向过程的，结果比较差）
 /// @param value 
 /// @param sign 
-void generateRawValue(RawValueP &value, string &sign);
+void getMidVarValue(RawValueP &value, string &name);
+
+void getVarValueL(RawValueP &value,string &name);
 
 void generateRawValue(string &sign, RawValueP lhs, RawValueP rhs, uint32_t op);
 
