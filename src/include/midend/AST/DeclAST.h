@@ -1,5 +1,4 @@
 #include "BaseAST.h"
-
 #ifndef DECLAST_STORMY
 #define DECLAST_STORMY
 class DeclAST : public BaseAST {
@@ -14,9 +13,7 @@ class ConstDeclAST : public BaseAST {
   public:
     std::unique_ptr<BaseAST> Btype;
     std::unique_ptr<BaseAST> MulConstDef;
-    void generateGraph() const override {
-       MulConstDef->generateGraph();
-    }
+    void generateGraph() const override; 
 };
 
 class BtypeAST : public BaseAST {
@@ -38,11 +35,7 @@ class SinConstDefAST : public BaseAST{
   public:
     string ident;
     unique_ptr<BaseAST>ConstExp;
-    void generateGraph() const override{
-      //IdentTable->ValueMultDef(ident);
-      int value = ConstExp->calc();
-      //IdentTable->addValue(ident,value);
-    }
+    void generateGraph() const override;
 };
 
 class VarDeclAST : public BaseAST {
@@ -80,13 +73,4 @@ class ConstExpAST : public BaseAST {
         return Exp->calc();
     }
 };
-
-// global vare
-class GlobalDeclAST : public BaseAST
-{
-  public:
-    std::unique_ptr<BaseAST> global;
-    // std::unique_ptr<BaseAST> mul;
-};
-
 #endif

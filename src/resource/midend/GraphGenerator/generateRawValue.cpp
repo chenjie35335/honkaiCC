@@ -27,7 +27,6 @@ void getVarValueR(RawValueP &value,string &name)
 {
     value = (RawValueP) signTable.getVarR(name);
 }
-
 /// @brief 创建return型value
 /// @param value
 /// @param src

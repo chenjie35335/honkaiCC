@@ -39,15 +39,15 @@ class IdentTableNode {
     //查找变量左值
         RawValue *SearchVarL(string &name);
     //查找变量右值
-        RawValue * SearchVarR(string &name);
+        RawValue * SearchVarR(const string &name);
     //查找当前常量表
         bool findValue(const string &ident){return ConstTable.find(ident) != ConstTable.end();}
     //查找当前变量表
         bool findVariable(const string &ident){return VarTable.find(ident) != VarTable.end();}
     //插入变量
-        void insertVar(string &name, RawValue *&value){VarTable.insert(pair<string,RawValue *>(name,value));}
+        void insertVar(const string &name, RawValue *&value){VarTable.insert(pair<string,RawValue *>(name,value));}
     //插入常量
-        void insertValue(string &name, int value){ConstTable.insert(pair<string,int>(name,value));}
+        void insertValue(const string &name, int value){ConstTable.insert(pair<string,int>(name,value));}
 };
 
 //SignTable定义（仅用于中端）目前来看，BasicBlock不需要添加
@@ -83,10 +83,16 @@ class SignTable {
         //获取变量左值
         RawValue *getVarL(string &name);
         //获取变量右值
-        RawValue *getVarR(string &name);
+        RawValue *getVarR(const string &name);
         //插入变量值
         void insertVar(string &name, RawValue *&value);
         //插入常数值
         void insertNumber(int number,RawValue *&value);
+        //判断常量是否重复定义
+        void constMulDef(const string &ident);
+        //判断变量是否重复定义
+        void varMultDef(const string &ident);
+        //插入常量
+        void insertConst(const string &ident,int value);
 };
 #endif

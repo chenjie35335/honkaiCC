@@ -310,7 +310,6 @@ class FuncExpAST : public BaseAST
 public:
   string ident;
   unique_ptr<BaseAST> para;
-  [[nodiscard]] int calc() const override { return 37; }
 };
 
 class ParamsAST : public BaseAST

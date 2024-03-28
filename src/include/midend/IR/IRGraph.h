@@ -161,7 +161,7 @@ void generateRawValue(int32_t number);
 
 void generateRawValue(RawValueP &src, RawValueP &dest);
 
-void generateRawValue(string sign);
+void generateRawValue(string& name);
 
 void generateRawValue(string &sign, RawValueP &src);
 

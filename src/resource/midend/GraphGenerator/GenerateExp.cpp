@@ -195,8 +195,7 @@ void AddExpAST::generateGraph(string &sign) const
     getMidVarValue(signR, s2);
     alloc_now++;
     sign = "%" + to_string(alloc_now);
-    switch (OpAdd)
-    {
+    switch (OpAdd){
     case '+':
       generateRawValue(sign, signL, signR, RBO_ADD);
       break;
@@ -310,3 +309,4 @@ void PrimaryExpAST::generateGraph(string &sign) const
     assert(0);
   }
 }
+//虽然这里调到前面并不合适，但是没办法了

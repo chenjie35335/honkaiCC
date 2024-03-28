@@ -51,12 +51,18 @@ RawValue * IdentTableNode::SearchVarL(string &name){
     }
 }
 
-RawValue *SignTable::getVarR(string &name) {
+RawValue *SignTable::getVarR(const string &name) {
     return IdentTable->SearchVarR(name);
 }
 
-RawValue * IdentTableNode::SearchVarR(string &name){
-    if(findVariable(name)) {
+RawValue * IdentTableNode::SearchVarR(const string &name){
+    if(findValue(name)){
+        int value = ConstTable.at(name);
+        string svalue = to_string(value);
+        generateRawValue(value);
+        return signTable.getMidVar(svalue);
+    }
+    else if(findVariable(name)) {
         return this->VarTable.at(name);
     } else if(this->father == nullptr){
         cerr << "Error: " << '"' << name << '"' << " is not defined" << endl;
@@ -77,3 +83,25 @@ void SignTable::insertNumber(int number,RawValue *&value){
         MidVarTable.insert(pair<string,RawValue*>(to_string(number),value));
     }
 }
+//既要考虑ident被重复定义，也要考虑其被定义为变量
+void SignTable::constMulDef(const string &ident) {
+    if(IdentTable->findValue(ident) || IdentTable->findVariable(ident)) {
+        cerr << '"' << ident << '"' << "redefined." << endl;
+        assert(0);
+    }
+}
+
+void SignTable::varMultDef(const string &ident) {
+    if(IdentTable->findValue(ident)) {
+        cerr << '"' << ident << '"' << " has been defined as constant" << endl;
+        assert(0);
+    } else if(IdentTable->findVariable(ident)){
+        cerr << '"' << ident << '"' << " redefined." << endl;
+        assert(0);
+    }
+}
+
+void SignTable::insertConst(const string &ident,int value){
+    IdentTable->insertValue(ident,value);
+}
+

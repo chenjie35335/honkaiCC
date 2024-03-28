@@ -2,22 +2,27 @@
 #include "../../../include/midend/IR/IRBuilder.h"
 #include "../../../include/midend/IR/ValueKind.h"
 #include "../../../include/midend/AST/ast.h"
+#include "../../../include/midend/ValueTable/SignTable.h"
 #include <cstdlib>
 #include <unordered_map>
 using namespace std;
-extern unordered_map <string,RawValueP> MidVarTable;
+extern SignTable signTable;
 
 void LValRAST::generateGraph(string &sign) const {
-    // int type;
-    // IdentTable->IdentSearch(ident,sign,type);
-    // if(type == FIND_CONST) {
-        // generateRawValue(stoi(sign));
-    // } else if(type == FIND_VAR) {
-        // RawValueP LoadSrc;
-        // generateRawValue(LoadSrc,sign);
-        // alloc_now++;
-        // sign = "%"+to_string(alloc_now);
-        // generateRawValue(sign,LoadSrc); 
-    // } else assert(0);
+    RawValueP IdentSrc = signTable.getVarR(ident);
+    auto &tag = IdentSrc->value.tag;
+    switch(tag) {
+        case RVT_INTEGER:
+            sign = to_string(IdentSrc->value.data.integer.value);
+            break;
+        case RVT_ALLOC:
+            alloc_now++;
+            sign = "%"+to_string(alloc_now);
+            generateRawValue(sign,IdentSrc);
+            break;
+        default:
+            assert(0);
+    }
 }
+//对于sign就从返回的RawValueP判断就行
 
