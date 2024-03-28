@@ -163,6 +163,68 @@ void generateRawValue(RawBasicBlock* &TargetBB){
     jump->value.data.jump.target = (RawBasicBlockP)TargetBB;
     insts.buffer[insts.len++] = jump;
 }
+/// @brief call型value
+void generateRawValue(RawFunctionP callee,vector<RawValueP> paramsValue,string &sign){
+    auto bb = getTempBasicBlock();
+    auto &insts = bb->insts;
+    RawValue *call = (RawValue *) malloc(sizeof(RawValue));
+    call->name = nullptr;
+    call->value.tag = RVT_CALL;
+    call->value.data.call.callee = callee;
+    auto &params = call->value.data.call.args;
+    params.buffer = (const void **) malloc(sizeof(const void *));
+    params.kind = RSK_BASICVALUE;
+    params.len = 0;
+    auto &calleeParams = callee->ty->data.function.params;
+    if(calleeParams.len != paramsValue.size()) {
+        cerr << "wrong variables, has " <<  paramsValue.size() << ", expect " << calleeParams.len << endl;
+        assert(0);
+    }
+    for(int i = 0; i < paramsValue.size();i++) {
+        auto funcParamType = reinterpret_cast<RawTypeP>(callee->ty->data.function.params.buffer[i]); 
+        auto expectType = funcParamType->tag;
+        auto actualType = paramsValue[i]->ty->tag;
+        if(expectType == actualType) {
+            params.buffer[params.len++] = (const void *) paramsValue[i];
+            continue;
+        }
+        else {//如果是浮点数的话，这里需要类型转换
+
+        }
+    } 
+    auto retType = callee->ty->data.function.ret->tag;
+    switch(retType) {
+        case RTT_INT32:
+        {
+            alloc_now++;
+            sign =  "%" + to_string(alloc_now);
+            signTable.insertMidVar(sign,call);
+            break;
+        }
+        case RTT_UNIT:  
+            break;
+        default:
+            assert(0);
+    } 
+    insts.buffer[insts.len++] = (const void *) call;
+}//call的类型和function的返回值相同
+
+/// @brief args型value
+void generateRawValueArgs(const string &ident,int index){
+    auto function = getTempFunction();
+    auto &params = function->params;
+    RawValue *value = (RawValue *) malloc(sizeof(RawValue));
+    value->value.tag = RVT_FUNC_ARGS;
+    value->value.data.funcArgs.index = index;
+    value->name = nullptr;
+    RawType *ty = (RawType *) malloc(sizeof(RawType));
+    ty->tag = RTT_INT32;
+    value->ty = ty;
+    params.buffer[params.len++] = (const void *)value;
+    auto &paramsTy = function->ty->data.function.params;
+    paramsTy.buffer[paramsTy.len++] = (const void *) ty;
+    signTable.insertVar(ident,value);
+}
 
 void createRawProgramme(RawProgramme *&Programme) {
     Programme = (RawProgramme *) malloc(sizeof(RawProgramme));
@@ -191,8 +253,8 @@ void PushRawBasicBlock(RawBasicBlock *&bb) {
     auto &bbs = function->bbs;
     bbs.buffer[bbs.len++] = (const void *)bb;
 }
-
-void generateRawFunction(RawFunction *&function, const string &name) {
+//初始化时不进行对于类型的操作，等到后面一起修改
+void generateRawFunction(RawFunction *&function, const string &name,int type) {
     auto programme = getTempProgramme();
     auto &funcs = programme->Funcs;
     function = (RawFunction *) malloc(sizeof(RawFunction));
@@ -205,6 +267,23 @@ void generateRawFunction(RawFunction *&function, const string &name) {
     params.len = 0;
     params.buffer = (const void **) malloc(sizeof(const void *)*100);
     function->name = name.c_str();
+    RawType *ty = (RawType *) malloc(sizeof(RawType));
+    ty->tag = RTT_FUNCTION;
+    RawType *retTy = (RawType *) malloc(sizeof(RawType));
+    switch(type) {
+        case FUNCTYPE_INT:
+            retTy->tag = RTT_INT32; break;
+        case FUNCTYPE_VOID:
+            retTy->tag = RTT_UNIT;break;
+        default:
+            assert(0);
+    }
+    ty->data.function.ret = retTy;
+    auto &ParamTy = ty->data.function.params;
+    ParamTy.kind = RSK_TYPE;
+    ParamTy.buffer = (const void **) malloc(sizeof(const void *)*100);
+    ParamTy.len = 0;
+    function->ty = ty;
     funcs.buffer[funcs.len++] = (const void *) function;
     setTempFunction(function);
 }

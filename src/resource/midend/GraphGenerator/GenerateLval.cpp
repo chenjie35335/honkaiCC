@@ -20,6 +20,14 @@ void LValRAST::generateGraph(string &sign) const {
             sign = "%"+to_string(alloc_now);
             generateRawValue(sign,IdentSrc);
             break;
+        case RVT_FUNC_ARGS://一个比较好的解决办法是将这个存入一个临时变量中
+        //为了方便管理，要在
+        {
+            RawValue *param = (RawValue *)IdentSrc;
+            sign = "%"+ident;
+            signTable.insertMidVar(sign,param);
+            break;
+        }
         default:
             assert(0);
     }

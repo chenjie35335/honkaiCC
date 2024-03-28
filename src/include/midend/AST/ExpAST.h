@@ -296,13 +296,11 @@ public:
 class UnaryExpAST_F : public BaseAST
 {
 public:
-  // UnaryExp第一种情况
-  std::unique_ptr<BaseAST> PrimaryExp;
-  int type;
-  [[nodiscard]] int calc() const override
-  {
-    return PrimaryExp->calc();
+  std::unique_ptr<BaseAST> FuncExp;
+  [[nodiscard]] int calc() const override{
+    return FuncExp->calc();
   }
+  void generateGraph(string &sign) const override;
 };
 
 class FuncExpAST : public BaseAST
@@ -310,18 +308,21 @@ class FuncExpAST : public BaseAST
 public:
   string ident;
   unique_ptr<BaseAST> para;
+  void generateGraph(string &sign) const override;
 };
 
 class ParamsAST : public BaseAST
 {
 public:
   vector<unique_ptr<BaseAST>> sinParams;
+  void generateGraph(vector<RawValueP> &params) const override;
 };
 
 class SinParamsAST : public BaseAST
 {
 public:
   unique_ptr<BaseAST> exp;
+  void generateGraph(RawValueP &params) const override;
 };
 
 class PrimaryExpAST : public BaseAST

@@ -103,8 +103,6 @@ void Visit(const RawBranch &data, const RawValueP &value){
     string FalseBB = data.false_bb->name;
     cout << "  bnez  " << CondRegister << ", " << TrueBB << endl;
     cout << "  j  " << FalseBB << endl;
-    //printf("  bnez  %s,  %s\n",CondRegister,TrueBB);
-    //printf("  j  %s\n",FalseBB);
 }
 
 //处理jump运算

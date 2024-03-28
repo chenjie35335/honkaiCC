@@ -253,13 +253,20 @@ void MulExpAST::generateGraph(string &sign) const
 
 void UnaryExpAST_P::generateGraph(string &sign) const
 {
+  //cout << "p" << endl;
   PrimaryExp->generateGraph(sign);
 }
 
 void UnaryExpAST_U::generateGraph(string &sign) const
 {
+  //cout << "u" << endl;
   UnaryExp->generateGraph(sign);
   UnaryOp->generateGraph(sign);
+}
+
+void UnaryExpAST_F::generateGraph(string &sign) const{
+  //cout << "f" << endl;
+  FuncExp->generateGraph(sign);
 }
 
 void UnaryOpAST::generateGraph(string &sign) const
@@ -309,4 +316,27 @@ void PrimaryExpAST::generateGraph(string &sign) const
     assert(0);
   }
 }
-//虽然这里调到前面并不合适，但是没办法了
+
+void FuncExpAST::generateGraph(string &sign) const{
+  //cout << "function name = " << ident;
+  RawFunctionP callee= signTable.getFunction(ident);
+  vector<RawValueP> paramsValue;
+  para->generateGraph(paramsValue);
+  generateRawValue(callee,paramsValue,sign);
+}
+
+void ParamsAST::generateGraph(vector<RawValueP> &params) const {
+  for(auto &sinParam : sinParams) {
+    RawValueP param;
+    sinParam->generateGraph(param);
+    params.push_back(param);
+  }
+}
+
+void SinParamsAST::generateGraph(RawValueP &params) const {
+  string ExpSign;
+  exp->generateGraph(ExpSign);
+  getMidVarValue(params,ExpSign);
+}
+//如果我最后发现没有返回值该怎么办？
+//没有办法，这里还是只能说返回一个vector,因为必须在这里生成

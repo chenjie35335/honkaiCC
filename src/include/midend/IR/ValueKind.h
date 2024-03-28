@@ -57,7 +57,9 @@ enum {
     /// jump
     RVT_JUMP,
     /// call
-    RVT_CALL
+    RVT_CALL,
+    /// function args
+    RVT_FUNC_ARGS,
 }RawValueTag;
 
 // kind of RawSlice
@@ -67,7 +69,9 @@ enum {
     /// basic block
     RSK_BASICBLOCK,
     /// Value
-    RSK_BASICVALUE
+    RSK_BASICVALUE,
+    /// Type
+    RSK_TYPE
 }RawSliceKind;
 
 enum {

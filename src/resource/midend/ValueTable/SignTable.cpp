@@ -72,7 +72,7 @@ RawValue * IdentTableNode::SearchVarR(const string &name){
     }
 }
 
-void SignTable::insertVar(string &name, RawValue *&value){
+void SignTable::insertVar(const string &name, RawValue *&value){
     IdentTable->insertVar(name,value);
 }
 
@@ -103,5 +103,10 @@ void SignTable::varMultDef(const string &ident) {
 
 void SignTable::insertConst(const string &ident,int value){
     IdentTable->insertValue(ident,value);
+}
+
+RawFunction *SignTable::getFunction(const string &ident) {
+    assert(FuncTable.find(ident) != FuncTable.end());
+    return FuncTable.at(ident);
 }
 

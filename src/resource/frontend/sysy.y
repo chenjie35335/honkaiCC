@@ -51,7 +51,7 @@ using namespace std;
 %type <ast_val> SinConstDef ConstExp Btype MulBlockItem SinBlockItem LValR
 %type <ast_val> VarDecl SinVarDef MulVarDef InitVal SinExp 
 %type <ast_val> IfStmt SinIfStmt MultElseStmt WhileStmt WhileStmtHead InWhile
-%type <ast_val> FuncFParams ParaType SinFuncFParam 
+%type <ast_val> FuncFParams SinFuncFParam 
 %type <ast_val> FuncExp Params SinParams SinCompUnit MultCompUnit
 %type <int_val> Number 
 
@@ -130,10 +130,9 @@ FuncFParams
   ;
 
 SinFuncFParam
-  : ParaType IDENT {
+  : INT IDENT {
     auto ast = new SinFuncFParamAST();
     ast->ident = *unique_ptr<string>($2);
-    ast->ParaType = unique_ptr<BaseAST>($1);
     $$ = ast;
   }
   ;
@@ -147,13 +146,6 @@ FuncType
   } | VOID {
     auto ast = new FuncTypeAST();
     ast->type = FUNCTYPE_VOID;
-    $$ = ast;
-  }
-  ;
-
-ParaType 
-  : INT {
-    auto ast = new ParaTypeAST();
     $$ = ast;
   }
   ;
@@ -610,7 +602,7 @@ UnaryExp
     $$ = ast;
   } | FuncExp {
     auto ast        = new UnaryExpAST_F();
-    ast->PrimaryExp = unique_ptr<BaseAST> ($1);
+    ast->FuncExp = unique_ptr<BaseAST> ($1);
     $$ = ast; 
   }
   ;

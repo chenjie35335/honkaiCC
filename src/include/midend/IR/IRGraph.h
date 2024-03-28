@@ -57,7 +57,7 @@ typedef struct RawProgramme{
 }RawProgramme;
 /// function
 struct RawFunction{
-    RawTypeP ty;
+    RawType* ty;
     /// name of function
     const char *name;
     /// parameter(not used until now)
@@ -68,7 +68,7 @@ struct RawFunction{
 /// basic block
 struct RawBasicBlock{
 /// type of basic block  
-    RawTypeP ty;
+    RawType* ty;
 /// name of bb
     string name;
 /// parameter(not used until now)
@@ -106,9 +106,16 @@ typedef struct{
 } RawReturn;
 /// call
 typedef struct{
+    /// @brief the called function
     RawFunctionP callee;
+    /// @brief params
     RawSlice args;
 } RawCall;
+/// @brief args
+typedef struct{
+    /// index of args in the function
+    size_t index;
+}RawFuncArgs;
 /// @brief jump
 typedef struct{
     RawBasicBlockP target;
@@ -134,6 +141,7 @@ struct ValueKind {
         RawBranch branch;
         RawJump jump;
         RawCall call;
+        RawFuncArgs funcArgs;
         // 其他数据类型
     } data;
 };
@@ -149,9 +157,13 @@ struct RawValue {
 /// @brief 创建RawValue对象（其实这里由于是面向过程的，结果比较差）
 /// @param value 
 /// @param sign 
+void generateRawValueArgs(const string &ident,int index);
+
 void getMidVarValue(RawValueP &value, string &name);
 
 void getVarValueL(RawValueP &value,string &name);
+
+void generateRawValue(RawFunctionP callee,vector<RawValueP> paramsValue,string &sign);
 
 void generateRawValue(string &sign, RawValueP lhs, RawValueP rhs, uint32_t op);
 
@@ -171,7 +183,7 @@ void generateRawValue(RawBasicBlock* &TargetBB);
 
 void createRawProgramme(RawProgramme *&Programme);
 
-void generateRawFunction(RawFunction *&function, const string &name);
+void generateRawFunction(RawFunction *&function, const string &name,int type);
 
 void generateRawBasicBlock(RawBasicBlock *&bb, const string &name);
 

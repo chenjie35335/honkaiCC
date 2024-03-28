@@ -85,7 +85,7 @@ class SignTable {
         //获取变量右值
         RawValue *getVarR(const string &name);
         //插入变量值
-        void insertVar(string &name, RawValue *&value);
+        void insertVar(const string &name, RawValue *&value);
         //插入常数值
         void insertNumber(int number,RawValue *&value);
         //判断常量是否重复定义
@@ -94,5 +94,9 @@ class SignTable {
         void varMultDef(const string &ident);
         //插入常量
         void insertConst(const string &ident,int value);
+        //获取函数值
+        RawFunction *getFunction(const string &ident);
+        //清空中间变量表
+        void clearMidVar(){MidVarTable.clear();}
 };
 #endif

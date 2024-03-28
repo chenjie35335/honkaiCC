@@ -50,8 +50,7 @@ void FuncTypeAST::generateGraph(int &retType) const {
 //这里设置funcs的位置应该提前
 void FuncDefAST::generateGraph(int &retType) const{
     RawFunction* p;
-    generateRawFunction(p,ident);
-    signTable.insertFunction(ident,p);
+    generateRawFunction(p,ident,retType);
     signTable.identForward();
     RawBasicBlock *q;
     string FirstBB = "entry";
@@ -60,23 +59,26 @@ void FuncDefAST::generateGraph(int &retType) const{
     setTempBasicBlock(q);
     setFinished(false);
     FuncFParams->generateGraph();
+    signTable.insertFunction(ident,p);
     signTable.identBackward();
     block->generateGraph();
     if(!getFinished()) {
         RawValueP RetSrc = nullptr;
         generateRawValue(RetSrc);
     }
+    signTable.clearMidVar();
 }
 
 //访问参数
 void FuncFParamsAST::generateGraph() const{
-    for(auto &par : para) {
-        par->generateGraph();
+    for(int i = 0; i < para.size();i++) {
+        auto &par = para[i];
+        par->generateGraph(i);
     }
 }
 //单个参数访问
-void SinFuncFParamAST::generateGraph() const{
-    
+void SinFuncFParamAST::generateGraph(int &index) const{
+    generateRawValueArgs(ident,index);
 }
 
 //这个blockAST的generateGraph对于分支语句来说是个重点
@@ -128,7 +130,8 @@ void StmtAST::generateGraph() const {
             generateRawValue(src,dest);
             break;
           }
-          case STMTAST_SINE: break; 
+          case STMTAST_SINE: 
+              SinExp->generateGraph(); break; 
           case STMTAST_BLO: 
               Block->generateGraph();break;
           case STMTAST_IF:

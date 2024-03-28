@@ -34,13 +34,8 @@ class SinFuncFParamAST : public BaseAST
 {
 public:
   std::string ident;
-  std::unique_ptr<BaseAST> ParaType;
-  void generateGraph() const override;
-};
-
-class ParaTypeAST : public BaseAST
-{
-public:
+  int type;
+  void generateGraph(int &index) const override;
 };
 
 #endif
