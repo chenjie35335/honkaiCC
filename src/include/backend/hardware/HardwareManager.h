@@ -1,8 +1,11 @@
 #include <unordered_map>
+#include <iostream>
 #include <cassert>
 #include "../../midend/IR/IRGraph.h"
+using namespace std;
 #ifndef STORMY_HARDWARE
 #define STORMY_HARDWARE
+class RegisterManager;
 enum
 {
     /// @brief 被调用者保存寄存器
@@ -25,7 +28,6 @@ class Area
     /// @brief 构造函数
     /// @param minAddress 
     /// @param maxAddress 
-    Area(uint32_t min,uint32_t max) : minAddress(min),maxAddress(max),tempOffset(min){}
 
     virtual int getTargetOffset(const RawValueP &value) const { return 0;}
 };
@@ -35,10 +37,6 @@ class ValueArea : public Area
 public:
     /// @brief RawValue和栈空间的对应关系
     unordered_map<RawValueP, int> StackManager;
-    /// @brief 构造函数
-    /// @param min 
-    /// @param max 
-    ValueArea(uint32_t min,uint32_t max) : Area(min,max) {}
     /// @brief 获取value的存储偏移量
     /// @param value 
     /// @return 
@@ -64,7 +62,10 @@ public:
     /// @brief 构造函数
     /// @param min 
     /// @param max 
-    RegisterArea(uint32_t min,uint32_t max) : Area(min,max) {}
+
+    void LoadRegister(int reg); 
+
+    void SaveRegister(int reg);
 };
 
 class MemoryManager
@@ -73,27 +74,18 @@ public:
     /// @brief 栈分配的空间大小
     int StackSize;
     /// @brief 局部变量
-    ValueArea* localArea;
+    ValueArea localArea;
     /// @brief 保存寄存器
-    RegisterArea* reserveArea; // 这个打算给个固定值，
+    RegisterArea reserveArea; // 这个打算给个固定值，
     /// @brief 参数区域
-    ValueArea* argsArea;
+    ValueArea argsArea;
     /// @brief 构造函数
-    MemoryManager() {
-        localArea = new ValueArea(0,0);
-        reserveArea = new RegisterArea(0,0);
-        localArea = new ValueArea(0,0);
-    }
-    /// @brief 析构函数
-    ~MemoryManager() {
-        delete localArea;
-        delete reserveArea;
-        delete argsArea;
+    MemoryManager(){
     }
     /// @brief 获取某个值的地址
     /// @param value 
     /// @return 
-    int getTargetOffset(const RawValueP &value) { return localArea->getTargetOffset(value);}
+    int getTargetOffset(const RawValueP &value) { return localArea.getTargetOffset(value);}
 
     void initStack(int StackLen) {this->StackSize = StackLen;}
 
@@ -103,10 +95,18 @@ public:
 
     void initLocalArea(int min,int max);
 
-    bool IsMemory(const RawValueP &value) {return localArea->IsMemory(value);}
+    bool IsMemory(const RawValueP &value) {return localArea.IsMemory(value);}
 
     int StackAlloc(const RawValueP &value) {
-       return localArea->StackAlloc(value);
+       return localArea.StackAlloc(value);
+    }
+
+    void LoadRegister(int reg) {
+        reserveArea.LoadRegister(reg);
+    }
+
+    void SaveRegister(int reg) {
+        reserveArea.SaveRegister(reg);
     }
 };
 
@@ -124,15 +124,10 @@ public:
     /// @brief 未满时，当前可用寄存器
     uint32_t tempRegister;
     /// @brief 构造函数
-    RegisterManager() {
-        for (int i = 0; i < 32; i++)
-            RegisterLock[i] = false;
-        RegisterFull = false;
-        tempRegister = 5;
-    }
+    RegisterManager() {}
 
     const char *GetRegister(const RawValueP &value) {
-        assert(registerLook.find(value) == registerLook.end());
+        assert(registerLook.find(value) != registerLook.end());
         int loc = registerLook.at(value);
         return regs[loc];
     }
@@ -157,36 +152,43 @@ public:
         registerLook.insert(pair<RawValueP, int>(value, loc));
     }
 
+    void init() {
+        for (int i = 0; i < 32; i++)
+            RegisterLock[i] = false;
+        RegisterFull = false;
+        tempRegister = 5;
+        registerLook.clear();
+    }
+
     bool IsValid(int loc) { return loc > 4 && loc != 10 && loc != 11 && !RegisterLock[loc] && loc < 32;}
 };
 
 class HardwareManager {
     public:
     /// @brief 内存管理
-    class MemoryManager *memoryManager;
+    MemoryManager memoryManager;
     /// @brief 寄存器管理
-    class RegisterManager *registerManager;
+    RegisterManager registerManager;
 
     HardwareManager() {
-        memoryManager = new class MemoryManager();
-        registerManager = new class RegisterManager();
     }
-    //这样只需要从Local空间取即可，不需要管其他空间
-    int getTargetOffset(const RawValueP &value) { return memoryManager->getTargetOffset(value); }
 
-    bool IsMemory(const RawValueP &value) {return memoryManager->IsMemory(value); }
+    //这样只需要从Local空间取即可，不需要管其他空间
+    int getTargetOffset(const RawValueP &value) { return memoryManager.getTargetOffset(value); }
+
+    bool IsMemory(const RawValueP &value) {return memoryManager.IsMemory(value); }
     
-    bool IsRegister(const RawValueP &value) {return registerManager->IsRegister(value);}
+    bool IsRegister(const RawValueP &value) {return registerManager.IsRegister(value);}
 
     void init(const RawFunctionP &value);
 
-    const char *GetRegister(const RawValueP &value) { return registerManager->GetRegister(value);}
+    const char *GetRegister(const RawValueP &value) { return registerManager.GetRegister(value);}
 
-    void addLockRegister(const RawValueP &value) { registerManager->addLockRegister(value);}
+    void addLockRegister(const RawValueP &value) { registerManager.addLockRegister(value);}
 
-    void LeaseLockRegister(const RawValueP &value) { registerManager->LeaseLockRegister(value);}
+    void LeaseLockRegister(const RawValueP &value) { registerManager.LeaseLockRegister(value);}
     //分配指定寄存器
-    void AssignRegister(const RawValueP &value,int loc) {registerManager->AssignRegister(value,loc);}
+    void AssignRegister(const RawValueP &value,int loc) {registerManager.AssignRegister(value,loc);}
 
     void LoadFromMemory(const RawValueP &value) ;
 
@@ -194,11 +196,15 @@ class HardwareManager {
 
     void StoreReg(int RandSelected);
 
-    bool isValid(int loc) { return registerManager->IsValid(loc);}
+    bool isValid(int loc) { return registerManager.IsValid(loc);}
 
-    int StackAlloc(const RawValueP &value) { return memoryManager->StackAlloc(value);}
+    int StackAlloc(const RawValueP &value) { return memoryManager.StackAlloc(value);}
 
-    int getStackSize() {return memoryManager->StackSize;}
+    int getStackSize() {return memoryManager.StackSize;}
+
+    void LoadRegister(int reg) { memoryManager.LoadRegister(reg);}
+
+    void SaveRegister(int reg) { memoryManager.SaveRegister(reg);}
 };
 
 /*

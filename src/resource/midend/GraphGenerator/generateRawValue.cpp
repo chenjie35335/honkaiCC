@@ -193,6 +193,9 @@ void generateRawValue(RawFunctionP callee,vector<RawValueP> paramsValue,string &
         }
     } 
     auto retType = callee->ty->data.function.ret->tag;
+    RawType *ty = (RawType *) malloc(sizeof(RawType));
+    ty->tag = retType;
+    call->ty = ty;
     switch(retType) {
         case RTT_INT32:
         {

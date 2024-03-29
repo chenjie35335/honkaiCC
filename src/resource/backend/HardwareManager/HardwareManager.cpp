@@ -43,10 +43,8 @@ void calculateSize(int &ArgsLen, int &LocalLen, int &ReserveLen, const RawFuncti
             }
         }
     }
-    if (has_call)
-        ReserveLen = 14 * 4;
-    else
-        ReserveLen = 13 * 4;//这里和我们寄存器调度算法相关
+        ReserveLen = 14 * 4;//无论有没有，这个我们都保存一下返回地址
+        //cout << "Args=" <<  ArgsLen << ",Local=" << LocalLen << ",Reserve=" << ReserveLen << endl;
 }
 
 void HardwareManager::init(const RawFunctionP &function)
@@ -55,34 +53,37 @@ void HardwareManager::init(const RawFunctionP &function)
     calculateSize(ArgsLen, LocalLen, ReserveLen, function);
     int StackLen = ArgsLen + LocalLen + ReserveLen;
     StackLen = (StackLen + 15)/16*16;
-    memoryManager->initStack(StackLen);
+    memoryManager.initStack(StackLen);
     int ArgsMin = 0, ArgsMax = ArgsLen-4;
-    memoryManager->initArgsArea(ArgsMin,ArgsMax);
+    memoryManager.initArgsArea(ArgsMin,ArgsMax);
     int ReserveMin = ArgsMax+4, ReserveMax = ReserveMin+ReserveLen-4;
-    memoryManager->initReserveArea(ReserveMin,ReserveMax);
+    memoryManager.initReserveArea(ReserveMin,ReserveMax);
     int LocalMin = ReserveMax+4, LocalMax = LocalMin+LocalLen-4;
-    memoryManager->initLocalArea(LocalMin,LocalMax);
+    memoryManager.initLocalArea(LocalMin,LocalMax);
+    registerManager.init();
 }
 
 void MemoryManager::initArgsArea(int min,int max) {
-    auto ArgsArea = this->argsArea;
-    ArgsArea->minAddress = min;
-    ArgsArea->maxAddress = max;
-    ArgsArea->tempOffset = min;
+    this->argsArea.minAddress = min;
+    this->argsArea.maxAddress = max;
+    this->argsArea.tempOffset = min;
+    this->argsArea.StackManager.clear();
 }
 
 void MemoryManager::initReserveArea(int min,int max) {
-    auto ReserveArea = this->reserveArea;
-    ReserveArea->minAddress = min;
-    ReserveArea->maxAddress = max;
-    ReserveArea->tempOffset = min;
+    auto &ReserveArea = this->reserveArea;
+    ReserveArea.minAddress = min;
+    ReserveArea.maxAddress = max;
+    ReserveArea.tempOffset = max;
+    ReserveArea.StackManager.clear();
 }
 
 void MemoryManager::initLocalArea(int min,int max) {
-    auto LocalArea = this->localArea;
-    LocalArea->minAddress = min;
-    LocalArea->maxAddress = max;
-    LocalArea->tempOffset = min;
+    auto &LocalArea = this->localArea;
+    LocalArea.minAddress = min;
+    LocalArea.maxAddress = max;
+    LocalArea.tempOffset = min;
+    reserveArea.StackManager.clear();
 }
 
 void HardwareManager::LoadFromMemory(const RawValueP &value) {
@@ -93,7 +94,7 @@ void HardwareManager::LoadFromMemory(const RawValueP &value) {
 }
 
 void HardwareManager::AllocRegister(const RawValueP &value) {
-    if (registerManager->RegisterFull){
+    if (registerManager.RegisterFull){
         int RandSelected;
         random_device rd;
         mt19937 gen(rd());
@@ -103,25 +104,32 @@ void HardwareManager::AllocRegister(const RawValueP &value) {
             RandSelected = dis(gen);
         } while (!isValid(RandSelected));
         StoreReg(RandSelected);
-        registerManager->registerLook.insert(pair<RawValueP, int>(value, RandSelected));
+        registerManager.registerLook.insert(pair<RawValueP, int>(value, RandSelected));
+    } else {
+        uint32_t &RegLoc = registerManager.tempRegister;
+        registerManager.registerLook.insert(pair<RawValueP, int>(value, RegLoc));
+        do{
+            RegLoc++;
+        } while ((RegLoc == 10 || RegLoc == 11 || registerManager.RegisterLock[RegLoc]) && RegLoc < 32);
+        //cout << "RegLoc ==" << RegLoc << endl;
+        if(RegLoc == 32) registerManager.RegisterFull = true;
     }
 }
 
 void HardwareManager::StoreReg(int RandSelected) {
     const char *TargetReg;
     int TargetOffset;
-    for (const auto &pair : registerManager->registerLook)
+    for (const auto &pair : registerManager.registerLook)
     {
         if (pair.second == RandSelected){
-            TargetReg = registerManager->regs[RandSelected];
+            TargetReg = registerManager.regs[RandSelected];
             if(IsMemory(pair.first)) {
             TargetOffset = getTargetOffset(pair.first);
-            }
-            else
+            } else
             {
             TargetOffset = StackAlloc(pair.first);
             }
-            registerManager->registerLook.erase(pair.first);
+            registerManager.registerLook.erase(pair.first);
             break;
         }
     }
@@ -134,6 +142,19 @@ const char *RegisterManager::regs[32] = {
     "a6", "a7", "s2", "s3", "s4", "s5", "s6", "s7",
     "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"
 };
+
+void RegisterArea::LoadRegister(int reg) {
+    assert(StackManager.find(reg) != StackManager.end());
+    int offset = StackManager.at(reg);
+    cout << "  lw  " << RegisterManager::regs[reg] << ", " << offset << "(sp)" << endl;
+    StackManager.erase(reg);
+}
+
+void RegisterArea::SaveRegister(int reg) {
+    cout << "  sw  " << RegisterManager::regs[reg] << ", " << tempOffset << "(sp)" << endl;
+    StackManager.insert(pair<int,int>(reg,tempOffset));
+    tempOffset -= 4;
+}
 // init要做的事：
 /*
 1、 给被调用者保存寄存器分配内存空间(这个由于在最上层最后弄)
