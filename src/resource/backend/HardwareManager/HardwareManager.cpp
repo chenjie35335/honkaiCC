@@ -147,7 +147,7 @@ void RegisterArea::LoadRegister(int reg) {
     assert(StackManager.find(reg) != StackManager.end());
     int offset = StackManager.at(reg);
     cout << "  lw  " << RegisterManager::regs[reg] << ", " << offset << "(sp)" << endl;
-    StackManager.erase(reg);
+    //StackManager.erase(reg);
 }
 
 void RegisterArea::SaveRegister(int reg) {

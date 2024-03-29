@@ -137,13 +137,13 @@ public:
     }
 
     void addLockRegister(const RawValueP &value) {
-        assert(registerLook.find(value) == registerLook.end());
+        assert(registerLook.find(value) != registerLook.end());
         int loc = registerLook.at(value);
         RegisterLock[loc] = true;
     }
 
     void LeaseLockRegister(const RawValueP &value) {
-        assert(registerLook.find(value) == registerLook.end());
+        assert(registerLook.find(value) != registerLook.end());
         int loc = registerLook.at(value);
         RegisterLock[loc] = false;
     }
