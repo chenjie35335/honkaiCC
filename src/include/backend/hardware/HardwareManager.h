@@ -1,4 +1,5 @@
 #include <unordered_map>
+#include <cassert>
 #include "../../midend/IR/IRGraph.h"
 #ifndef STORMY_HARDWARE
 #define STORMY_HARDWARE
@@ -25,6 +26,8 @@ class Area
     /// @param minAddress 
     /// @param maxAddress 
     Area(uint32_t min,uint32_t max) : minAddress(min),maxAddress(max),tempOffset(min){}
+
+    virtual int getTargetOffset(const RawValueP &value) const { return 0;}
 };
 
 class ValueArea : public Area
@@ -36,6 +39,21 @@ public:
     /// @param min 
     /// @param max 
     ValueArea(uint32_t min,uint32_t max) : Area(min,max) {}
+    /// @brief 获取value的存储偏移量
+    /// @param value 
+    /// @return 
+    int getTargetOffset(const RawValueP &value) const override;
+
+    bool IsMemory(const RawValueP &value) { return StackManager.find(value)!= StackManager.end();}
+
+    int StackAlloc(const RawValueP &value) {
+        if(tempOffset > maxAddress) assert(0);
+        else {
+            StackManager.insert(pair<RawValueP, int>(value, tempOffset));
+            tempOffset += 4;
+            return StackManager.at(value);
+        }
+    }
 };
 
 class RegisterArea : public Area
@@ -52,12 +70,14 @@ public:
 class MemoryManager
 {
 public:
+    /// @brief 栈分配的空间大小
+    int StackSize;
     /// @brief 局部变量
-    Area* localArea;
+    ValueArea* localArea;
     /// @brief 保存寄存器
-    Area* reserveArea; // 这个打算给个固定值，
+    RegisterArea* reserveArea; // 这个打算给个固定值，
     /// @brief 参数区域
-    Area* argsArea;
+    ValueArea* argsArea;
     /// @brief 构造函数
     MemoryManager() {
         localArea = new ValueArea(0,0);
@@ -70,8 +90,25 @@ public:
         delete reserveArea;
         delete argsArea;
     }
+    /// @brief 获取某个值的地址
+    /// @param value 
+    /// @return 
+    int getTargetOffset(const RawValueP &value) { return localArea->getTargetOffset(value);}
 
-} MemoryManager;
+    void initStack(int StackLen) {this->StackSize = StackLen;}
+
+    void initArgsArea(int min,int max);
+
+    void initReserveArea(int min,int max);
+
+    void initLocalArea(int min,int max);
+
+    bool IsMemory(const RawValueP &value) {return localArea->IsMemory(value);}
+
+    int StackAlloc(const RawValueP &value) {
+       return localArea->StackAlloc(value);
+    }
+};
 
 class RegisterManager
 {
@@ -93,13 +130,34 @@ public:
         RegisterFull = false;
         tempRegister = 5;
     }
-};
 
-const char *RegisterManager::regs[32] = {
-    "x0", "ra", "sp", "gp", "tp", "t0", "t1", "t2",
-    "s0", "s1", "a0", "a1", "a2", "a3", "a4", "a5",
-    "a6", "a7", "s2", "s3", "s4", "s5", "s6", "s7",
-    "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"
+    const char *GetRegister(const RawValueP &value) {
+        assert(registerLook.find(value) == registerLook.end());
+        int loc = registerLook.at(value);
+        return regs[loc];
+    }
+
+    bool IsRegister(const RawValueP &value){
+        return registerLook.find(value) != registerLook.end();
+    }
+
+    void addLockRegister(const RawValueP &value) {
+        assert(registerLook.find(value) == registerLook.end());
+        int loc = registerLook.at(value);
+        RegisterLock[loc] = true;
+    }
+
+    void LeaseLockRegister(const RawValueP &value) {
+        assert(registerLook.find(value) == registerLook.end());
+        int loc = registerLook.at(value);
+        RegisterLock[loc] = false;
+    }
+
+    void AssignRegister(const RawValueP &value, int loc) {
+        registerLook.insert(pair<RawValueP, int>(value, loc));
+    }
+
+    bool IsValid(int loc) { return loc > 4 && loc != 10 && loc != 11 && !RegisterLock[loc] && loc < 32;}
 };
 
 class HardwareManager {
@@ -113,12 +171,48 @@ class HardwareManager {
         memoryManager = new class MemoryManager();
         registerManager = new class RegisterManager();
     }
+    //这样只需要从Local空间取即可，不需要管其他空间
+    int getTargetOffset(const RawValueP &value) { return memoryManager->getTargetOffset(value); }
+
+    bool IsMemory(const RawValueP &value) {return memoryManager->IsMemory(value); }
+    
+    bool IsRegister(const RawValueP &value) {return registerManager->IsRegister(value);}
+
+    void init(const RawFunctionP &value);
+
+    const char *GetRegister(const RawValueP &value) { return registerManager->GetRegister(value);}
+
+    void addLockRegister(const RawValueP &value) { registerManager->addLockRegister(value);}
+
+    void LeaseLockRegister(const RawValueP &value) { registerManager->LeaseLockRegister(value);}
+    //分配指定寄存器
+    void AssignRegister(const RawValueP &value,int loc) {registerManager->AssignRegister(value,loc);}
+
+    void LoadFromMemory(const RawValueP &value) ;
+
+    void AllocRegister(const RawValueP &value);
+
+    void StoreReg(int RandSelected);
+
+    bool isValid(int loc) { return registerManager->IsValid(loc);}
+
+    int StackAlloc(const RawValueP &value) { return memoryManager->StackAlloc(value);}
+
+    int getStackSize() {return memoryManager->StackSize;}
 };
 
-// 存在寄存器中的参数该如何处理？这里助教直接在这里弄了一个store还是可以的，
-// 但是这里要我们手动store了，也就是说LocalArea也需要预留给参数的空间
-// 调用者保存的寄存器肯定和RawValue挂钩，所以，直接可以保存LocalArea
-// 但是调用保存寄存器不知道是否分配，需要建立寄存器和内存地址之间的关系
-// 关于那几个传参数的，访问参数的时候会和其绑定，无需关心
-// 这些偏移相对于sp就行
+/*
+方法是添加某些功能使得满足以下条件：
+1、 所有的寄存器可以被直接使用
+2、 所有的内存直接从local中取
+为了满足以下的特点，就需要做以下内容
+1、 对于所有的参数，分配a0-a7寄存器和local内存
+2、 对于所有被调用者调用寄存器，函数开始时单独存，函数结束后取出
+3、 ra寄存器在调用前保存至相应位置
+*/
+
+
+
+
+
 #endif

@@ -2,19 +2,21 @@
 #include <string>
 #include "../../../include/midend/IR/ValueKind.h"
 #include "../../../include/backend/Generator/generator.h"
-#include "../../../include/backend/hardware/hardwareManager.h"
+#include "../../../include/backend/hardware/HardwareManager.h"
 #include <cassert>
 #include <iostream>
+
+HardwareManager *hardware;
 //处理load运算
 void Visit(const RawLoad &data, const RawValueP &value) {
     const auto &src = data.src;
-    if(!IsMemory(src)) {
+    if(!hardware->IsMemory(src)) {
         assert(0);
     }
     else {
-        AllocRegister(value);
-        const char *TargetReg = GetRegister(value);
-        int srcAddress = getTargetOffset(src); //这里有点好，直接跳过了visit过程
+        hardware->AllocRegister(value);
+        const char *TargetReg = hardware->GetRegister(value);
+        int srcAddress = hardware->getTargetOffset(src); //这里有点好，直接跳过了visit过程
         cout << "  lw  " << TargetReg << ", " << srcAddress << "(sp)" << endl;
     }
 }
@@ -22,10 +24,10 @@ void Visit(const RawLoad &data, const RawValueP &value) {
 void Visit(const RawStore &data, const RawValueP &value) {
     const auto &src = data.value;
     const auto &dest= data.dest;
-    if(!IsMemory(dest)) assert(0);
+    if(!hardware->IsMemory(dest)) assert(0);
     else {
-        const char *SrcReg = GetRegister(src);
-        int srcAddress = getTargetOffset(dest);
+        const char *SrcReg = hardware->GetRegister(src);
+        int srcAddress = hardware->getTargetOffset(dest);
         cout << "  sw  " << SrcReg << ", " << srcAddress << "(sp)" << endl;
     }
 }
@@ -36,14 +38,14 @@ void Visit(const RawBinary &data,const RawValueP &value) {
     const auto &rhs = data.rhs;
     const auto &op  = data.op;
     Visit(lhs);
-    addLockRegister(lhs);
+    hardware->addLockRegister(lhs);
     Visit(rhs);
-    addLockRegister(rhs);
-    AllocRegister(value);
-    LeaseLockRegister(lhs);LeaseLockRegister(rhs);
-    const char *LhsRegister = GetRegister(lhs);
-    const char *RhsRegister = GetRegister(rhs);
-    const char *ValueRegister = GetRegister(value);
+    hardware->addLockRegister(rhs);
+    hardware->AllocRegister(value);
+    hardware->LeaseLockRegister(lhs);hardware->LeaseLockRegister(rhs);
+    const char *LhsRegister = hardware->GetRegister(lhs);
+    const char *RhsRegister = hardware->GetRegister(rhs);
+    const char *ValueRegister = hardware->GetRegister(value);
     switch(op) {
         case RBO_ADD:
             cout << "  add  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
@@ -98,7 +100,7 @@ void Visit(const RawBinary &data,const RawValueP &value) {
 //处理branch指令
 void Visit(const RawBranch &data, const RawValueP &value){
     Visit(data.cond);
-    string CondRegister = GetRegister(data.cond);
+    string CondRegister = hardware->GetRegister(data.cond);
     string TrueBB = data.true_bb->name;
     string FalseBB = data.false_bb->name;
     cout << "  bnez  " << CondRegister << ", " << TrueBB << endl;
@@ -110,18 +112,23 @@ void Visit(const RawJump &data, const RawValueP &value){
     string TargetBB = data.target->name;
     cout << "  j  " << TargetBB << endl;
 }
+//处理RawCall对象
+void Visit(const RawCall &data,const RawValueP &value) {
+    
+}
 
+void Visit(const RawFuncArgs &data,const RawValueP &value) {
 
-
+}
 //这个Value是重点，如果value已经被分配了寄存器，直接返回
 //如果存在内存当中，调用loadreg后直接返回
 //如果这个处于未分配时，这时应该是遍历的时候访问的，分配内存和寄存器
 //这个Visit的方法就是要将RawValue值存到寄存器中，至于具体如何访问无需知道
 void Visit(const RawValueP &value) {    
-    if(IsRegister(value)) {
+    if(hardware->IsRegister(value)) {
         return;
-    }  else if(IsMemory(value)) {
-        LoadFromMemory(value);
+    }  else if(hardware->IsMemory(value)) {
+        hardware->LoadFromMemory(value);
         return;
     }
     else {
@@ -131,10 +138,10 @@ void Visit(const RawValueP &value) {
         const auto& ret = kind.data.ret.value; 
         if(ret != nullptr) {
         Visit(ret);
-        const char *RetRegister = GetRegister(ret);
+        const char *RetRegister = hardware->GetRegister(ret);
         cout << "  mv   a0, "<< RetRegister << endl;
         }
-        int StackSize = getStackSize();
+        int StackSize = hardware->getStackSize();
         if(StackSize <= 2047) {
         cout << "  addi sp, sp, " << StackSize  <<  endl;
         } else {
@@ -147,10 +154,10 @@ void Visit(const RawValueP &value) {
     case RVT_INTEGER: {
         const auto& integer = kind.data.integer.value;
         if(integer == 0) {
-            AllocX0(value);
+            hardware->AssignRegister(value,0);
         } else {
-            AllocRegister(value);
-            const char *reg = GetRegister(value);
+            hardware->AllocRegister(value);
+            const char *reg = hardware->GetRegister(value);
             cout << "  li   "  <<  reg  << ", "  << integer << endl;
         }
         //cout << endl;
@@ -163,7 +170,7 @@ void Visit(const RawValueP &value) {
         break;
     }
     case RVT_ALLOC: {
-        StackAlloc(value); 
+        hardware->StackAlloc(value); 
         //cout << endl;
         break;
     }
@@ -191,6 +198,16 @@ void Visit(const RawValueP &value) {
         break;
         //cout << endl;
     }
+    case RVT_CALL: {
+        const auto &call = kind.data.call;
+        Visit(call,value);
+        break;
+    }
+    case RVT_FUNC_ARGS:{
+        const auto &args = kind.data.funcArgs;
+        Visit(args,value);
+        break;
+    }
     default:
         assert(false);
     }
@@ -208,19 +225,13 @@ void Visit(const RawBasicBlockP &bb){
 // Visit RawFunction
 void Visit(const RawFunctionP &func)
 {
+         hardware = new HardwareManager();
+         hardware->init(func);
          printf("  .globl %s\n",func->name);
-         RegisterManagerAlloc();
-         int len = getAllocLen(func);
-         ManagerAlloc(len);
          printf("%s:\n",func->name);
-         if(len <= 2048) {
-         cout << "  addi sp, sp, " << -len <<  endl;
-         }
-         else {
-         cout << "  li t0, " << -len << endl;
-         cout << "  add sp, sp ,t0" << endl;
-         }
+         Visit(func->params);
          Visit(func->bbs);
+         delete hardware;
          cout << endl;
        
 }
