@@ -120,8 +120,7 @@ void Visit(const RawJump &data, const RawValueP &value){
 void Visit(const RawValueP &value) {    
     if(IsRegister(value)) {
         return;
-    }  
-    else if(IsMemory(value)) {
+    }  else if(IsMemory(value)) {
         LoadFromMemory(value);
         return;
     }
@@ -136,7 +135,7 @@ void Visit(const RawValueP &value) {
         cout << "  mv   a0, "<< RetRegister << endl;
         }
         int StackSize = getStackSize();
-        if(StackSize <= 256) {
+        if(StackSize <= 2047) {
         cout << "  addi sp, sp, " << StackSize  <<  endl;
         } else {
         cout << "  li t0, " << StackSize << endl;
@@ -214,7 +213,7 @@ void Visit(const RawFunctionP &func)
          int len = getAllocLen(func);
          ManagerAlloc(len);
          printf("%s:\n",func->name);
-         if(len <= 256) {
+         if(len <= 2048) {
          cout << "  addi sp, sp, " << -len <<  endl;
          }
          else {

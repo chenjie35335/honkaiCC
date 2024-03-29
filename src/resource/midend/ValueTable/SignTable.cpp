@@ -1,6 +1,7 @@
 #include "../../../include/midend/ValueTable/SignTable.h"
 
 SignTable signTable;
+int alloc_now = -1;
 
 void SignTable::insertFunction(const string &name, RawFunction *&function){
     this->FuncTable.insert(pair<string,RawFunction*>(name,function));

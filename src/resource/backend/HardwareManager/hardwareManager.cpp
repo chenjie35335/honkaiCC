@@ -1,5 +1,6 @@
 #include "../../../include/backend/Generator/generator.h"
 #include "../../../include/backend/hardware/hardwareManager.h"
+#include "../../../include/midend/IR/ValueKind.h"
 #include <cassert>
 #include <cstring>
 #include <random>
@@ -181,9 +182,7 @@ const char *GetRegister(const RawValueP &value)
     {
         int loc = registerManager.registerLook.at(value);
         return regs[loc];
-    }
-    else
-    {
+    } else {
         assert(0);
     }
 }
@@ -196,13 +195,22 @@ void AllocX0(const RawValueP &value)
 
 int getAllocLen(const RawFunctionP &func) {
     auto &bbs = func->bbs;
-    int len = 0;
+    int LocalLen = 0, RaLen = 0, ArgsLen = 0;
     for(int i = 0; i < bbs.len;i++) {
-        auto ptr = reinterpret_cast<RawBasicBlockP>(bbs.buffer[i]);
-        auto &insts = ptr->insts;
-        len += insts.len;
+        auto bb = reinterpret_cast<RawBasicBlockP>(bbs.buffer[i]);
+        auto &insts = bb->insts;
+        for(int j = 0; j < insts.len; j++) {
+            auto inst = reinterpret_cast<RawValueP>(insts.buffer[i]);
+            auto TyTag = inst->ty->tag;
+            auto KdTag = inst->value.tag;
+            if(TyTag != RTT_UNIT) LocalLen+=4;
+            if(KdTag == RVT_CALL){
+                RaLen = 4;
+                ArgsLen = max(ArgsLen,int(inst->value.data.call.args.len-8))*4;
+            } 
+        }
     }
-    return len*4;
+    return LocalLen+ArgsLen+RaLen;
 }
 
 int getStackSize() {
