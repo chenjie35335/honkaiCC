@@ -162,7 +162,7 @@ public:
         registerLook.clear();
     }
 
-    bool IsValid(int loc) { return loc > 4 && loc != 10 && loc != 11 && !RegisterLock[loc] && loc < 32;}
+    bool IsValid(int loc) { return loc > 4 && loc >= 10 && loc <= 17 && !RegisterLock[loc] && loc < 32;}
 };
 
 class HardwareManager {

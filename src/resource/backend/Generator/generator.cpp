@@ -117,9 +117,9 @@ void Visit(const RawJump &data, const RawValueP &value){
 //这里有个严重问题
 void Visit(const RawCall &data,const RawValueP &value) {
     auto &params = data.args;
-    Visit(data.args);
     for(int i = 0; i < params.len; i++) {
         auto ptr = reinterpret_cast<RawValueP>(params.buffer[i]);
+        Visit(ptr);
         if(i < 8) {
             const char *reg = hardware.GetRegister(ptr);
             hardware.StoreReg(10+i);
@@ -250,7 +250,8 @@ void Visit(const RawValueP &value) {
 
 // Visit RawBlock
 void Visit(const RawBasicBlockP &bb){
-     if(bb->name != "entry"){
+    std::string prefix = "entry";
+     if((bb->name).compare(0, prefix.size(), prefix) != 0){
      cout << endl;
      cout << bb->name + ":" << endl;
      }

@@ -172,7 +172,7 @@ void generateRawValue(RawFunctionP callee,vector<RawValueP> paramsValue,string &
     call->value.tag = RVT_CALL;
     call->value.data.call.callee = callee;
     auto &params = call->value.data.call.args;
-    params.buffer = (const void **) malloc(sizeof(const void *)*100);
+    params.buffer = (const void **) malloc(sizeof(const void *)*500);
     params.kind = RSK_BASICVALUE;
     params.len = 0;
     auto &calleeParams = callee->ty->data.function.params;
@@ -238,7 +238,7 @@ void createRawProgramme(RawProgramme *&Programme) {
     auto &value = Programme->Value;
     value.kind = RSK_BASICVALUE;
     value.len = 0;
-    value.buffer = (const void **) malloc(sizeof(const void **)*100);
+    value.buffer = (const void **) malloc(sizeof(const void **)*500);
 }
 
 
@@ -264,11 +264,11 @@ void generateRawFunction(RawFunction *&function, const string &name,int type) {
     auto &bbs = function->bbs;
     bbs.kind = RSK_BASICBLOCK;
     bbs.len = 0;
-    bbs.buffer = (const void **) malloc(sizeof(const void *)*100);
+    bbs.buffer = (const void **) malloc(sizeof(const void *)*500);
     auto &params = function->params;
     params.kind = RSK_BASICVALUE;
     params.len = 0;
-    params.buffer = (const void **) malloc(sizeof(const void *)*100);
+    params.buffer = (const void **) malloc(sizeof(const void *)*500);
     function->name = name.c_str();
     RawType *ty = (RawType *) malloc(sizeof(RawType));
     ty->tag = RTT_FUNCTION;
@@ -284,7 +284,7 @@ void generateRawFunction(RawFunction *&function, const string &name,int type) {
     ty->data.function.ret = retTy;
     auto &ParamTy = ty->data.function.params;
     ParamTy.kind = RSK_TYPE;
-    ParamTy.buffer = (const void **) malloc(sizeof(const void *)*100);
+    ParamTy.buffer = (const void **) malloc(sizeof(const void *)*500);
     ParamTy.len = 0;
     function->ty = ty;
     funcs.buffer[funcs.len++] = (const void *) function;

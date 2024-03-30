@@ -113,7 +113,7 @@ void HardwareManager::AllocRegister(const RawValueP &value) {
         registerManager.registerLook.insert(pair<RawValueP, int>(value, RegLoc));
         do{
             RegLoc++;
-        } while ((RegLoc == 10 || RegLoc == 11 || registerManager.RegisterLock[RegLoc]) && RegLoc < 32);
+        } while (((RegLoc >= 10 && RegLoc <= 17) || registerManager.RegisterLock[RegLoc]) && RegLoc < 32);
         //cout << "RegLoc ==" << RegLoc << endl;
         if(RegLoc == 32) registerManager.RegisterFull = true;
     }
