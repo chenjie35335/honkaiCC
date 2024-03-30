@@ -8,6 +8,7 @@
 using namespace std;
 extern IRBuilder* irBuilder;
 extern SignTable signTable;
+int funcNum = 0;
 
 void CompUnitAST::generateGraph(RawProgramme *&IR) const {
     irBuilder = new IRBuilder();

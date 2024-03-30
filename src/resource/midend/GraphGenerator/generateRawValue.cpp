@@ -172,7 +172,7 @@ void generateRawValue(RawFunctionP callee,vector<RawValueP> paramsValue,string &
     call->value.tag = RVT_CALL;
     call->value.data.call.callee = callee;
     auto &params = call->value.data.call.args;
-    params.buffer = (const void **) malloc(sizeof(const void *));
+    params.buffer = (const void **) malloc(sizeof(const void *)*100);
     params.kind = RSK_BASICVALUE;
     params.len = 0;
     auto &calleeParams = callee->ty->data.function.params;

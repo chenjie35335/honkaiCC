@@ -115,6 +115,8 @@ class RegisterManager
 public:
     /// @brief 寄存器堆
     static const char *regs[32];
+    /// @brief 调用者保存寄存器
+    static const int callerSave[];
     /// @brief 寄存器表
     unordered_map<RawValueP, int> registerLook;
     /// @brief 寄存器加锁

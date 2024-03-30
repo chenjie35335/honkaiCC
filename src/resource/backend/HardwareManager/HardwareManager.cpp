@@ -56,14 +56,15 @@ void HardwareManager::init(const RawFunctionP &function)
     memoryManager.initStack(StackLen);
     int ArgsMin = 0, ArgsMax = ArgsLen-4;
     memoryManager.initArgsArea(ArgsMin,ArgsMax);
-    int ReserveMin = ArgsMax+4, ReserveMax = ReserveMin+ReserveLen-4;
-    memoryManager.initReserveArea(ReserveMin,ReserveMax);
-    int LocalMin = ReserveMax+4, LocalMax = LocalMin+LocalLen-4;
+    int LocalMin = ArgsMax+4, LocalMax = LocalMin+LocalLen-4;
     memoryManager.initLocalArea(LocalMin,LocalMax);
+    int ReserveMin = LocalMax+4, ReserveMax = ReserveMin+ReserveLen-4;
+    memoryManager.initReserveArea(ReserveMin,ReserveMax);
     registerManager.init();
 }
 
 void MemoryManager::initArgsArea(int min,int max) {
+    //cout << "minAddress = " << min << ",maxAddress = " << max << endl;
     this->argsArea.minAddress = min;
     this->argsArea.maxAddress = max;
     this->argsArea.tempOffset = min;
@@ -71,6 +72,7 @@ void MemoryManager::initArgsArea(int min,int max) {
 }
 
 void MemoryManager::initReserveArea(int min,int max) {
+    //cout << "minAddress = " << min << ",maxAddress = " << max << endl;
     auto &ReserveArea = this->reserveArea;
     ReserveArea.minAddress = min;
     ReserveArea.maxAddress = max;
@@ -79,6 +81,7 @@ void MemoryManager::initReserveArea(int min,int max) {
 }
 
 void MemoryManager::initLocalArea(int min,int max) {
+    //cout << "minAddress = " << min << ",maxAddress = " << max << endl;
     auto &LocalArea = this->localArea;
     LocalArea.minAddress = min;
     LocalArea.maxAddress = max;
@@ -122,18 +125,17 @@ void HardwareManager::StoreReg(int RandSelected) {
     for (const auto &pair : registerManager.registerLook)
     {
         if (pair.second == RandSelected){
-            TargetReg = registerManager.regs[RandSelected];
+            TargetReg = RegisterManager::regs[RandSelected];
             if(IsMemory(pair.first)) {
             TargetOffset = getTargetOffset(pair.first);
-            } else
-            {
+            } else {
             TargetOffset = StackAlloc(pair.first);
             }
             registerManager.registerLook.erase(pair.first);
+            cout << "  sw   " << TargetReg << ", " << TargetOffset << "(sp)" << endl;
             break;
         }
     }
-    cout << "  sw   " << TargetReg << ", " << TargetOffset << "(sp)" << endl;
 }
 
 const char *RegisterManager::regs[32] = {
@@ -141,6 +143,10 @@ const char *RegisterManager::regs[32] = {
     "s0", "s1", "a0", "a1", "a2", "a3", "a4", "a5",
     "a6", "a7", "s2", "s3", "s4", "s5", "s6", "s7",
     "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"
+};
+
+const int RegisterManager::callerSave[13] = {
+    5,6,7,28,29,30,31
 };
 
 void RegisterArea::LoadRegister(int reg) {

@@ -113,17 +113,42 @@ void Visit(const RawJump &data, const RawValueP &value){
     string TargetBB = data.target->name;
     cout << "  j  " << TargetBB << endl;
 }
-//处理RawCall对象
+//处理RawCall对象，a0和a1寄存器直接不使用
+//这里有个严重问题
 void Visit(const RawCall &data,const RawValueP &value) {
-    //hardware.SaveRegister();
+    auto &params = data.args;
+    Visit(data.args);
+    for(int i = 0; i < params.len; i++) {
+        auto ptr = reinterpret_cast<RawValueP>(params.buffer[i]);
+        if(i < 8) {
+            const char *reg = hardware.GetRegister(ptr);
+            hardware.StoreReg(10+i);
+            const char* paramReg = RegisterManager::regs[10+i];
+            cout << "  mv  " << paramReg << ", " << reg << endl;
+        }
+    }
+     for(int i = 0;i < 7;i++) {
+         hardware.StoreReg(RegisterManager::callerSave[i]);
+     }
     cout<<"  call "<<data.callee->name<<endl;
     if(value->ty->tag == RTT_INT32){
         hardware.AssignRegister(value,10);
     }
 }
-
+//这里不需要分配寄存器，直接默认在a的几个寄存器中，读出来后直接分配栈空间
 void Visit(const RawFuncArgs &data,const RawValueP &value) {
-
+    int index = data.index;
+    int stackLen = hardware.getStackSize();
+    int addr = hardware.StackAlloc(value);
+    if(index < 8) {
+        int regAddr = 10+index;//10是a0号寄存器
+        const char *reg = RegisterManager::regs[regAddr];
+        cout << "  sw  " << reg << ", " << addr << "(sp)" << endl;
+    } else {
+        int srcAddr = stackLen+(index-8)*4;
+        cout << "  lw  " << "t0"<< "," << srcAddr << "(sp)" << endl;
+        cout << "  sw  " << "t0"<< "," << addr << "(sp)" << endl;
+    }
 }
 //这个Value是重点，如果value已经被分配了寄存器，直接返回
 //如果存在内存当中，调用loadreg后直接返回
