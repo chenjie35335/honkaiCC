@@ -4,6 +4,7 @@
 #include "../../../include/midend/AST/ast.h"
 #include "../../../include/midend/ValueTable/SignTable.h"
 #include <cstdlib>
+#include <cstring>
 #include <unordered_map>
 extern SignTable signTable;
 /// @brief 这个是通过查符号表获取的RawValue(包括中间变量和常数)
@@ -242,9 +243,11 @@ void createRawProgramme(RawProgramme *&Programme) {
 }
 
 
-void generateRawBasicBlock(RawBasicBlock *&bb, const string &name){
+void generateRawBasicBlock(RawBasicBlock *&bb, const char * name){
     bb = (RawBasicBlock *) malloc(sizeof(RawBasicBlock));
-    bb->name = name;
+    bb->name = (char *) malloc(sizeof(char) * 100);
+    char *sign = (char *)bb->name;
+    strcpy(sign,name);
     auto &insts = bb->insts;
     insts.kind = RSK_BASICVALUE;
     insts.len = 0;

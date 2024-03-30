@@ -250,10 +250,9 @@ void Visit(const RawValueP &value) {
 
 // Visit RawBlock
 void Visit(const RawBasicBlockP &bb){
-    std::string prefix = "entry";
-     if((bb->name).compare(0, prefix.size(), prefix) != 0){
+     if(strcmp(bb->name,"entry")){
      cout << endl;
-     cout << bb->name + ":" << endl;
+     cout << bb->name << ":" << endl;
      }
      Visit(bb->insts);
 } 

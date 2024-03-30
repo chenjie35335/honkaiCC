@@ -55,7 +55,7 @@ void FuncDefAST::generateGraph(int &retType) const{
     signTable.identForward();
     RawBasicBlock *q;
     string FirstBB = "entry";
-    generateRawBasicBlock(q,FirstBB);
+    generateRawBasicBlock(q,FirstBB.c_str());
     PushRawBasicBlock(q);
     setTempBasicBlock(q);
     setFinished(false);

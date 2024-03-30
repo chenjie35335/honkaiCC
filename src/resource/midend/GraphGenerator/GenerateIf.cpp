@@ -42,8 +42,8 @@ void SinIfStmtAST::generateGraph() const
     ThenSign = "then" + to_string(IfNum);
     EndSign = "end" + to_string(IfNum);
     IfNum++;
-    generateRawBasicBlock(Thenbb,ThenSign);
-    generateRawBasicBlock(Endbb,EndSign);
+    generateRawBasicBlock(Thenbb,ThenSign.c_str());
+    generateRawBasicBlock(Endbb,EndSign.c_str());
     generateRawValue(cond, Thenbb, Endbb);
     PushRawBasicBlock(Thenbb);
     setTempBasicBlock(Thenbb);
@@ -69,9 +69,9 @@ void MultElseStmtAST::generateGraph() const
     EndSign = "end" + to_string(IfNum);
     IfNum++;
     RawBasicBlock *Thenbb,*Elsebb,*Endbb;
-    generateRawBasicBlock(Thenbb,ThenSign);
-    generateRawBasicBlock(Elsebb,ElseSign);
-    generateRawBasicBlock(Endbb,EndSign);
+    generateRawBasicBlock(Thenbb,ThenSign.c_str());
+    generateRawBasicBlock(Elsebb,ElseSign.c_str());
+    generateRawBasicBlock(Endbb,EndSign.c_str());
     generateRawValue(cond, Thenbb, Elsebb);
     setTempBasicBlock(Thenbb);
     PushRawBasicBlock(Thenbb);
@@ -101,15 +101,16 @@ void WhileStmtHeadAST::generateGraph() const
 
 void WhileStmtAST::generateGraph() const
 {
-    string ExpSign, EntrySign, BodySign, EndSign;
+    string ExpSign;
+    string EntrySign, BodySign, EndSign;
     EntrySign = "while_entry" + to_string(WhileNum);
     BodySign = "while_body" + to_string(WhileNum);
     EndSign = "while_end" + to_string(WhileNum);
     WhileNum++;
     RawBasicBlock *Entrybb,*Bodybb,*Endbb;
-    generateRawBasicBlock(Entrybb,EntrySign);
-    generateRawBasicBlock(Bodybb,BodySign);
-    generateRawBasicBlock(Endbb,EndSign);
+    generateRawBasicBlock(Entrybb,EntrySign.c_str());
+    generateRawBasicBlock(Bodybb,BodySign.c_str());
+    generateRawBasicBlock(Endbb,EndSign.c_str());
     setTempBasicBlock(Entrybb);
     PushRawBasicBlock(Entrybb);
     setFinished(false);

@@ -70,7 +70,7 @@ struct RawBasicBlock{
 /// type of basic block  
     RawType* ty;
 /// name of bb
-    string name;
+    const char * name;
 /// parameter(not used until now)
     RawSlice params;
 /// instructions
@@ -185,7 +185,7 @@ void createRawProgramme(RawProgramme *&Programme);
 
 void generateRawFunction(RawFunction *&function, const string &name,int type);
 
-void generateRawBasicBlock(RawBasicBlock *&bb, const string &name);
+void generateRawBasicBlock(RawBasicBlock *&bb, const char *name);
 
 void PushRawBasicBlock(RawBasicBlock *&bb);
 #endif
