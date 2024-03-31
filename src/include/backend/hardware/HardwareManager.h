@@ -117,6 +117,8 @@ public:
     static const char *regs[32];
     /// @brief 调用者保存寄存器
     static const int callerSave[];
+    /// @brief 被调用者保存寄存器
+    static const int calleeSave[];
     /// @brief 寄存器表
     unordered_map<RawValueP, int> registerLook;
     /// @brief 寄存器加锁
@@ -162,7 +164,7 @@ public:
         registerLook.clear();
     }
 
-    bool IsValid(int loc) { return loc > 4 && loc >= 10 && loc <= 17 && !RegisterLock[loc] && loc < 32;}
+    bool IsValid(int loc) { return ((loc > 4 && loc < 10) || (loc > 17 && loc < 32)) && !RegisterLock[loc] ;}
 };
 
 class HardwareManager {

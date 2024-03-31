@@ -116,6 +116,7 @@ void Visit(const RawJump &data, const RawValueP &value){
 //处理RawCall对象，a0和a1寄存器直接不使用
 //这里有个严重问题
 void Visit(const RawCall &data,const RawValueP &value) {
+    cout << endl;
     auto &params = data.args;
     for(int i = 0; i < params.len; i++) {
         auto ptr = reinterpret_cast<RawValueP>(params.buffer[i]);
@@ -125,11 +126,17 @@ void Visit(const RawCall &data,const RawValueP &value) {
             hardware.StoreReg(10+i);
             const char* paramReg = RegisterManager::regs[10+i];
             cout << "  mv  " << paramReg << ", " << reg << endl;
+        } else {
+            const char *reg = hardware.GetRegister(ptr);
+            int offset = (i-8)*4;
+            cout << "  sw  " << reg << ", " << offset << "(sp)" << endl;
         }
     }
+    cout << endl;
      for(int i = 0;i < 7;i++) {
          hardware.StoreReg(RegisterManager::callerSave[i]);
      }
+     cout << endl;
     cout<<"  call "<<data.callee->name<<endl;
     if(value->ty->tag == RTT_INT32){
         hardware.AssignRegister(value,10);
@@ -174,6 +181,9 @@ void Visit(const RawValueP &value) {
         }
         }
         hardware.LoadRegister(1);
+        for(int i = 0; i < 12;i++) {
+            hardware.LoadRegister(RegisterManager::calleeSave[i]);
+        }
         int StackSize = hardware.getStackSize();
         if(StackSize <= 2047) {
         cout << "  addi sp, sp, " << StackSize  <<  endl;
@@ -270,6 +280,9 @@ void Visit(const RawFunctionP &func)
             cout << "  add sp, sp, t0" << endl;
          }
          hardware.SaveRegister(1);
+         for(int i =0 ; i < 12;i++) {
+            hardware.SaveRegister(RegisterManager::calleeSave[i]);
+         }
          Visit(func->params);
          Visit(func->bbs);
          cout << endl;

@@ -105,6 +105,7 @@ void HardwareManager::AllocRegister(const RawValueP &value) {
         do
         {
             RandSelected = dis(gen);
+            //cout << "isvalid ? " << RandSelected << "," << isValid(RandSelected) << endl;
         } while (!isValid(RandSelected));
         StoreReg(RandSelected);
         registerManager.registerLook.insert(pair<RawValueP, int>(value, RandSelected));
@@ -145,8 +146,12 @@ const char *RegisterManager::regs[32] = {
     "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"
 };
 
-const int RegisterManager::callerSave[13] = {
+const int RegisterManager::callerSave[7] = {
     5,6,7,28,29,30,31
+};
+
+const int RegisterManager::calleeSave[12] = {
+    8,9,18,19,20,21,22,23,24,25,26,27
 };
 
 void RegisterArea::LoadRegister(int reg) {
