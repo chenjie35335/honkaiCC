@@ -42,7 +42,10 @@ RawValue * IdentTableNode::SearchVarL(string &name){
     if(findValue(name)) {
         cerr << '"' << name << '"' << "is a constant and can't be altered" << endl;
         assert(0);
-    } else if(findVariable(name)) {
+    } else if(findConstArr(name)){
+        cerr << '"' << name << '"' << "is a constant array and can't be altered" << endl;
+    }
+     else if(findVariable(name)) {
         return this->VarTable.at(name);
     } else if(this->father == nullptr){
         cerr << "Error: " << '"' << name << '"' << " is not defined" << endl;
@@ -62,9 +65,10 @@ RawValue * IdentTableNode::SearchVarR(const string &name){
         string svalue = to_string(value);
         generateRawValue(value);
         return signTable.getMidVar(svalue);
-    }
-    else if(findVariable(name)) {
+    } else if(findVariable(name)) {
         return this->VarTable.at(name);
+    } else if(findConstArr(name)){
+        return this->ConstArrTable.at(name);
     } else if(this->father == nullptr){
         cerr << "Error: " << '"' << name << '"' << " is not defined" << endl;
         assert(0);
@@ -104,6 +108,10 @@ void SignTable::varMultDef(const string &ident) {
 
 void SignTable::insertConst(const string &ident,int value){
     IdentTable->insertValue(ident,value);
+}
+
+void SignTable::insertConstArr(const string &ident,RawValue *&value ) {
+    IdentTable->insertArr(ident,value);
 }
 
 RawFunction *SignTable::getFunction(const string &ident) {

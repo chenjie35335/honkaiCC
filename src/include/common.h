@@ -15,8 +15,12 @@
 #include "midend/AST/LValAST.h"
 #include "midend/AST/OpAST.h"
 #include "midend/AST/StmtAST.h"
+#include "midend/AST/ArrayAST.h"
 
 #include "midend/IR/IRGraph.h"
+#include "IRTXT/IR_TXT.h"
+#include "midend/SSA/DT.h"
+#include "midend/SSA/PHI.h"
 
 using namespace std;
 #pragma once

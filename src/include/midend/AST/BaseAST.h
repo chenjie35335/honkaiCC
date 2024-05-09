@@ -25,6 +25,7 @@ enum{
   ADDMUL,
   DECLAST_CON,
   DECLAST_VAR,
+  DECLAST_ARR,
   MULEXPAST_UNA,
   MULEXPAST_MUL,
   LOREXPAST_LAN,
@@ -46,6 +47,8 @@ enum{
   SINVARDEFAST_UIN,
   SINVARDEFAST_INI,
   SINVARDEFAST_FUNC,
+  SINVARDEFAST_UNI_ARR,
+  SINVARDEFAST_INI_ARR,
   STMTAST_RET,
   STMTAST_LVA,
   STMTAST_SINE,
@@ -55,8 +58,11 @@ enum{
   STMTAST_BREAK,
   STMTAST_CONTINUE,
   STMTAST_INWHILE,
+  STMTAST_ARR,
   SinIfAST_BE,
   SinIFAST_NO,
+  TYPE_INT,
+  TYPE_FLOAT,
   LVALAST_LEFT,
   LVALAST_RIGHT,
   SINEXPAST_EXP,
@@ -67,8 +73,14 @@ enum{
   COMP_FUNC,
   COMP_CON,
   COMP_VAR,
+  COMP_ARR,
+  PARA_VAR,
+  PARA_ARR_SIN,
+  PARA_ARR_MUL,
   FUNCTYPE_INT,
   FUNCTYPE_VOID,
+  FUNCTYPE_FLOAT,
+  FUNCTYPE_POINTER_INT,
   DECL_LOC,
   DECL_GLOB,
   IFSTMT_SIN,
@@ -82,8 +94,11 @@ class BaseAST {
   virtual void generateGraph() const{}
   virtual void generateGraph(string &sign) const{}
   virtual void generateGraph(int &retType) const{}
+  virtual void generateGraph(string &sign,int &type) const{}
   virtual void generateGraph(vector<RawValueP> &params) const {}
   virtual void generateGraph(RawValueP &value) const {}
+  virtual void generateGraphGlobal() const{}
+  virtual void generateGraph(vector<int> &dimen) const {}
   virtual int calc() const { return 0; }
 };
 

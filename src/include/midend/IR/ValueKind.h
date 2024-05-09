@@ -1,90 +1,133 @@
-#ifndef STORMY_VALUEKIND_DEF
-#define STORMY_VALUEKIND_DEF
-// binary op
-enum {
-    /// Not equal to.
-    RBO_NOT_EQ,
-    /// Equal to.
-    RBO_EQ,
-/// Greater than.
-    RBO_GT,
-/// Less than.
-    RBO_LT,
-/// Greater than or equal to
-    RBO_GE,
-/// Less than or equal to.
-    RBO_LE,
-/// Addition.
-    RBO_ADD,
-/// Subtraction.    
-    RBO_SUB,
-/// Multiplication.
-    RBO_MUL,
-/// Division.
-    RBO_DIV,
-/// Modulo.
-    RBO_MOD,
-/// Bitwise AND.
-    RBO_AND,
-/// Bitwise OR.
-    RBO_OR,
-/// Bitwise XOR.
-    RBO_XOR,
-/// Shift left logical.
-    RBO_SHL,
-/// Shift right logical.
-    RBO_SHR,
-/// Shift right arithmetic.
-    RBO_SAR,
-}BinaryOp;
+#ifndef STORMY_VALUEKIND
+#define STORMY_VALUEKIND
+#include <stdint.h>
+#include <stdlib.h>
+#include "common.h"
 
-//the kind of value
-enum {
-    /// Integer constant
-    RVT_INTEGER,
-    /// local alloc
-    RVT_ALLOC,
-    /// load
-    RVT_LOAD,
-    /// store
-    RVT_STORE,
-    /// binary
-    RVT_BINARY,
-    /// return 
-    RVT_RETURN,
-    /// branch
-    RVT_BRANCH,
-    /// jump
-    RVT_JUMP,
-    /// call
-    RVT_CALL,
-    /// function args
-    RVT_FUNC_ARGS,
-}RawValueTag;
+class RawInteger {
+    public:
+    int32_t value;
+};
+/// load
+class RawLoad{
+    public:
+    RawValueP src;
+};
+///
+class RawGlobal{
+    public:
+    RawValueP Init;
+};
 
-// kind of RawSlice
-enum {
-    /// function
-    RSK_FUNCTION,
-    /// basic block
-    RSK_BASICBLOCK,
-    /// Value
-    RSK_BASICVALUE,
-    /// Type
-    RSK_TYPE
-}RawSliceKind;
+/// store
+class RawStore{
+    public:
+    RawValueP value;
+    RawValueP dest;
+};
 
-enum {
-    // 32-bits integer
-    RTT_INT32,
-    // void
-    RTT_UNIT,
-    // Array
-    RTT_ARRAY,
-    // pointer
-    RTT_POINTER,
-    // function
-    RTT_FUNCTION
-}RawTypeTag;
+/// binary
+class RawBinary{
+    public:
+    /// kind of op
+    uint32_t op;
+    RawValueP lhs;
+    RawValueP rhs;
+};
 
+/// return 
+class RawReturn{
+    public:
+    RawValueP value;
+} ;
+/// call
+class RawCall{
+    public:
+    /// @brief the called function
+    RawFunctionP callee;
+    /// @brief params
+    RawSlice args;
+};
+/// @brief args
+class RawFuncArgs{
+    public:
+    /// index of args in the function
+    size_t index;
+};
+/// @brief jump
+class RawJump{
+    public:
+    /// @brief the target basicblock
+    RawBasicBlockP target;
+    /// @brief the args of basicblock
+    RawSlice args;
+};
+
+class RawGetPtr{
+    public: 
+    RawValueP src;
+    RawValueP index;
+};
+
+class RawGetElement{
+    public: 
+    RawValueP src;
+    RawValueP index;
+};
+
+class RawAggregate{
+    public: 
+    RawSlice elements; 
+};
+
+class RawBranch{//其他剩余两个参数貌似当前用不到
+public:
+    /// condition
+    RawValueP cond;
+    /// Target if condition is true
+    RawBasicBlockP true_bb;
+    /// Target if condition is false
+    RawBasicBlockP false_bb;
+    /// the args of true_bb
+    RawSlice true_args;
+    /// the args of false_bb
+    RawSlice false_args;
+};
+
+class RawValueCop {
+    public:
+        /// @brief target of this copy
+        RawValueP target;
+};
+
+class RawBlockArgs{
+public:
+    /// @brief the target of phi function
+    RawValueP target;
+    /// @brief the index of args
+    size_t index;
+};
+
+class ValueKind {
+    public:
+    uint32_t tag;
+    union {
+        RawInteger integer;
+        RawLoad load;
+        RawStore store;
+        RawBinary binary;
+        RawReturn ret;
+        RawBranch branch;
+        RawJump jump;
+        RawCall call;
+        RawFuncArgs funcArgs;
+        RawGlobal global;
+        RawGetPtr getptr;
+        RawGetElement getelement;
+        RawAggregate aggregate;
+        RawBlockArgs blockArgs;
+        RawValueCop valueCop;
+        // 其他数据类型
+    } data;
+};
 #endif

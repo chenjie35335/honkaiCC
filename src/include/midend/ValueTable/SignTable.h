@@ -20,8 +20,10 @@ class IdentTableNode {
         IdentTableNode *child;
     //作用域层级
         int level;
-    //常量表
+    //常量变量表
         unordered_map<string,int> ConstTable;
+    //常量数组表
+        unordered_map<string,RawValue *> ConstArrTable;//这个分开存的方针肯定是对的但是要解决一些问题
     //变量表
         unordered_map<string,RawValue *> VarTable;
     //构造函数
@@ -48,6 +50,10 @@ class IdentTableNode {
         void insertVar(const string &name, RawValue *&value){VarTable.insert(pair<string,RawValue *>(name,value));}
     //插入常量
         void insertValue(const string &name, int value){ConstTable.insert(pair<string,int>(name,value));}
+    //插入常量数组
+        void insertArr(const string &name,RawValue *&value) {ConstArrTable.insert(pair<string,RawValue *>(name,value));}
+    //查找当前ARRAY表
+        bool findConstArr(const string &ident) { return ConstArrTable.find(ident) != ConstArrTable.end();}
 };
 
 //SignTable定义（仅用于中端）目前来看，BasicBlock不需要添加
@@ -94,9 +100,13 @@ class SignTable {
         void varMultDef(const string &ident);
         //插入常量
         void insertConst(const string &ident,int value);
+        //插入常量数组
+        void insertConstArr(const string &ident,RawValue *&value);
         //获取函数值
         RawFunction *getFunction(const string &ident);
         //清空中间变量表
-        void clearMidVar(){MidVarTable.clear();}
+        void clearMidVar() {MidVarTable.clear();}
 };
+
+
 #endif

@@ -17,7 +17,7 @@ class SinExpAST : public BaseAST
 public:
   std::unique_ptr<BaseAST> Exp;
   uint32_t type;
-  void generateGraph(string &sign) const override;
+  void generateGraph(string &sign,int &type) const override;
 };
 
 class LOrExpAST : public BaseAST
@@ -322,6 +322,9 @@ class SinParamsAST : public BaseAST
 {
 public:
   unique_ptr<BaseAST> exp;
+  unique_ptr<BaseAST> dimension;
+  int type;
+  string ident;
   void generateGraph(RawValueP &params) const override;
 };
 
@@ -330,6 +333,7 @@ class PrimaryExpAST : public BaseAST
 public:
   std::unique_ptr<BaseAST> Exp;
   std::unique_ptr<BaseAST> Lval;
+  float floatNumber;
   int number;
   uint32_t kind;
   /*如果遍历结果为常数，直接返回，如果不是，继续遍历*/

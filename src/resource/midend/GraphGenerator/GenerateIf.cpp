@@ -1,7 +1,7 @@
 #include "../../../include/midend/IR/IRGraph.h"
 #include "../../../include/midend/IR/IRBuilder.h"
 #include "../../../include/midend/IR/ValueKind.h"
-#include "../../../include/midend/AST/ast.h"
+#include "../../../include/midend/AST/AST.h"
 #include <cstdlib>
 #include <unordered_map>
 using namespace std;
@@ -45,6 +45,7 @@ void SinIfStmtAST::generateGraph() const
     generateRawBasicBlock(Thenbb,ThenSign.c_str());
     generateRawBasicBlock(Endbb,EndSign.c_str());
     generateRawValue(cond, Thenbb, Endbb);
+    PushFollowBasieBlock(Thenbb,Endbb);
     PushRawBasicBlock(Thenbb);
     setTempBasicBlock(Thenbb);
     setFinished(false);
@@ -52,6 +53,7 @@ void SinIfStmtAST::generateGraph() const
     if (!getFinished())
     {
         generateRawValue(Endbb);
+        PushFollowBasieBlock(Endbb);
     }
     setTempBasicBlock(Endbb);
     setFinished(false);
@@ -73,6 +75,7 @@ void MultElseStmtAST::generateGraph() const
     generateRawBasicBlock(Elsebb,ElseSign.c_str());
     generateRawBasicBlock(Endbb,EndSign.c_str());
     generateRawValue(cond, Thenbb, Elsebb);
+    PushFollowBasieBlock(Thenbb,Elsebb);
     setTempBasicBlock(Thenbb);
     PushRawBasicBlock(Thenbb);
     setFinished(false);
@@ -80,6 +83,7 @@ void MultElseStmtAST::generateGraph() const
     if (!getFinished())
     {
         generateRawValue(Endbb);
+        PushFollowBasieBlock(Endbb);
     }
     setTempBasicBlock(Elsebb);
     PushRawBasicBlock(Elsebb);
@@ -88,6 +92,7 @@ void MultElseStmtAST::generateGraph() const
     if (!getFinished())
     {
         generateRawValue(Endbb);
+        PushFollowBasieBlock(Endbb);
     }
     PushRawBasicBlock(Endbb);
     setTempBasicBlock(Endbb);
@@ -111,6 +116,8 @@ void WhileStmtAST::generateGraph() const
     generateRawBasicBlock(Entrybb,EntrySign.c_str());
     generateRawBasicBlock(Bodybb,BodySign.c_str());
     generateRawBasicBlock(Endbb,EndSign.c_str());
+    generateRawValue(Entrybb);
+    PushFollowBasieBlock(Entrybb);
     setTempBasicBlock(Entrybb);
     PushRawBasicBlock(Entrybb);
     setFinished(false);
@@ -118,6 +125,7 @@ void WhileStmtAST::generateGraph() const
     RawValueP cond;
     getMidVarValue(cond, ExpSign);
     generateRawValue(cond, Bodybb, Endbb);
+    PushFollowBasieBlock(Bodybb,Endbb);
     setTempBasicBlock(Bodybb);
     PushRawBasicBlock(Bodybb);
     setFinished(false);
@@ -127,6 +135,7 @@ void WhileStmtAST::generateGraph() const
     if (!getFinished())
     {
         generateRawValue(Entrybb);
+        PushFollowBasieBlock(Entrybb);
     }
     setTempBasicBlock(Endbb);
     PushRawBasicBlock(Endbb);
@@ -143,6 +152,7 @@ void InWhileAST::generateGraph() const
     {
         RawBasicBlock *end = getTempWhileEnd();
         generateRawValue(end);
+        PushFollowBasieBlock(end);
         setFinished(true);
         break;
     }
@@ -150,6 +160,7 @@ void InWhileAST::generateGraph() const
     {
         RawBasicBlock *entry = getTempWhileEntry();
         generateRawValue(entry);
+        PushFollowBasieBlock(entry);
         setFinished(true);
         break;
     }

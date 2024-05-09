@@ -1,18 +1,21 @@
 #include "../../../include/midend/IR/IRGraph.h"
 #include "../../../include/midend/IR/IRBuilder.h"
 #include "../../../include/midend/IR/ValueKind.h"
-#include "../../../include/midend/AST/ast.h"
+#include "../../../include/midend/AST/AST.h"
 #include <cstdlib>
 #include <unordered_map>
 using namespace std;
 // 这里这个RawProgramme是生成好
 
-void SinExpAST::generateGraph(string &sign) const
+void SinExpAST::generateGraph(string &sign,int &RetType) const
 {
+  RetType = type;
   switch (type)
   {
   case SINEXPAST_EXP:
     Exp->generateGraph(sign);
+    break;
+  case SINEXPAST_NULL:
     break;
   default:
     assert(0);
@@ -318,7 +321,7 @@ void PrimaryExpAST::generateGraph(string &sign) const
 }
 
 void FuncExpAST::generateGraph(string &sign) const{
-  //cout << "function name = " << ident;
+  //cerr << "function name = " << ident << endl;
   RawFunctionP callee= signTable.getFunction(ident);
   vector<RawValueP> paramsValue;
   para->generateGraph(paramsValue);

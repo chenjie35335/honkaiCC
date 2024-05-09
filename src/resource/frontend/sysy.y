@@ -35,14 +35,17 @@ using namespace std;
 %union {
   std::string *str_val;
   int int_val;
+  float float_val;
   BaseAST *ast_val;
 }
 
 // lexer 返回的所有 token 种类的声明
 // 注意 IDENT 和 INT_CONST 会返回 token 的值, 分别对应 str_val 和 int_val
-%token INT RETURN EQ LE GE NE AND OR CONST IF ELSE WHILE BREAK CONTINUE VOID
+%token INT RETURN EQ LE GE NE AND OR CONST IF ELSE WHILE BREAK CONTINUE VOID FLOAT
 %token <str_val> IDENT
-%token <int_val> INT_CONST 
+%token <int_val> INT_CONST
+%token <float_val> FLOAT_CONST
+
 
 // 非终结符的类型定义
 %type <ast_val> FuncDef FuncType Block Stmt Exp PrimaryExp UnaryExp
@@ -51,9 +54,12 @@ using namespace std;
 %type <ast_val> SinConstDef ConstExp Btype MulBlockItem SinBlockItem LValR
 %type <ast_val> VarDecl SinVarDef MulVarDef InitVal SinExp 
 %type <ast_val> IfStmt SinIfStmt MultElseStmt WhileStmt WhileStmtHead InWhile
-%type <ast_val> FuncFParams SinFuncFParam 
+%type <ast_val> FuncFParams ParaType SinFuncFParam 
 %type <ast_val> FuncExp Params SinParams SinCompUnit MultCompUnit
+%type <ast_val> ArrayDimen SinArrayDimen ConstArrayInit
+%type <ast_val> MultiArrayElement SinArrayElement ArrPara SinArrPara
 %type <int_val> Number 
+%type <float_val> FloatNumber
 
 %%
 
@@ -130,12 +136,28 @@ FuncFParams
   ;
 
 SinFuncFParam
-  : INT IDENT {
+  : ParaType IDENT {
     auto ast = new SinFuncFParamAST();
     ast->ident = *unique_ptr<string>($2);
+    ast->paraType = unique_ptr<BaseAST>($1);
+    ast->type = PARA_VAR;
+    $$ = ast;
+  } | ParaType IDENT '[' ']'  {
+    auto ast = new SinFuncFParamAST();
+    ast->ident = *unique_ptr<string>($2);
+    ast->paraType = unique_ptr<BaseAST>($1);
+    ast->type = PARA_ARR_SIN;
+    $$ = ast;
+  } | ParaType IDENT '[' ']' ArrayDimen {
+    auto ast = new SinFuncFParamAST();
+    ast->ident = *unique_ptr<string>($2);
+    ast->paraType = unique_ptr<BaseAST>($1);
+    ast->arrayDimen = unique_ptr<BaseAST>($5);
+    ast->type = PARA_ARR_MUL;
     $$ = ast;
   }
   ;
+
 
 // 同上, 不再解释
 FuncType
@@ -146,6 +168,22 @@ FuncType
   } | VOID {
     auto ast = new FuncTypeAST();
     ast->type = FUNCTYPE_VOID;
+    $$ = ast;
+  } | FLOAT {
+    auto ast = new FuncTypeAST();
+    ast->type = FUNCTYPE_FLOAT;
+    $$ = ast;
+  }
+  ;
+
+ParaType 
+  : INT {
+    auto ast = new ParaTypeAST();
+    ast->type = TYPE_INT;
+    $$ = ast;
+  } | FLOAT {
+    auto ast = new ParaTypeAST();
+    ast->type = TYPE_FLOAT;
     $$ = ast;
   }
   ;
@@ -161,7 +199,7 @@ Decl
     ast->VarDecl   = unique_ptr<BaseAST>($2);
     ast->type      = DECLAST_VAR;
     $$             = ast;
-  }
+  } 
   ;
 
 ConstDecl
@@ -170,7 +208,7 @@ ConstDecl
     ast->Btype      = unique_ptr<BaseAST>($2);
     ast->MulConstDef= unique_ptr<BaseAST>($3);
     $$              = ast;
-  }
+  } 
   ;
 //这里使用的是一个递归的方法，但是我们发现这个方法如果实际采用的话，可能会导致树的极度不平衡
 //所以说助教说的Vec的方法应当想办法弄出来
@@ -187,13 +225,83 @@ MulConstDef
       $$       = ast;
   }
   ;
-//这个在语义分析阶段就用来写入常量表，而不输出任何汇编代码
-SinConstDef
-  : IDENT '=' ConstExp {
-      auto ast      = new SinConstDefAST();
-      ast->ident    = *unique_ptr<string>($1);
-      ast->ConstExp = unique_ptr<BaseAST>($3);
-      $$            = ast;
+
+
+ArrayDimen
+  : SinArrayDimen {
+    auto ast = new ArrayDimenAST();
+    ast->sinArrayDimen.push_back(unique_ptr<BaseAST>($1));
+    $$ = ast;
+  } | ArrayDimen SinArrayDimen {
+    auto ast = (ArrayDimenAST *) ($1);
+    ast->sinArrayDimen.push_back(unique_ptr<BaseAST>($2));
+    $$ = ast;
+  }
+  ;
+
+SinArrayDimen 
+  : '[' ConstExp ']'{
+    auto ast = new SinArrayDimenAST();
+    ast->exp = unique_ptr<BaseAST>($2);
+    $$ = ast;
+  }
+  ;
+
+ArrPara 
+  : SinArrPara {
+    auto ast = new ArrParaAST();
+    ast->sinArrPara.push_back(unique_ptr<BaseAST>($1));
+    $$ = ast;
+  } | ArrPara SinArrPara  {
+    auto ast = (ArrParaAST *) ($1);
+    ast->sinArrPara.push_back(unique_ptr<BaseAST>($2));
+    $$ = ast;
+  }
+  ;
+
+SinArrPara 
+  : '[' Exp ']' {
+    auto ast = new SinArrParaAST();
+    ast->exp = unique_ptr<BaseAST>($2);
+    $$ = ast;
+  }
+  ;
+//这里有一个明显的移进规约冲突
+ConstArrayInit
+  : '{' MultiArrayElement '}' {
+    auto ast = new ConstArrayInitAST();
+    ast->multiArrayElement = unique_ptr<BaseAST>($2);
+    ast->type = ConstArrayInitAST::INIT_MUL;
+    $$ = ast;
+  } | '{' '}' {
+    auto ast = new ConstArrayInitAST();
+    ast->type = ConstArrayInitAST::INIT_NULL;
+    $$ = ast;
+  }
+
+MultiArrayElement 
+  : SinArrayElement {
+    auto ast = new MultiArrayElementAST();
+    ast->sinArrayElement.push_back(unique_ptr<BaseAST>($1));
+    $$ = ast;
+  } | MultiArrayElement ',' SinArrayElement {
+    auto ast = (MultiArrayElementAST *) ($1);
+    ast->sinArrayElement.push_back(unique_ptr<BaseAST>($3));
+    $$ = ast;
+  }
+  ;
+ 
+SinArrayElement
+  : ConstExp {
+    auto ast = new SinArrayElementAST();
+    ast->constExp = unique_ptr<BaseAST>($1);
+    ast->type =SinArrayElementAST::ARELEM_EX;
+    $$ = ast;
+  } | ConstArrayInit {
+    auto ast = new SinArrayElementAST();
+    ast->constArrayInit = unique_ptr<BaseAST>($1);
+    ast->type =SinArrayElementAST::ARELEM_AI;
+    $$ = ast;
   }
   ;
 
@@ -229,7 +337,38 @@ SinVarDef
     ast->ident = *unique_ptr<string>($1);
     ast->InitVal= unique_ptr<BaseAST>($3);
     $$         = ast;
+  } | IDENT ArrayDimen {
+    auto ast = new SinVarDefAST();
+    ast->type = SINVARDEFAST_UNI_ARR;
+    ast->ident = *unique_ptr<string>($1);
+    ast->dimen = unique_ptr<BaseAST>($2);
+    $$ = ast;
+  } | IDENT ArrayDimen '=' ConstArrayInit {
+    auto ast = new SinVarDefAST();
+    ast->type = SINVARDEFAST_INI_ARR;
+    ast->ident = *unique_ptr<string>($1);
+    ast->dimen = unique_ptr<BaseAST>($2);
+    ast->constInit = unique_ptr<BaseAST>($4);
+    $$ = ast;
   } 
+  ;
+
+//这个在语义分析阶段就用来写入常量表，而不输出任何汇编代码
+SinConstDef
+  : IDENT '=' ConstExp {
+      auto ast      = new SinConstDefAST();
+      ast->ident    = *unique_ptr<string>($1);
+      ast->constExp = unique_ptr<BaseAST>($3);
+      ast->type     = SinConstDefAST::SINCONST_VAR;
+      $$            = ast;
+  } | IDENT ArrayDimen '=' ConstArrayInit {
+    auto ast = new SinConstDefAST();
+    ast->ident    = *unique_ptr<string>($1);
+    ast->arrayDimen = unique_ptr<BaseAST>($2);
+    ast->constArrayInit = unique_ptr<BaseAST>($4);
+    ast->type = SinConstDefAST::SINCONST_ARRAY;
+    $$ = ast;
+  }
   ;
 
 InitVal
@@ -254,6 +393,10 @@ Btype
     auto ast = new BtypeAST();
     ast->type = "int";
     $$        = ast;
+  } | FLOAT {
+    auto ast = new BtypeAST();
+    ast->type = "float";
+    $$ = ast;
   }
   ;
 
@@ -344,6 +487,13 @@ Stmt
     ast->InWhileStmt = unique_ptr<BaseAST>($1);
     ast->type = STMTAST_INWHILE;
     $$        = ast;
+  } |  IDENT ArrayDimen '=' Exp ';' {
+    auto ast = new StmtAST();
+    ast->Exp = unique_ptr<BaseAST> ($4);
+    ast->ident = *unique_ptr<string>($1);
+    ast->arrPara = unique_ptr<BaseAST>($2);
+    ast->type= STMTAST_ARR;
+    $$ = ast;
   }
   ;
 
@@ -558,6 +708,13 @@ LValR
   : IDENT {
     auto ast   = new LValRAST();
     ast->ident = *unique_ptr<string>($1);
+    ast->type = LValRAST::IDENT;
+    $$ = ast;
+  } | IDENT ArrayDimen {
+    auto ast = new LValRAST();
+    ast->ident = *unique_ptr<string>($1);
+    ast->array = unique_ptr<BaseAST>($2);
+    ast->type = LValRAST::ARRAY;
     $$ = ast;
   }
   ;
@@ -580,6 +737,11 @@ PrimaryExp
     ast->number = $1;
     ast->Exp = nullptr;
     $$ = ast;
+  } | FloatNumber {
+    auto ast = new PrimaryExpAST();
+    ast->kind = FLOAT;
+    ast->floatNumber = $1;
+    $$ = ast;
   }
   ;
 
@@ -588,6 +750,11 @@ Number
     $$ = $1;
   }
   ;
+
+FloatNumber
+  : FLOAT_CONST {
+    $$ = $1;
+  }
 
 //using our function
 UnaryExp 
@@ -637,8 +804,20 @@ SinParams
   : Exp {
     auto ast = new SinParamsAST();
     ast->exp = unique_ptr<BaseAST>($1);
+    ast->type = 1;
     $$  = ast;
-  }
+  } | IDENT '[' ']' {
+    auto ast = new SinParamsAST();
+    ast->ident = *unique_ptr<string>($1);
+    ast->type  = 2;
+    $$ = ast;
+  } | IDENT '[' ']' ArrayDimen {
+    auto ast = new SinParamsAST();
+    ast->ident = *unique_ptr<string>($1);
+    ast->dimension = unique_ptr<BaseAST>($4);
+    ast->type = 3;
+    $$ = ast;
+  } 
   ;
 
 UnaryOp

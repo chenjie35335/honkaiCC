@@ -5,6 +5,7 @@ class DeclAST : public BaseAST {
   public:
     std::unique_ptr<BaseAST> ConstDecl;
     std::unique_ptr<BaseAST> VarDecl;
+    std::unique_ptr<BaseAST> arrDef;
     uint32_t type;
     void generateGraph() const override;
 };
@@ -14,6 +15,7 @@ class ConstDeclAST : public BaseAST {
     std::unique_ptr<BaseAST> Btype;
     std::unique_ptr<BaseAST> MulConstDef;
     void generateGraph() const override; 
+    void generateGraphGlobal() const override;
 };
 
 class BtypeAST : public BaseAST {
@@ -29,34 +31,48 @@ class MulConstDefAST : public BaseAST {
           sinConstDef->generateGraph();
         }
     }
+    void generateGraphGlobal() const override;
 };
 
 class SinConstDefAST : public BaseAST{
   public:
+  enum {
+    SINCONST_VAR,
+    SINCONST_ARRAY
+  }kind;
     string ident;
-    unique_ptr<BaseAST>ConstExp;
+    unique_ptr<BaseAST>arrayDimen;
+    unique_ptr<BaseAST>constExp;
+    unique_ptr<BaseAST>constArrayInit;
+    int type;
     void generateGraph() const override;
+    void generateGraphGlobal() const override;
 };
 
 class VarDeclAST : public BaseAST {
 public:
      unique_ptr <BaseAST> MulVarDef;
      void generateGraph() const override;
+     void generateGraphGlobal() const override;
 };
 
 class MulVarDefAST : public BaseAST {
 public:
     vector <unique_ptr<BaseAST>> SinValDef;
     void generateGraph() const override;
+    void generateGraphGlobal() const override;
 };
 
 class SinVarDefAST : public BaseAST {
 public:
     string ident;
     unique_ptr<BaseAST>InitVal;
-    unique_ptr<BaseAST>func_exp;
+    unique_ptr<BaseAST>dimen;
+    unique_ptr<BaseAST>constInit;
+    int number;
     uint32_t type; 
     void generateGraph() const override;
+    void generateGraphGlobal() const override;
 };
 
 class InitValAST : public BaseAST {
@@ -72,5 +88,7 @@ class ConstExpAST : public BaseAST {
     [[nodiscard]] int calc() const override{
         return Exp->calc();
     }
+    void generateGraph(string &name) const override { Exp->generateGraph(name);}
 };
+
 #endif

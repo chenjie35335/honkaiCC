@@ -12,6 +12,7 @@ class StmtAST : public BaseAST {
     std::unique_ptr<BaseAST> ifStmt;
     std::unique_ptr<BaseAST> WhileHead;
     std::unique_ptr<BaseAST> InWhileStmt;
+    std::unique_ptr<BaseAST> arrPara;
     uint32_t type;
     void generateGraph() const override;
 };

@@ -1,7 +1,8 @@
 #include "../../../include/midend/IR/IRGraph.h"
 #include "../../../include/midend/IR/IRBuilder.h"
 #include "../../../include/midend/IR/ValueKind.h"
-#include "../../../include/midend/AST/ast.h"
+#include "../../../include/midend/IR/LibFunction.h"
+#include "../../../include/midend/AST/AST.h"
 #include "../../../include/midend/ValueTable/SignTable.h"
 #include <cstdlib>
 #include <unordered_map>
@@ -19,6 +20,14 @@ void CompUnitAST::generateGraph(RawProgramme *&IR) const {
 }
 
 void MultCompUnitAST::generateGraph() const{
+    GeneratePutch();
+    GeneratePutInt();
+    GenerateStartTime();
+    GenerateStopTime();
+    GenerateGetch();
+    GenerateGetInt();
+    GeneratePutArray();
+    GenerateGetArray();
     for(auto &sinComp : sinCompUnit) {
         sinComp->generateGraph();
     }
@@ -33,10 +42,13 @@ void SinCompUnitAST::generateGraph() const{
             break;
         }
         case COMP_CON:
-            constGlobal->generateGraph();
+            constGlobal->generateGraphGlobal();
             break;
         case COMP_VAR:{
-            //varGlobal->Dump(DECL_GLOB);
+            varGlobal->generateGraphGlobal();
+            break;
+        }
+        case COMP_ARR:{
             break;
         }
         default:
@@ -51,7 +63,7 @@ void FuncTypeAST::generateGraph(int &retType) const {
 //这里设置funcs的位置应该提前
 void FuncDefAST::generateGraph(int &retType) const{
     RawFunction* p;
-    generateRawFunction(p,ident,retType);
+    generateRawFunction(p,ident.c_str(),retType);
     signTable.identForward();
     RawBasicBlock *q;
     string FirstBB = "entry";
@@ -79,7 +91,19 @@ void FuncFParamsAST::generateGraph() const{
 }
 //单个参数访问
 void SinFuncFParamAST::generateGraph(int &index) const{
-    generateRawValueArgs(ident,index);
+    switch(type) {
+        case PARA_VAR:
+            generateRawValueArgs(ident,index);
+            break;
+        case PARA_ARR_SIN:
+            generateRawValueSinArr(ident,index);
+            break;
+        case PARA_ARR_MUL:
+            vector<int>dimens;
+            arrayDimen->generateGraph(dimens);
+            generateRawValueMulArr(ident,index,dimens);
+            break;
+    } 
 }
 
 //这个blockAST的generateGraph对于分支语句来说是个重点
@@ -111,12 +135,15 @@ void SinBlockItemAST::generateGraph() const{
 
 void StmtAST::generateGraph() const {
       switch(type) {
-          case STMTAST_RET:{
-              string RetValue;
-              SinExp->generateGraph(RetValue);
-              RawValueP RetSrc;
+          case STMTAST_RET:{//这个ret做的不是很好
+              string RetValue;int type;
+              SinExp->generateGraph(RetValue,type);
+              RawValueP RetSrc ;
+              if(type == SINEXPAST_EXP) {
               getMidVarValue(RetSrc,RetValue);
+              } else RetSrc = nullptr;
               generateRawValue(RetSrc);
+              PushFollowBasieBlock();
               setFinished(true);
               break;
           }
@@ -131,8 +158,11 @@ void StmtAST::generateGraph() const {
             generateRawValue(src,dest);
             break;
           }
-          case STMTAST_SINE: 
-              SinExp->generateGraph(); break; 
+          case STMTAST_SINE: {
+              string SinExpSign;int type;
+              SinExp->generateGraph(SinExpSign,type); 
+              break; 
+          }
           case STMTAST_BLO: 
               Block->generateGraph();break;
           case STMTAST_IF:
@@ -146,8 +176,29 @@ void StmtAST::generateGraph() const {
               }
               else InWhileStmt->generateGraph();
               break;
+          case STMTAST_ARR:{
+            string ExpSign,IdentSign;
+            IdentSign = this->ident;
+            Exp->generateGraph(ExpSign);
+            RawValueP src,dest;
+            getMidVarValue(src,ExpSign);
+            getVarValueL(dest,IdentSign);
+            vector<RawValueP> dimens;
+            arrPara->generateGraph(dimens);
+//则返回的类型就是
+            string ElementSign;
+            for(auto &dimen : dimens) {
+                generateElement(dest,dimen,ElementSign);
+                //cout << "elementName = " << ElementSign << endl;
+                dest = signTable.getMidVar(ElementSign);
+            }
+            //cout << "create dest tag :" << dest->value.tag << endl;
+            generateRawValue(src,dest);
+            break;
+          }
           default: assert(0);
       }
 }
 //这里有最后一个小问题就是常数的问题，这个暂且搁置
+//这里我干一个比较傻逼的事情是：不判断类型
 

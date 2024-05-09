@@ -28,6 +28,9 @@ Decimal       [1-9][0-9]*
 Octal         0[0-7]*
 Hexadecimal   0[xX][0-9a-fA-F]+
 
+/*float*/
+FloatNumber   ^[+-]?\d*\.?\d*(e|E)[+-]?\d+$
+
 /*运算符*/
 
 %%
@@ -51,6 +54,7 @@ Hexadecimal   0[xX][0-9a-fA-F]+
 "break"         { return BREAK; }
 "continue"      { return CONTINUE; }
 "void"          { return VOID; }
+"float"         { return FLOAT;}
 
 
 {Identifier}    { yylval.str_val = new string(yytext); return IDENT; }
@@ -58,6 +62,7 @@ Hexadecimal   0[xX][0-9a-fA-F]+
 {Decimal}       { yylval.int_val = strtol(yytext, nullptr, 0); return INT_CONST; }
 {Octal}         { yylval.int_val = strtol(yytext, nullptr, 0); return INT_CONST; }
 {Hexadecimal}   { yylval.int_val = strtol(yytext, nullptr, 0); return INT_CONST; }
+{FloatNumber}   { yylval.float_val = strtol(yytext, nullptr, 0); return FLOAT_CONST; }
 
 .               { return yytext[0]; }
         

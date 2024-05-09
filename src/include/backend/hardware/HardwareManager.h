@@ -37,23 +37,46 @@ class ValueArea : public Area
 public:
     /// @brief RawValue和栈空间的对应关系
     unordered_map<RawValueP, int> StackManager;
+    /// @brief RawValue和栈空间大小的关系
+    unordered_map<RawValueP, int> LenTable;
     /// @brief 获取value的存储偏移量
     /// @param value 
     /// @return 
     int getTargetOffset(const RawValueP &value) const override;
 
     bool IsMemory(const RawValueP &value) { return StackManager.find(value)!= StackManager.end();}
-
+    /// @brief 除此之外，这里还需要添加一个规定长度分配
+    /// @param value 
+    /// @return 
     int StackAlloc(const RawValueP &value) {
-        if(tempOffset > maxAddress) assert(0);
+        if(tempOffset > maxAddress) {
+            cerr << "tempOffset " << tempOffset  << " exceed the maxAddress " << maxAddress << endl;
+            assert(0);
+        }
         else {
+            
             StackManager.insert(pair<RawValueP, int>(value, tempOffset));
-            tempOffset += 4;
+            int len = GetLen(value);
+            //cout << "alloc tempOffset = " << tempOffset << ", len = " << len << endl;
+            tempOffset += len;
             return StackManager.at(value);
         }
     }
-};
+    /// @brief 保存某个值的长度
+    /// @param value 
+    /// @param len 
+    void SaveLen(const RawValueP value,int len) {
+        LenTable.insert(pair<RawValueP, int>(value, len));
+    }
 
+    int GetLen(const RawValueP &value) {
+        if(LenTable.find(value) != LenTable.end())
+        return LenTable.at(value);
+        else
+        return 4;
+    }
+};
+//可以考虑在计算的时候添一个大小
 class RegisterArea : public Area
 {
 public:
@@ -108,6 +131,10 @@ public:
     void SaveRegister(int reg) {
         reserveArea.SaveRegister(reg);
     }
+
+    void SaveLen(const RawValueP value,int len) { localArea.SaveLen(value,len);}
+
+    int GetLen(const RawValueP &value) { return localArea.GetLen(value);}
 };
 
 class RegisterManager
@@ -209,6 +236,10 @@ class HardwareManager {
     void LoadRegister(int reg) { memoryManager.LoadRegister(reg);}
 
     void SaveRegister(int reg) { memoryManager.SaveRegister(reg);}
+
+    void SaveLen(const RawValueP value,int len) { memoryManager.SaveLen(value,len);}
+
+    int GetLen(const RawValueP &value) {return memoryManager.GetLen(value);}
 };
 
 /*
@@ -221,7 +252,7 @@ class HardwareManager {
 3、 ra寄存器在调用前保存至相应位置
 */
 
-
+int calPtrLen(const RawValueP &value);
 
 
 
