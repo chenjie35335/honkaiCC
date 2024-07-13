@@ -534,7 +534,7 @@ void Visit(const RawGetElement &data,const RawValueP &value,int id) {
      string IndexReg = hardware.GetRegister(index,id);
      //这个地方应该乘的是单个元素的长度，这里先解决的是一维数组的问题
      //cout << "calptrlen = " << calPtrLen(src) << ", elementlen" << (src->ty->data.array.len) << endl;
-     int elementLen = calPtrLen(src)/(src->ty->array.len);
+     int elementLen = calPtrLen(src)/(src->ty->pointer.base->array.len);
      hardware.AllocRegister(value,id);
      hardware.LeaseLockRegister(src);
      hardware.LeaseLockRegister(index);
