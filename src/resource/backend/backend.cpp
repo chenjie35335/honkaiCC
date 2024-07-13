@@ -1,6 +1,6 @@
 #include"../../include/backend/Generator/generator.h"
 #include "../../include/midend/IR/IRGraph.h"
 
-void backend(RawProgramme *& programme) {
+void backend_advanced(RawProgramme *& programme) {
     generateASM(programme);
 }

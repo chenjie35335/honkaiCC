@@ -34,8 +34,8 @@ using namespace std;
 // 请自行 STFW 在 union 里写一个带析构函数的类会出现什么情况
 %union {
   std::string *str_val;
-  int int_val;
   float float_val;
+  int int_val;
   BaseAST *ast_val;
 }
 
@@ -59,7 +59,7 @@ using namespace std;
 %type <ast_val> ArrayDimen SinArrayDimen ConstArrayInit
 %type <ast_val> MultiArrayElement SinArrayElement ArrPara SinArrPara
 %type <int_val> Number 
-%type <float_val> FloatNumber
+%type <float_val> FloatNumber 
 
 %%
 
@@ -196,10 +196,11 @@ Decl
     $$             = ast;
   } | Btype VarDecl {
     auto ast       = new DeclAST();
+    ast->btype     = unique_ptr<BaseAST>($1);
     ast->VarDecl   = unique_ptr<BaseAST>($2);
     ast->type      = DECLAST_VAR;
     $$             = ast;
-  } 
+  }
   ;
 
 ConstDecl
@@ -391,11 +392,11 @@ ConstExp
 Btype
   : INT {
     auto ast = new BtypeAST();
-    ast->type = "int";
+    ast->type = BTYPE_INT;
     $$        = ast;
   } | FLOAT {
     auto ast = new BtypeAST();
-    ast->type = "float";
+    ast->type = BTYPE_FLOAT;
     $$ = ast;
   }
   ;
@@ -535,14 +536,15 @@ WhileStmtHead
   : WhileStmt {
     auto ast = new WhileStmtHeadAST();
     ast->WhileHead = unique_ptr<BaseAST> ($1);
+    $$ = ast;
   }
   ;
 
 WhileStmt
   : WHILE '(' Exp ')' Stmt{
     auto ast = new WhileStmtAST();
-    ast->exp = unique_ptr<BaseAST> ($3);
-    ast->stmt = unique_ptr<BaseAST> ($5);
+    ast->exp = unique_ptr<BaseAST>($3);
+    ast->stmt = unique_ptr<BaseAST>($5);
     $$ = ast;
   }
   ;
@@ -739,11 +741,10 @@ PrimaryExp
     $$ = ast;
   } | FloatNumber {
     auto ast = new PrimaryExpAST();
-    ast->kind = FLOAT;
+    ast->kind = FLOAT_NUMBER;
     ast->floatNumber = $1;
     $$ = ast;
   }
-  ;
 
 Number
   : INT_CONST {
@@ -755,6 +756,7 @@ FloatNumber
   : FLOAT_CONST {
     $$ = $1;
   }
+  ;
 
 //using our function
 UnaryExp 

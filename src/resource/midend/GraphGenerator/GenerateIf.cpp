@@ -7,6 +7,7 @@
 using namespace std;
 int IfNum = 0;
 int WhileNum = 0;
+//delete goalal if and while
 void IfStmtAST::generateGraph() const
 {
     switch (type)
@@ -21,17 +22,7 @@ void IfStmtAST::generateGraph() const
         assert(0);
     }
 }
-// 这里该如何处理？
-/*
-1、每一个基本块会以br ret或者jump语句结束，这里会进行一个标记，用于标记基本块的
-结束
-2、对于BlockItem的遍历过程中，如果检测到某个块结束了，就要创建新的基本块
-*/
-/*
-如果if语句中出现了break和continue怎么办？
-首先肯定得宣告某个basicblock结束，
-其次最难的问题在于这个jump应该跳向哪里的问题
-*/
+
 void SinIfStmtAST::generateGraph() const
 {
     string ExpSign, ThenSign, EndSign;
@@ -60,6 +51,7 @@ void SinIfStmtAST::generateGraph() const
     PushRawBasicBlock(Endbb);
 }
 
+//算了为了简化难度，这里直接用北大文档给的情况，其他情况不考虑
 void MultElseStmtAST::generateGraph() const
 {
     string ExpSign, ThenSign, ElseSign, EndSign;

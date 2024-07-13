@@ -42,10 +42,10 @@ void GeneratePutInt() {
     generateRawFunction(putint,name.c_str(),FUNCTYPE_VOID);
     RawType *ty = new RawType();
     ty->tag = RTT_FUNCTION;
-    auto &params = putint->ty->data.function.params;
+    auto &params = putint->ty->function.params;
     RawType *IntType = new RawType();
     IntType->tag = RTT_INT32;
-    params.buffer[params.len++] = (const void *)IntType;
+    params.push_back(IntType) ;
     signTable.insertFunction(name,putint);
 }
 
@@ -55,10 +55,10 @@ void GeneratePutch() {
     generateRawFunction(putch,name.c_str(),FUNCTYPE_VOID);
     RawType *ty = new RawType();
     ty->tag = RTT_FUNCTION;
-    auto &params = putch->ty->data.function.params;
+    auto &params = putch->ty->function.params;
     RawType *IntType = new RawType();
     IntType->tag = RTT_INT32;
-    params.buffer[params.len++] = (const void *)IntType;
+    params.push_back(IntType);
     signTable.insertFunction(name,putch);
 }
 
@@ -68,16 +68,16 @@ void GeneratePutArray() {
     generateRawFunction(putarray,name.c_str(),FUNCTYPE_VOID);
     RawType *ty = new RawType();
     ty->tag = RTT_FUNCTION;
-    auto &params = putarray->ty->data.function.params;
+    auto &params = putarray->ty->function.params;
     RawType *IntType = new RawType();
     IntType->tag = RTT_INT32;
-    params.buffer[params.len++] = (const void *)IntType;
+    params.push_back(IntType);
     RawType *PointerType = new RawType();
     PointerType->tag = RTT_POINTER;
     RawType *PointeeType = new RawType();
     PointeeType->tag = RTT_INT32;
-    PointerType->data.pointer.base = PointeeType;
-    params.buffer[params.len++] = (const void *)PointerType;
+    PointerType->pointer.base = PointeeType;
+    params.push_back(PointerType);
     signTable.insertFunction(name,putarray);
 }
 
@@ -87,13 +87,68 @@ void GenerateGetArray() {
     generateRawFunction(getarray,name.c_str(),FUNCTYPE_INT);
     RawType *ty = new RawType();
     ty->tag = RTT_FUNCTION;
-    auto &params = getarray->ty->data.function.params;
+    auto &params = getarray->ty->function.params;
     RawType *PointerType = new RawType();
     PointerType->tag = RTT_POINTER;
     RawType *PointeeType = new RawType();
     PointeeType->tag = RTT_INT32;
-    PointerType->data.pointer.base = PointeeType;
-    params.buffer[params.len++] = (const void *)PointerType;
+    PointerType->pointer.base = PointeeType;
+    params.push_back(PointerType);
     signTable.insertFunction(name,getarray);
+}
+
+void GeneratePutFloat(){
+    RawFunction *putfloat;
+    string name = "putfloat";
+    generateRawFunction(putfloat,name.c_str(),FUNCTYPE_VOID);
+    RawType *ty = new RawType();
+    ty->tag = RTT_FUNCTION;
+    auto &params = putfloat->ty->function.params;
+    RawType *FloatType = new RawType();
+    FloatType->tag = RTT_FLOAT;
+    params.push_back(FloatType) ;
+    signTable.insertFunction(name,putfloat);
+}
+
+void GenerateGetFloat(){
+    RawFunction *getfloat;
+    string name = "getfloat";
+    generateRawFunction(getfloat,name.c_str(),FUNCTYPE_FLOAT);
+    signTable.insertFunction(name,getfloat);
+}
+
+void GenerateGetFArray(){
+    RawFunction *getfarray;
+    string name = "getfarray";
+    generateRawFunction(getfarray,name.c_str(),FUNCTYPE_FLOAT);
+    RawType *ty = new RawType();
+    ty->tag = RTT_FUNCTION;
+    auto &params = getfarray->ty->function.params;
+    RawType *PointerType = new RawType();
+    PointerType->tag = RTT_POINTER;
+    RawType *PointeeType = new RawType();
+    PointeeType->tag = RTT_FLOAT;
+    PointerType->pointer.base = PointeeType;
+    params.push_back(PointerType);
+    signTable.insertFunction(name,getfarray);
+}
+
+void GeneratePutFArray(){
+    RawFunction *putfarray;
+    string name = "putfarray";
+    generateRawFunction(putfarray,name.c_str(),FUNCTYPE_VOID);
+    RawType *ty = new RawType();
+    ty->tag = RTT_FUNCTION;
+    auto &params = putfarray->ty->function.params;
+    RawType *FloatType = new RawType();
+    FloatType->tag = RTT_FLOAT;
+    params.push_back(FloatType);
+    RawType *PointerType = new RawType();
+    PointerType->tag = RTT_POINTER;
+    RawType *PointeeType = new RawType();
+    PointeeType->tag = RTT_FLOAT;
+    PointerType->pointer.base = PointeeType;
+    params.push_back(PointerType);
+    signTable.insertFunction(name,putfarray);
 }
 

@@ -3,7 +3,7 @@
 #define STMTAST_STORMY
 //无论是左值还是右值，都需要在全体作用域中寻找
 class StmtAST : public BaseAST {
- public:
+  public:
     //int num;
     std::unique_ptr<BaseAST> SinExp;
     std::unique_ptr<BaseAST> Exp;
@@ -29,9 +29,9 @@ class IfStmtAST : public BaseAST{
 //非终结符不存在类
 class SinIfStmtAST : public BaseAST{
   public:
-     std::unique_ptr<BaseAST> exp;
-     std::unique_ptr<BaseAST> stmt;                              
-     void generateGraph() const override;
+      std::unique_ptr<BaseAST> exp;
+      std::unique_ptr<BaseAST> stmt;
+      void generateGraph() const override;
 };
 
 class MultElseStmtAST : public BaseAST{
@@ -39,7 +39,7 @@ class MultElseStmtAST : public BaseAST{
    std::unique_ptr<BaseAST> exp;
    std::unique_ptr<BaseAST> if_stmt;
    std::unique_ptr<BaseAST> else_stmt;
-  void generateGraph() const override; 
+  void generateGraph() const override;
 };
 
 class WhileStmtHeadAST : public BaseAST{

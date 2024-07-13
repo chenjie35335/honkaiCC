@@ -21,8 +21,11 @@ enum{
   UNARYEXP,
   LVAL,
   NUMBER,
+  FLOAT_NUMBER,
   MULEXP,
   ADDMUL,
+  FADDMUL,
+  FMULEXP,
   DECLAST_CON,
   DECLAST_VAR,
   DECLAST_ARR,
@@ -38,6 +41,9 @@ enum{
   EQOPAST_NE,
   RELEXPAST_ADD,
   RELEXPAST_REL,
+  //float
+  FRELEXPAST_REL,
+  //end
   RELOPAST_L,
   RELOPAST_G,
   RELOPAST_LE,
@@ -46,6 +52,7 @@ enum{
   SINBLOCKITEM_STM,
   SINVARDEFAST_UIN,
   SINVARDEFAST_INI,
+  FSINVARDEFAST_INI,
   SINVARDEFAST_FUNC,
   SINVARDEFAST_UNI_ARR,
   SINVARDEFAST_INI_ARR,
@@ -84,7 +91,9 @@ enum{
   DECL_LOC,
   DECL_GLOB,
   IFSTMT_SIN,
-  IFSTMT_MUL
+  IFSTMT_MUL,
+  BTYPE_INT,
+  BTYPE_FLOAT,
 }Kind;
 extern int alloc_now;
 class BaseAST {
@@ -96,10 +105,16 @@ class BaseAST {
   virtual void generateGraph(int &retType) const{}
   virtual void generateGraph(string &sign,int &type) const{}
   virtual void generateGraph(vector<RawValueP> &params) const {}
+  virtual void generateGraph(vector<RawValueP> &params, int &retType) const {}
+  virtual void generateGraphGlobal(vector<RawValueP> &elem, int &retType) const{}
   virtual void generateGraph(RawValueP &value) const {}
   virtual void generateGraphGlobal() const{}
+  virtual void generateGraphGlobal(int &retType) const{}
   virtual void generateGraph(vector<int> &dimen) const {}
+  virtual void generateGraphGlobal(string &sign, int &retType) const{}
   virtual int calc() const { return 0; }
+  virtual float fcalc() const {return 0.0;}
+  virtual int UnaryExpType() const {return -1;}
 };
 
 class CompUnitAST : public BaseAST {

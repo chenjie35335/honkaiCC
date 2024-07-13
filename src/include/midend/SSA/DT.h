@@ -15,7 +15,7 @@
 // }DT;
 typedef std::unordered_set<RawBasicBlockP> nodeSet;
 
-void GeneratorDT(const RawSlice &funcs);
+void GeneratorDT(RawProgramme *&programme,int genDot);
 void init_bbs(const RawFunctionP &func);
 void clearBbsFlag();
 bool check_bb_inOther(const RawBasicBlockP &bb);
@@ -32,4 +32,8 @@ void traversalDF(const RawFunctionP &func);
 bool AisdomB(const RawBasicBlockP A, const RawBasicBlockP B);
 // 计算支配边界
 void computeDF(RawBasicBlock * & n);
+//判断回边
+bool BackEdge(const RawBasicBlockP &start,const RawBasicBlockP &end);
+//计算循环集合
+void cal_cfgloop(const RawBasicBlockP &start,const RawBasicBlockP &end);
 #endif

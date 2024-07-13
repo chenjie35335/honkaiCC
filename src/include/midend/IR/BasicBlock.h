@@ -3,6 +3,8 @@
 #include "Type.h"
 #include "Utility.h"
 #include "Value.h"
+#include <list>
+#include <cstring>
 #include <unordered_set>
 using namespace std;
 class RawBasicBlock{
@@ -11,12 +13,12 @@ class RawBasicBlock{
     RawType* ty;
 /// name of bb
     const char * name;
-/// parameter(not used until now)
-    RawSlice params;
-/// instructions
-    RawSlice insts;
-/// following basic blocks
-    RawSlice fbbs;
+/// instruction list
+    list<RawValue *> inst;
+/// cfg pre basic blocks
+    list<RawBasicBlock *> pbbs;
+/// cfg following basic blocks
+    list<RawBasicBlock *> fbbs;
 /// use sites
     unordered_set<RawValue *> uses;
 /// def sites
@@ -24,12 +26,44 @@ class RawBasicBlock{
 /// pre domian node
     RawBasicBlockP preDomainNode;
 /// follow domain nodes
-    RawSlice domains;
+    list<RawBasicBlock *> domains;
 /// DF
     unordered_set<const RawBasicBlock *> df;
 /// A phi set 
     unordered_set<RawValueP> NessPhi;
-}; 
+/// function phi for this basicblock
+    list<RawValue *> phi;
+/// whether the bb is to remove
+    bool isDeleted;
+/// whether the bb is executed
+    bool isExec;
+/// used when DFS
+    bool isVisited;
+
+    RawBasicBlock() {
+        this->isDeleted = false;
+        this->isExec = false;
+        this->isVisited = false;
+    }
+    RawBasicBlock(const char * name,int idx){
+        this->isDeleted = false;
+        this->isExec = false;
+        this->isVisited = false;
+        size_t bufSize = strlen(name) + 12;
+        this->name = new char[bufSize];
+        snprintf((char *)this->name, bufSize, "%s_%d", name, idx);
+        
+    }
+    RawBasicBlock(const char * funcname,const char * bbname,int idx){
+        this->isDeleted = false;
+        this->isExec = false;
+        this->isVisited = false;
+        size_t bufSize = strlen(funcname)+strlen(bbname) + 13;
+        this->name = new char[bufSize];
+        snprintf((char *)this->name, bufSize, "%s_%s_%d", funcname,bbname, idx);
+        
+    }
+};  
 typedef const RawBasicBlock * RawBasicBlockP;
 /// @brief generate RawBasicBlock data structure
 /// @param bb 

@@ -3,22 +3,23 @@
 #include "Utility.h"
 #include <stdlib.h>
 #include <stdint.h>
+#include <vector>
+#include "TypeKind.h"
+using namespace std;
 class RawType{
     public:
+    /// 类别标志
     uint32_t tag;
-    union {
-        struct {
-            const  RawType *base;
-            size_t len;
-        }array;
-        struct {
-            const  RawType *base;
-        }pointer;
-        struct {
-            RawSlice params;//存储参量的类型
-            const  RawType *ret;//存储返回值的类型
-        }function;
-    }data;
+    /// 数组数据
+    ArrayType array;
+    /// 指针数据
+    PointerType pointer;
+    /// 函数数据
+    FunctionType function;
+    /// 构造函数
+    RawType () {
+
+    }
 };   
 typedef const RawType * RawTypeP; 
 #endif

@@ -1,38 +1,39 @@
 #ifndef STORMY_VALUEKIND_DEF
 #define STORMY_VALUEKIND_DEF
 #include <cstdint>
-// array
-class RawSlice{
-    public:
-    /// Buffer of slice item
-    const void ** buffer;   
-    /// The length of array buffer
-    uint32_t len;
-    /// kind of RawSlice
-    uint32_t kind;
-};
+#include <cstdlib>
 // binary op
 enum {
     /// Not equal to.
     RBO_NOT_EQ,
+    RBO_NOT_FEQ,
     /// Equal to.
     RBO_EQ,
+    RBO_FEQ,
 /// Greater than.
     RBO_GT,
+    RBO_FGT,
 /// Less than.
     RBO_LT,
+    RBO_FLT,
 /// Greater than or equal to
     RBO_GE,
+    RBO_FGE,
 /// Less than or equal to.
     RBO_LE,
+    RBO_FLE,
 /// Addition.
     RBO_ADD,
+    RBO_FADD,
 /// Subtraction.    
     RBO_SUB,
+    RBO_FSUB,
 /// Multiplication.
     RBO_MUL,
+    RBO_FMUL,
 /// Division.
     RBO_DIV,
+    RBO_FDIV,
 /// Modulo.
     RBO_MOD,
 /// Bitwise AND.
@@ -47,61 +48,57 @@ enum {
     RBO_SHR,
 /// Shift right arithmetic.
     RBO_SAR,
-}BinaryOp;
+};
 
 //the kind of value
 enum {
-    /// Integer constant
+    /// Integer constant0
     RVT_INTEGER,
-    /// local alloc
+    /// float constant1
+    RVT_FLOAT,
+    /// local alloc2
     RVT_ALLOC,
-    /// load
+    /// load3
     RVT_LOAD,
-    /// store
+    /// store4
     RVT_STORE,
-    /// binary
+    /// binary5
     RVT_BINARY,
-    /// return 
+    /// return6
     RVT_RETURN,
-    /// branch
+    /// branch7
     RVT_BRANCH,
-    /// jump
+    /// jump8
     RVT_JUMP,
-    /// call
+    /// call9
     RVT_CALL,
-    /// function args
+    /// function args10
     RVT_FUNC_ARGS,
-    /// basicblock args
+    /// basicblock args11
     RVT_BLOCK_ARGS,
-    /// global 
+    /// global12 
     RVT_GLOBAL,
-    /// getptr
+    /// getptr13
     RVT_GET_PTR,
-    /// getelement
+    /// getelement14
     RVT_GET_ELEMENT,
-    /// aggregate
+    /// aggregate15
     RVT_AGGREGATE,
-    /// zeroinit
+    /// zeroinit16
     RVT_ZEROINIT,
-    /// valuecopy
+    /// valuecopy17
     RVT_VALUECOPY,
-}RawValueTag;
-
-// kind of RawSlice
-enum {
-    /// function
-    RSK_FUNCTION,
-    /// basic block
-    RSK_BASICBLOCK,
-    /// Value
-    RSK_BASICVALUE,
-    /// Type
-    RSK_TYPE
-}RawSliceKind;
+    /// phi18
+    RVT_PHI,
+    /// value convert19
+    RVT_CONVERT
+};
 
 enum {
     // 32-bits integer
     RTT_INT32,
+    // float
+    RTT_FLOAT,
     // void
     RTT_UNIT,
     // Array
@@ -110,7 +107,8 @@ enum {
     RTT_POINTER,
     // function
     RTT_FUNCTION
-}RawTypeTag;
+};
+
 
 
 #endif

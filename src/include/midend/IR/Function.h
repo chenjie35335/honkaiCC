@@ -5,6 +5,7 @@
 #include "../SSA/DT.h"
 #include <vector>
 #include <unordered_map>
+#include <list>
 using namespace std;
 /// @brief type
 class RawFunction{
@@ -13,10 +14,10 @@ class RawFunction{
     RawType* ty;
     /// name of function
     const char *name;
-    /// parameter(not used until now)
-    RawSlice params;
-    /// basic blocks
-    RawSlice bbs;
+    /// params
+    vector <RawValue *> params;
+    /// basicblock list
+    list <RawBasicBlock *> basicblock;
     /// value set
     unordered_set<RawValue *> values;
 };
@@ -26,5 +27,8 @@ typedef const RawFunction * RawFunctionP;
 /// @param name 
 /// @param type 
 void generateRawFunction(RawFunction *&function, const char *name,int type);
+/// @brief insert function into programme
+/// @param function 
+void PushRawFunction(RawFunction *&function);
 
 #endif

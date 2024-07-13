@@ -2,9 +2,6 @@
 #define STORMY_GENERATOR_T
 #include <string>
 #include "../../midend/IR/IRGraph.h"
-/// @brief Visit RawSlice
-/// @param slice 
-void Visit(const RawSlice &slice);
 /// @brief Visit RawValue
 /// @param value 
 void Visit(const RawValueP &value);
@@ -17,4 +14,6 @@ void Visit(const RawFunctionP &func);
 /// @brief Visit Programme and Generate ASM
 /// @param value 
 void generateASM(RawProgramme *& value);
+///
+
 #endif

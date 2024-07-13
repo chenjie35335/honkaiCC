@@ -5,6 +5,7 @@
 #include "../../../include/midend/ValueTable/SignTable.h"
 #include <cstdlib>
 #include <cstring>
+#include <string>
 #include <unordered_map>
 extern SignTable signTable;
 void fillAggregate(RawValueP &raw, RawValue *target);
@@ -35,15 +36,16 @@ void getVarValueR(RawValueP &value,string &name)
 void generateRawValue(RawValueP src)
 {
     auto bb = getTempBasicBlock();
-    auto &insts = bb->insts;
-    RawValue * value = (RawValue *)malloc(sizeof(RawValue));
+    auto &insts = bb->inst;
+    RawValue * value = new RawValue();
     RawType *ty = new RawType();
     ty->tag = RTT_UNIT;
     value->name = nullptr;
     value->value.tag = RVT_RETURN;
-    value->value.data.ret.value = src;
+    value->value.ret.value = src;
     value->ty = (RawTypeP) ty;
-    insts.buffer[insts.len++] = (const void *)value;
+    insts.push_back(value);
+    MarkUse((RawValue *)src,value);
 }
 /// @brief binary型value
 /// @param sign 
@@ -53,29 +55,52 @@ void generateRawValue(RawValueP src)
 void generateRawValue(string &name, RawValueP lhs, RawValueP rhs, uint32_t op)
 {
     auto bb = getTempBasicBlock();
-    auto &insts = bb->insts;
-    RawValue * value = (RawValue *)malloc(sizeof(RawValue));
+    auto &insts = bb->inst;
+    RawValue * value = new RawValue();
     value->name = nullptr;
     value->value.tag = RVT_BINARY;
-    value->value.data.binary.lhs = lhs;
-    value->value.data.binary.rhs = rhs;
-    value->value.data.binary.op = op;
+    value->value.binary.lhs = lhs;
+    value->value.binary.rhs = rhs;
+    value->value.binary.op = op;
     RawType *ty = new RawType();
-    ty->tag = RTT_INT32;
+    //我们尽量按照浮点的要求去处理，后面可以转化为整形
+    if(lhs->ty->tag == RTT_FLOAT || rhs->ty->tag == RTT_FLOAT){
+        ty->tag = RTT_FLOAT;
+    } else {
+        ty->tag = RTT_INT32;
+    }
     value->ty = (RawTypeP) ty;
-    insts.buffer[insts.len++] = (const void *)value;
+    insts.push_back(value);
     signTable.insertMidVar(name,value);
+    MarkUse((RawValue *)lhs,value);
+    MarkUse((RawValue *)rhs,value);
+    MarkDef(value,value);
 }
 /// @brief 
 /// @param number 
 /// @return 
 RawValue * generateNumber(int32_t number) {
-    RawValue *value = (RawValue *)malloc(sizeof(RawValue));
+    RawValue *value = new RawValue();
     value->name = nullptr;
     value->value.tag = RVT_INTEGER;
-    value->value.data.integer.value = number;
+    value->value.integer.value = number;
     RawType *ty = new RawType();
     ty->tag = RTT_INT32;
+    value->ty = ty;
+    return value;
+}
+/**
+ * @brief add float
+ * @param number 
+ * @return RawValue* 
+ */
+RawValue * generateFloat(float number) {
+    RawValue *value = new RawValue();
+    value->name = nullptr;
+    value->value.tag = RVT_FLOAT;
+    value->value.floatNumber.value = number;
+    RawType *ty = new RawType();
+    ty->tag = RTT_FLOAT;
     value->ty = ty;
     return value;
 }
@@ -87,15 +112,48 @@ void generateRawValue(int32_t number)
         auto bb = getTempBasicBlock();
         RawValue * value = generateNumber(number);
         if(bb != nullptr) {
-        auto &insts = bb->insts;
-        insts.buffer[insts.len++] = (const void *)value;
+        auto &insts = bb->inst;
+        insts.push_back(value);
         }
         signTable.insertNumber(number,value);
+}
+
+RawValueP generateZero() {
+    RawValueP zero;
+    int number = 0;
+    generateRawValue(number);
+    string ZeroSign = to_string(0);
+    getMidVarValue(zero,ZeroSign);
+    return zero;
+}
+/**
+ * @brief float
+ * @param number 
+ */
+void generateRawValue(float number)
+{
+        auto bb = getTempBasicBlock();
+        RawValue * value = generateFloat(number);
+        if(bb != nullptr) {
+        auto &insts = bb->inst;
+        insts.push_back(value);
+        }
+        //后面可能会产生很多bug，有些可以复用重载，有些得重新命名
+        signTable.insertFnumber(number,value);
 }
 
 void generateRawValueArr(int32_t number) {
     RawValue * value = generateNumber(number);
     signTable.insertNumber(number,value);
+}
+
+/**
+ * @brief add float
+ * @param number 
+ */
+void generateRawValueArr(float number) {
+    RawValue * value = generateFloat(number);
+    signTable.insertFnumber(number,value);
 }
 
 /// @brief store型value
@@ -104,97 +162,117 @@ void generateRawValueArr(int32_t number) {
 void generateRawValue(RawValueP &src, RawValueP &dest)
 {
     auto bb = getTempBasicBlock();
-    auto &insts = bb->insts;
-    RawValue *store = (RawValue *)malloc(sizeof(RawValue));
+    auto &insts = bb->inst;
+    RawValue *store = new RawValue();
     RawType *ty = new RawType();
     ty->tag = RTT_UNIT;
     store->ty = (RawTypeP)ty;
     store->name = nullptr;
     store->value.tag = RVT_STORE;
-    store->value.data.store.value = src;
-    store->value.data.store.dest = dest;
+    store->value.store.value = src;
+    store->value.store.dest = dest;
     RawValue *DestValue = (RawValue*)dest;
     bb->defs.insert(DestValue);
-    insts.buffer[insts.len++] = (const void *)store;
+    insts.push_back(store);
+    MarkUse((RawValue *) src,store);
+    MarkDef((RawValue *) dest,store);
 }
 /// @brief alloc型value
 /// @param sign 
-void generateRawValue(string& name)
+void generateRawValue(string& name, int32_t flag)
 {
     auto bb = getTempBasicBlock();
-    auto &insts = bb->insts;
-    RawValue *alloc = (RawValue *)malloc(sizeof(RawValue));
+    auto &insts = bb->inst;
+    RawValue *alloc = new RawValue();
     RawType *ty = new RawType();
     ty->tag = RTT_POINTER;
     RawType *pointerTy = new RawType();
-    pointerTy->tag = RTT_INT32;
-    ty->data.pointer.base = pointerTy;
+    pointerTy->tag = flag;
+    ty->pointer.base = pointerTy;
+    char *ident = (char *) malloc(sizeof(char) * name.length());
+    string NameScope = name + "_" + to_string(signTable.IdentTable->level);
+    strcpy(ident,NameScope.c_str());
+    alloc->name = ident;
     alloc->ty = (RawTypeP)ty;
     alloc->value.tag = RVT_ALLOC;
-    insts.buffer[insts.len++] = (const void *)alloc;
+    alloc->identType = IDENT_VAR;
+    insts.push_back(alloc);
     signTable.insertVar(name,alloc);
 }
 //这里建立的这个aggregate的type没有任何意义，因为无法判断！
 //从当前来看，这个当前是要转换成getptr的，不过考虑全局变量的问题需要特殊对待。这里ty暂时不管
 //这个部分属于初始部分，没有补0,所以没有ty没有用处
+/**
+ * @brief aggregate
+ * @param sign 
+ */
 void generateRawValue(vector<RawValueP>elements,string &sign) {
     auto bb = getTempBasicBlock();
-    auto &insts = bb->insts;
-    RawValue *aggregate = (RawValue *)malloc(sizeof(RawValue));
+    RawValue *aggregate = new RawValue();
     aggregate->value.tag = RVT_AGGREGATE;
     aggregate->name = nullptr;
     RawType *ty = new RawType();
     ty->tag = RTT_UNIT;
     aggregate->ty = ty;
-    auto &elem = aggregate->value.data.aggregate.elements;
-    elem.buffer = (const void **) malloc(sizeof(const void *)*500);
-    elem.len = 0;
-    elem.kind = RSK_BASICVALUE;
+    auto &elems = aggregate->value.aggregate.elements;
     for(auto &element : elements) {
-        elem.buffer[elem.len++] = (const void *)element;
+        auto elem = (RawValue *)element;
+        elems.push_back(elem);
     }
-    //insts.buffer[insts.len++] = (const void *)aggregate;
     alloc_now++;sign = "%"+to_string(alloc_now);
     signTable.insertMidVar(sign,aggregate);
 }
+/**
+ * @brief override of float
+ * @param ty 
+ * @param dimens 
+ * @param index 
+ * @param flag 
+ */
 
-/// @brief 这里递归创建这个ty
-/// @param ty 
-/// @param dimen 
-void generateArrType(RawType *&ty,vector<int> &dimens,int index) {
+void generateArrType(RawType *&ty,vector<int> &dimens,int index, int32_t flag) {
     assert(ty->tag == RTT_ARRAY);
     if(index >= dimens.size()) {return;}
     else {
         int dimen = dimens[index];
         RawType *subTy = new RawType();
-        ty->data.array.base = subTy;
-        ty->data.array.len = dimen;
+        ty->array.base = subTy;
+        ty->array.len = dimen;
         if(index == dimens.size()-1) {
-            subTy->tag = RTT_INT32; return;
+            subTy->tag = flag; 
+            return;
         } else {
             subTy->tag = RTT_ARRAY;
-            generateArrType(subTy,dimens,index+1);
+            generateArrType(subTy,dimens,index+1, flag);
         }
     }
 }
-
-/// @brief globalalloc分配数组
-/// @param name 
-/// @param dimen 
-void generateRawValueArrGlobal(const char *name,vector<int> &dimen,RawValue *&init){
+/**
+ * @brief override of float
+ * @param name 
+ * @param dimen 
+ * @param init 
+ * @param flag 
+ */
+void generateRawValueArrGlobal(string &name,vector<int> &dimen,RawValue *&init, int32_t flag){
         auto programme = getTempProgramme();
-        auto &values = programme->Value;
-        RawValue *global = (RawValue *)malloc(sizeof(RawValue));
+        auto &values = programme->values;
+        RawValue *global = new RawValue();
         RawType *ty = new RawType();
-        ty->tag = RTT_ARRAY;
-        generateArrType(ty,dimen,0);
-        global->ty = (RawTypeP)ty;
+        ty->tag = RTT_POINTER;
+        RawType *PointerBase = new RawType();
+        PointerBase->tag = RTT_ARRAY;
+        generateArrType(PointerBase,dimen,0,flag);
+        ty->pointer.base = PointerBase;
+        global->ty = ty;
         global->value.tag = RVT_GLOBAL;
-        global->value.data.global.Init = (RawValueP) init;
-        global->name = (char *) malloc(sizeof(char)*50);
-        char *sign = (char *)global->name;
-        strcpy(sign,name);
-        values.buffer[values.len++] = (const void *)global;
+        global->value.global.Init = (RawValueP) init;
+        char *ident = (char *) malloc(sizeof(char) * name.length());
+        string NameScope = name + "_" + to_string(signTable.IdentTable->level);
+        strcpy(ident,NameScope.c_str());
+        global->name = ident;
+        global->identType = IDENT_ARR;
+        values.push_back(global);
         signTable.insertVar(name,global);
 }
 /// @brief 
@@ -203,19 +281,30 @@ void generateZeroInit(RawValue *&zeroinit) {
     zeroinit = new RawValue();
     zeroinit->value.tag = RVT_ZEROINIT;
 }
-
-/// @brief alloc型分配数组
-/// @param name 
-void generateRawValueArr(string &name,vector<int> &dimen) {
+/**
+ * @brief alloc型分配数组
+ * @param name 
+ * @param dimen 
+ * @param flag 
+ */
+void generateRawValueArr(string &name,vector<int> &dimen, int32_t flag) {
     auto bb = getTempBasicBlock();
-    auto &insts = bb->insts;
-    RawValue *alloc = (RawValue *)malloc(sizeof(RawValue));
+    auto &insts = bb->inst;
+    RawValue *alloc = new RawValue();
     alloc->value.tag = RVT_ALLOC;
     RawType *ty = new RawType();
-    ty->tag = RTT_ARRAY;
-    generateArrType(ty,dimen,0);
+    ty->tag = RTT_POINTER;
+    RawType *PointerBase = new RawType();
+    PointerBase->tag = RTT_ARRAY;
+    generateArrType(PointerBase,dimen,0,flag);
+    ty->pointer.base = PointerBase;
     alloc->ty = ty;
-    insts.buffer[insts.len++] = (const void *) alloc;
+    char *ident = (char *) malloc(sizeof(char) * name.length());
+    string NameScope = name + "_" + to_string(signTable.IdentTable->level);
+    strcpy(ident,NameScope.c_str());
+    alloc->name = ident;
+    alloc->identType = IDENT_ARR;
+    insts.push_back(alloc);
     signTable.insertVar(name,alloc);
 }  
 /// @brief load型value
@@ -223,19 +312,22 @@ void generateRawValueArr(string &name,vector<int> &dimen) {
 /// @param src 
 void generateRawValue(string &name, RawValueP &src)
 {
+    assert(src->ty->tag == RTT_POINTER);
     auto bb = getTempBasicBlock();
-    auto &insts = bb->insts;
+    auto &insts = bb->inst;
     RawValue * load = new RawValue();
     RawType *ty = new RawType();
-    ty->tag = RTT_INT32;
+    ty->tag = src->ty->pointer.base->tag;
     load->ty = (RawTypeP) ty;
     load->name = nullptr;
     load->value.tag = RVT_LOAD;
-    load->value.data.load.src = src;
-    insts.buffer[insts.len++] = (const void *)load;
+    load->value.load.src = src;
+    MarkUse((RawValue *)src,load);
+    insts.push_back(load);
     RawValue *SrcValue = (RawValue*) src;
     bb->uses.insert(SrcValue);
     signTable.insertMidVar(name,load);
+    MarkDef(load,load);
 }
 /// @brief branch型value
 /// @param cond 
@@ -243,65 +335,70 @@ void generateRawValue(string &name, RawValueP &src)
 /// @param Falsebb 
 void generateRawValue(RawValueP &cond, RawBasicBlock* &Truebb, RawBasicBlock* &Falsebb){
     auto bb = getTempBasicBlock();
-    auto &insts = bb->insts;
+    auto &insts = bb->inst;
     RawValue *br = new RawValue();
     RawType *ty = new RawType();
     ty->tag = RTT_UNIT;
     br->ty = (RawTypeP) ty;
     br->name = nullptr;
     br->value.tag = RVT_BRANCH;
-    br->value.data.branch.cond = cond;
-    br->value.data.branch.true_bb = (RawBasicBlockP)Truebb;
-    br->value.data.branch.false_bb = (RawBasicBlockP)Falsebb;
-    insts.buffer[insts.len++] = br;
+    br->value.branch.cond = cond;
+    br->value.branch.true_bb = (RawBasicBlockP)Truebb;
+    br->value.branch.false_bb = (RawBasicBlockP)Falsebb;
+    insts.push_back(br);
+    MarkUse((RawValue *)cond,br);
 }
 /// @brief jump型value
 /// @param TargetBB 
 void generateRawValue(RawBasicBlock* &TargetBB){
     auto bb = getTempBasicBlock();
-    auto &insts = bb->insts;
+    auto &insts = bb->inst;
     RawValue *jump = new RawValue();
     RawType *ty = new RawType();
     ty->tag = RTT_UNIT;
     jump->ty = (RawTypeP) ty;
     jump->name = nullptr;
     jump->value.tag = RVT_JUMP;
-    jump->value.data.jump.target = (RawBasicBlockP)TargetBB;
-    insts.buffer[insts.len++] = jump;
+    jump->value.jump.target = (RawBasicBlockP)TargetBB;
+    insts.push_back(jump);
 }
 /// @brief call型value
 void generateRawValue(RawFunctionP callee,vector<RawValueP> paramsValue,string &sign){
     auto bb = getTempBasicBlock();
-    auto &insts = bb->insts;
+    auto &insts = bb->inst;
     RawValue *call = new RawValue();
     call->name = nullptr;
     call->value.tag = RVT_CALL;
-    call->value.data.call.callee = callee;
-    auto &params = call->value.data.call.args;
-    params.buffer = (const void **) malloc(sizeof(const void *)*500);
-    params.kind = RSK_BASICVALUE;
-    params.len = 0;
-    auto &calleeParams = callee->ty->data.function.params;
-    if(calleeParams.len != paramsValue.size()) {
-        cerr << "wrong variables, has " <<  paramsValue.size() << ", expect " << calleeParams.len << endl;
+    call->value.call.callee = callee;
+    auto &params = call->value.call.args;
+    auto &calleeParams = callee->ty->function.params;
+    if(calleeParams.size() != paramsValue.size()) {
+        cerr << "wrong variables, has " <<  paramsValue.size() << ", expect " << calleeParams.size() << endl;
         assert(0);
     }
     for(int i = 0; i < paramsValue.size();i++) {
-        auto funcParamType = reinterpret_cast<RawTypeP>(callee->ty->data.function.params.buffer[i]); 
-        auto expectType = funcParamType->tag;
-        auto actualType = paramsValue[i]->ty->tag;
-        //if(expectType == actualType) {
-            params.buffer[params.len++] = (const void *) paramsValue[i];
-        //}
-        //else {//如果是浮点数的话，这里需要类型转换,但是由于存在指针的问题，这里不进行类型转换
-        //}
+        auto funcParam = paramsValue[i];
+        auto paramType = (RawType *) calleeParams[i];
+        if(funcParam->ty->tag == paramType->tag){
+            params.push_back((RawValue *)funcParam);
+            MarkUse((RawValue *)funcParam,call);
+        } else if(paramType->tag == RTT_INT32 || paramType->tag == RTT_FLOAT){//这里就是如果这之中有个浮点但是其他是整型
+            generateConvert(funcParam,sign);
+            funcParam = signTable.getMidVar(sign);
+            params.push_back((RawValue *)funcParam);
+            MarkUse((RawValue *)funcParam,call);
+        } else {
+            cerr << "wrong types, param " << i << " has " << funcParam->ty->tag << ", expect " << paramType->tag << endl;
+            assert(0);
+        }
     } 
-    auto retType = callee->ty->data.function.ret->tag;
+    auto retType = callee->ty->function.ret->tag;
     RawType *ty = new RawType();
     ty->tag = retType;
     call->ty = ty;
     switch(retType) {
-        case RTT_INT32:
+        //add float
+        case RTT_FLOAT: case RTT_INT32:
         {
             alloc_now++;
             sign =  "%" + to_string(alloc_now);
@@ -313,23 +410,28 @@ void generateRawValue(RawFunctionP callee,vector<RawValueP> paramsValue,string &
         default:
             assert(0);
     } 
-    insts.buffer[insts.len++] = (const void *) call;
+    insts.push_back(call);
 }//call的类型和function的返回值相同
 
-/// @brief args型value
-void generateRawValueArgs(const string &ident,int index){
+/**
+ * @brief args
+ * @param ident 
+ * @param index 
+ * @param flag 
+ */
+void generateRawValueArgs(const string &ident,int index, int32_t flag){
     auto function = getTempFunction();
     auto &params = function->params;
     RawValue *value = new RawValue();
     value->value.tag = RVT_FUNC_ARGS;
-    value->value.data.funcArgs.index = index;
+    value->value.funcArgs.index = index;
     value->name = nullptr;
     RawType *ty = new RawType();
-    ty->tag = RTT_INT32;
+    ty->tag = flag;
     value->ty = ty;
-    params.buffer[params.len++] = (const void *)value;
-    auto &paramsTy = function->ty->data.function.params;
-    paramsTy.buffer[paramsTy.len++] = (const void *) ty;
+    params.push_back(value);
+    auto &paramsTy = function->ty->function.params;
+    paramsTy.push_back(ty);
     signTable.insertVar(ident,value);
 }
 
@@ -338,51 +440,69 @@ void generateRawValueSinArr(const string &ident,int index) {
     auto &params = function->params;
     RawValue *value = new RawValue();
     value->value.tag = RVT_FUNC_ARGS;
-    value->value.data.funcArgs.index = index;
+    value->value.funcArgs.index = index;
     value->name = nullptr;
     RawType *ty = new RawType();
     ty->tag = RTT_POINTER;
     RawType *pointerTy = new RawType();
     pointerTy->tag = RTT_INT32;
-    ty->data.pointer.base = pointerTy;
+    ty->pointer.base = pointerTy;
     value->ty = ty;
-    params.buffer[params.len++] = (const void *)value;
-    auto &paramsTy = function->ty->data.function.params;
-    paramsTy.buffer[paramsTy.len++] = (const void *) ty;
+    value->identType = IDENT_POINTER;
+    params.push_back(value);
+    auto &paramsTy = function->ty->function.params;
+    paramsTy.push_back(ty);
     signTable.insertVar(ident,value);
 }
 
-void generateRawValueMulArr(const string &ident,int index,vector<int>dimens) {
+void generateRawValueSinArr(const string &ident,int index,int flag) {
     auto function = getTempFunction();
     auto &params = function->params;
     RawValue *value = new RawValue();
     value->value.tag = RVT_FUNC_ARGS;
-    value->value.data.funcArgs.index = index;
+    value->value.funcArgs.index = index;
+    value->name = nullptr;
+    RawType *ty = new RawType();
+    ty->tag = RTT_POINTER;
+    RawType *pointerTy = new RawType();
+    pointerTy->tag = flag;
+    ty->pointer.base = pointerTy;
+    value->ty = ty;
+    value->identType = IDENT_POINTER;
+    params.push_back(value);
+    auto &paramsTy = function->ty->function.params;
+    paramsTy.push_back(ty);
+    signTable.insertVar(ident,value);
+}
+
+/**
+ * @brief Mularr
+ * @param ident 
+ * @param index 
+ */
+void generateRawValueMulArr(const string &ident,int index,vector<int>dimens,int flag) {
+    auto function = getTempFunction();
+    auto &params = function->params;
+    RawValue *value = new RawValue();
+    value->value.tag = RVT_FUNC_ARGS;
+    value->value.funcArgs.index = index;
     value->name = nullptr;
     RawType *ty = new RawType();
     ty->tag = RTT_POINTER;
     RawType *pointerTy = new RawType();
     pointerTy->tag = RTT_ARRAY;
-    generateArrType(pointerTy,dimens,0);
-    ty->data.pointer.base = pointerTy;
+    generateArrType(pointerTy,dimens,0,flag);
+    ty->pointer.base = pointerTy;
     value->ty = ty;
-    params.buffer[params.len++] = (const void *)value;
-    auto &paramsTy = function->ty->data.function.params;
-    paramsTy.buffer[paramsTy.len++] = (const void *) ty;
+    value->identType = IDENT_POINTER;
+    params.push_back(value);
+    auto &paramsTy = function->ty->function.params;
+    paramsTy.push_back(ty) ;
     signTable.insertVar(ident,value);
 }
 
 void createRawProgramme(RawProgramme *&Programme) {
-    //Programme = (RawProgramme *) malloc(sizeof(RawProgramme));
     Programme = new RawProgramme();
-    auto &funcs = Programme->Funcs;
-    funcs.kind = RSK_FUNCTION;
-    funcs.len  = 0;
-    funcs.buffer = (const void **) malloc(sizeof(const void *) * 100);
-    auto &value = Programme->Value;
-    value.kind = RSK_BASICVALUE;
-    value.len = 0;
-    value.buffer = (const void **) malloc(sizeof(const void *)*500);
 }
 
 
@@ -391,34 +511,22 @@ void generateRawBasicBlock(RawBasicBlock *&bb, const char * name){
     bb->name = (char *) malloc(sizeof(char) * 100);
     char *sign = (char *)bb->name;
     strcpy(sign,name);
-    auto &insts = bb->insts;
-    insts.kind = RSK_BASICVALUE;
-    insts.len = 0;
-    insts.buffer = (const void **) malloc(sizeof(const void *) * 1000);
-    auto &params = bb->params;
-    params.buffer = (const void **) malloc(sizeof(const void *) * 1000);
-    params.len = 0;
-    params.kind = RSK_BASICVALUE;
-}
+} 
 //将basicBlock挂在Function下
 void PushRawBasicBlock(RawBasicBlock *&bb) {
     auto function = getTempFunction();
-    auto &bbs = function->bbs;
-    bbs.buffer[bbs.len++] = (const void *)bb;
+    auto &bbs = function->basicblock;
+    bbs.push_back(bb);
 }
+
+//将basicBlock挂在Function下
+void PushRawFunction(RawFunction *&function) {}
 //初始化时不进行对于类型的操作，等到后面一起修改
 void generateRawFunction(RawFunction *&function, const char *name,int type) {
     auto programme = getTempProgramme();
-    auto &funcs = programme->Funcs;
+    auto &funcs = programme->funcs;
     function = new RawFunction();
-    auto &bbs = function->bbs;
-    bbs.kind = RSK_BASICBLOCK;
-    bbs.len = 0;
-    bbs.buffer = (const void **) malloc(sizeof(const void *)*500);
     auto &params = function->params;
-    params.kind = RSK_BASICVALUE;
-    params.len = 0;
-    params.buffer = (const void **) malloc(sizeof(const void *)*500);
     function->name = (char*) malloc(sizeof(char) *100);
     char *sign = (char *)function->name;
     strcpy(sign,name);
@@ -430,164 +538,227 @@ void generateRawFunction(RawFunction *&function, const char *name,int type) {
             retTy->tag = RTT_INT32; break;
         case FUNCTYPE_VOID:
             retTy->tag = RTT_UNIT; break;
+        case FUNCTYPE_FLOAT:
+            retTy->tag = RTT_FLOAT; break;
         default:
             assert(0);
     }
-    ty->data.function.ret = retTy;
-    auto &ParamTy = ty->data.function.params;
-    ParamTy.kind = RSK_TYPE;
-    ParamTy.buffer = (const void **) malloc(sizeof(const void *)*500);
-    ParamTy.len = 0;
+    ty->function.ret = retTy;
+    auto &ParamTy = ty->function.params;
     function->ty = ty;
-    funcs.buffer[funcs.len++] = (const void *) function;
+    funcs.push_back(function);
     setTempFunction(function);
 }
 //对于全局变量，只有初值是常量，其他如同其他变量一样，使用load或者store
+//加浮点的重灾区
 void generateRawValueGlobal(const char *name,int init) {
     auto programme = getTempProgramme();
-    auto &values = programme->Value;
-    //RawValue *global = (RawValue *)malloc(sizeof(RawValue));
+    auto &values = programme->values;
     RawValue *global = new RawValue();
     RawType  *ty = new RawType();
     ty->tag = RTT_POINTER;
     RawType *pointerTy = new RawType();
     pointerTy->tag = RTT_INT32;
-    ty->data.pointer.base = pointerTy;
+    ty->pointer.base = pointerTy;
     global->ty = (RawTypeP)ty;
     global->value.tag = RVT_GLOBAL;
     RawValue *initValue = new RawValue();
     initValue->ty = pointerTy;
     initValue->value.tag = RVT_INTEGER;
-    initValue->value.data.integer.value = init;
-    global->value.data.global.Init = (RawValueP) initValue;
+    initValue->value.integer.value = init;
+    global->value.global.Init = (RawValueP) initValue;
+    global->name = (char *) malloc(sizeof(char)*50);
+    global->identType = IDENT_VAR;
+    char *sign = (char *)global->name;
+    strcpy(sign,name);
+    values.push_back(global);
+    signTable.insertVar(name,global);
+}
+
+/**
+ * @brief add float
+ * @param name 
+ * @param init 
+ */
+void generateRawValueGlobal(const char *name,float init) {
+    auto programme = getTempProgramme();
+    auto &values = programme->values;
+    RawValue *global = new RawValue();
+    RawType  *ty = new RawType();
+    ty->tag = RTT_POINTER;
+    RawType *pointerTy = new RawType();
+    pointerTy->tag = RTT_FLOAT;
+    ty->pointer.base = pointerTy;
+    global->ty = (RawTypeP)ty;
+    global->value.tag = RVT_GLOBAL;
+    global->identType = IDENT_VAR;
+    RawValue *initValue = new RawValue();
+    initValue->ty = pointerTy;
+    initValue->value.tag = RVT_FLOAT;
+    initValue->value.floatNumber.value = init;
+    global->value.global.Init = (RawValueP) initValue;
     global->name = (char *) malloc(sizeof(char)*50);
     char *sign = (char *)global->name;
     strcpy(sign,name);
-    values.buffer[values.len++] = (const void *)global;
+    values.push_back(global);
     signTable.insertVar(name,global);
 }
-//type这边暂时不写,然后这里使用直接初始化为0
-//我感觉这个还是没有什么问题的
-void generateRawValue(RawValue *&src,vector<int> &dimen,int index) {
+
+/**
+ * @brief float version
+ * @param src 
+ * @param dimen 
+ * @param index 
+ * @param flag 
+ */
+void generateRawValue(RawValue *&src,vector<int> &dimen,int index, int flag) {
     src->name = nullptr;
     src->value.tag = RVT_AGGREGATE;
     int elemLen = dimen[index];
     //cout << "elemLen: " << elemLen << endl;
-    auto &elements = src->value.data.aggregate.elements;
-    elements.buffer = (const void **) malloc(sizeof(const void *) *elemLen);
-    elements.len = 0;
-    elements.kind = RSK_BASICVALUE;
+    auto &elements = src->value.aggregate.elements;
     bool isEnd = index+1 >= dimen.size();
     for(int i = 0; i < elemLen;i++) {
         RawValue* subSrc = new RawValue();
         if(isEnd) {
-            subSrc->value.tag = RVT_INTEGER;
-            subSrc->value.data.integer.value = 0;
+            RawType *ty = new RawType();
+            ty->tag = flag;
+            subSrc->ty = ty;
+            if(flag == RTT_INT32) {
+                subSrc->value.tag = RVT_INTEGER;
+                subSrc->value.integer.value = 0;
+            } else if(flag == RTT_FLOAT) {
+                subSrc->value.tag = RVT_FLOAT;
+                subSrc->value.floatNumber.value = 0.0;
+            } else assert(0);
         }
-        else generateRawValue(subSrc,dimen,index+1);
-        elements.buffer[elements.len++] = (const void *) subSrc;
+        else generateRawValue(subSrc,dimen,index+1,flag);
+        elements.push_back(subSrc) ;
     }
 }
+//这里规定一个事情就是：Convert只能从float向int或者int向float
+//而且这个是临时变量，因此不存在其他问题
+//不过这里注意一个问题就是，int转成float是很正常的，但是float转成int貌似只有
+//赋值的时候才会出现
+void generateConvert(RawValueP &src,string &name)
+{
+    RawValue *Convert = new RawValue();
+    auto bb = getTempBasicBlock();
+    auto &insts = bb->inst;
+    Convert->name = nullptr;
+    Convert->value.tag = RVT_CONVERT;
+    Convert->value.Convert.src = src;
+    auto ty = new RawType();
+    auto SrcTag = src->ty->tag;
+    if(SrcTag == RTT_INT32) ty->tag = RTT_FLOAT;
+    else ty->tag = RTT_INT32;
+    Convert->ty = ty;
+    alloc_now++;name = "%"+to_string(alloc_now);
+    insts.push_back(Convert);
+    signTable.insertMidVar(name,Convert);
+}
+
 void ShowAggregate(RawValue *src) {
-    auto &element = src->value.data.aggregate.elements;
+    auto &element = src->value.aggregate.elements;
     cout << "{";
-    for(int i = 0; i < element.len;i++) {
-        auto ptr = (RawValue *) element.buffer[i];
+    for(int i = 0; i < element.size();i++) {
+        auto ptr = (RawValue *) element[i];
         auto tag = ptr->value.tag;
-        if(tag == RVT_INTEGER) { cout << ptr->value.data.integer.value << ",";}
+        if(tag == RVT_INTEGER) { cout << ptr->value.integer.value << ",";}
+        else if(tag == RVT_FLOAT) { cout<< ptr->value.floatNumber.value << ","; }
         else ShowAggregate(ptr);
     }
-    cout << "}";
+    cout << "},";
 }
 
 //填充value
-void fillValue(RawValueP &raw,RawValue *target,int &index) {
-    auto &targetElements = target->value.data.aggregate.elements;
-    auto &rawElements = raw->value.data.aggregate.elements;
-    for(int i = 0; i < targetElements.len;i++) {
-        if(index >= rawElements.len) break;
-        auto targetElement = (RawValue*)targetElements.buffer[i];
+void fillValue(RawValueP &raw,RawValue *target,int &RawIndex,int targetIndex) {
+    auto &targetElements = target->value.aggregate.elements;
+    auto &rawElements = raw->value.aggregate.elements;
+    for(int i = targetIndex; i < targetElements.size();i++) {
+        //cout << "index" << RawIndex << endl;
+        if(RawIndex >= rawElements.size()) break;
+        auto targetElement = (RawValue *)targetElements[i];
         auto targetTag = targetElement->value.tag;
-        auto rawElement = (RawValueP)rawElements.buffer[index];
+        auto rawElement = (RawValueP)rawElements[RawIndex];
         auto rawTag = rawElement->value.tag;
         if(targetTag == RVT_AGGREGATE) {
-            if(rawTag == RVT_INTEGER) {
-            fillValue(raw,targetElement,index);
+            //cout << "aggregate type" << endl;
+            if(rawTag == RVT_AGGREGATE){
+                fillAggregate(rawElement,targetElement);RawIndex++;
             } else {
-                fillAggregate(rawElement,targetElement);index++;
+                fillValue(raw,targetElement,RawIndex,0);
             }
         }
         else {
-            if(rawTag != RVT_INTEGER) {
-                cerr << "error: rvalue can't be assign to the lvalue" << endl;
-                assert(0);
-            } else {
-                targetElement->value.data.integer.value = rawElement->value.data.integer.value;
-                index++;
-            }
+                targetElements[i] = (RawValue *)rawElement;
+                RawIndex++;
         }
-    }
+}
 }
 //填充aggregate
 void fillAggregate(RawValueP &raw, RawValue *target){
     assert(raw->value.tag == RVT_AGGREGATE);
+    //cout << endl << "raw:" << endl;
     assert(target->value.tag == RVT_AGGREGATE);
-    auto &RawElements = raw->value.data.aggregate.elements;
-    auto &TargetElements = target->value.data.aggregate.elements;
+    //ShowAggregate((RawValue *)raw);
+    //cout << endl << "target:" << endl;
+    //ShowAggregate(target);
+    auto &RawElements = raw->value.aggregate.elements;
+    auto &TargetElements = target->value.aggregate.elements;
     int RawIndex = 0;
-    for(int i = 0 ; i < TargetElements.len;i++) {
-        if(RawIndex >= RawElements.len) break;
-        auto rawElement = (RawValueP ) RawElements.buffer[RawIndex];
+    for(int i = 0 ; i < TargetElements.size();i++) {
+        //cout << "RawIndex" << RawIndex << endl;
+        if(RawIndex >= RawElements.size()) break;
+        auto rawElement = (RawValueP ) RawElements[RawIndex];
         auto rawElementTag = rawElement->value.tag;
-        auto targetElement = (RawValue*) TargetElements.buffer[i];
-        if(rawElementTag == RVT_INTEGER) fillValue(raw,target,RawIndex);
-        else {
+        auto targetElement = (RawValue*) TargetElements[i];
+        if(rawElementTag == RVT_AGGREGATE){
+            //cout << "fill aggregate" << endl;
             fillAggregate(rawElement,targetElement); RawIndex++;
+        } else {
+            //cout << "fill value" << endl;
+            fillValue(raw,target,RawIndex,i);
         }
     }
 }
 
 //这里直接与store绑定，无需出现在insts中
 void fillZero(RawValueP &rawSrc,RawValueP &src,vector<int> &dimen) {
-    auto bb = getTempBasicBlock();
-    auto &insts = bb->insts;
     RawValue *Src = new RawValue();
     int index = 0;
-    generateRawValue(Src,dimen,index);
-    RawValue *raw = (RawValue *) rawSrc;
+    generateRawValue(Src,dimen,index,RTT_INT32);
     fillAggregate(rawSrc,Src);
     src = (RawValueP) Src;
 } 
 
+/*
+    这里是我在koopa IR上的一个小小的变化：对于IR来说，就是单纯的去掉了一层[]和一层*
+*/
+
 //创建getelement对象
 void generateElement(RawValueP &src,RawValueP &index,string &name) {
     auto bb = getTempBasicBlock();
-    auto &insts = bb->insts;
-    auto SrcTyTag = src->ty->tag;
-    assert(SrcTyTag == RTT_ARRAY || SrcTyTag == RTT_POINTER);
-    if(SrcTyTag == RTT_ARRAY) {
+    auto &insts = bb->inst;
     RawValue *GetElement = new RawValue();
     GetElement->name = nullptr;
     GetElement->value.tag = RVT_GET_ELEMENT;   
-    GetElement->value.data.getelement.index = index;
-    GetElement->value.data.getelement.src = src;
-    auto &ArrayBase = src->ty->data.array.base;
-    GetElement->ty = ArrayBase;
+    GetElement->value.getelement.index = index;
+    GetElement->value.getelement.src = src;
+    auto SrcTag = src->ty->tag;
+    assert(src->ty->tag == RTT_POINTER);
+    auto &PointerBase = src->ty->pointer.base;
+    auto PointerBaseTag = PointerBase->tag;
+    RawType *NewPointer = new RawType();
+    NewPointer->tag = RTT_POINTER;
+    if(PointerBaseTag == RTT_ARRAY) {
+    auto &ArrayBase = PointerBase->array.base;
+    NewPointer->pointer.base = ArrayBase;
+    }
+    GetElement->ty = NewPointer;
     alloc_now++;name = "%"+to_string(alloc_now);
-    insts.buffer[insts.len++] = (const void *) GetElement;
+    insts.push_back(GetElement);
     signTable.insertMidVar(name,GetElement);
-    } else if(SrcTyTag == RTT_POINTER) {
-    RawValue *GetPtr = new RawValue();
-    GetPtr->name = nullptr;
-    GetPtr->value.tag = RVT_GET_PTR;   
-    GetPtr->value.data.getelement.index = index;
-    GetPtr->value.data.getelement.src = src;
-    auto &PointerBase = src->ty->data.pointer.base;
-    GetPtr->ty = PointerBase;
-    alloc_now++;name = "%"+to_string(alloc_now);
-    insts.buffer[insts.len++] = (const void *) GetPtr;
-    signTable.insertMidVar(name,GetPtr);
-    } else assert(0);
 }//这里的这个类型我是直接定义成为数组
 //当前还有三个任务没有完成：
 /*
@@ -596,28 +767,81 @@ void generateElement(RawValueP &src,RawValueP &index,string &name) {
 3、 常量数组
 */
 
+void generatePtr(RawValueP &src, RawValueP &index, string &name){
+    auto bb = getTempBasicBlock();
+    auto &insts = bb->inst;
+    RawValue *GetPtr = new RawValue();
+    GetPtr->name = nullptr;
+    GetPtr->value.tag = RVT_GET_PTR;   
+    GetPtr->value.getptr.index = index;
+    GetPtr->value.getptr.src = src;
+    GetPtr->ty = src->ty;
+    alloc_now++;name = "%"+to_string(alloc_now);
+    insts.push_back(GetPtr);
+    signTable.insertMidVar(name,GetPtr);
+}
+
 void PushFollowBasieBlock(RawBasicBlock *&fbb1,RawBasicBlock *&fbb2) {
     auto bb = getTempBasicBlock();
     auto &fbbs = bb->fbbs;
-    fbbs.buffer = (const void **) malloc(sizeof(const void *) * 2);
-    fbbs.len = 2;
-    fbbs.kind = RSK_BASICBLOCK;
-    fbbs.buffer[0] = fbb1;
-    fbbs.buffer[1] = fbb2;
+    fbbs.push_back(fbb1) ;
+    fbbs.push_back(fbb2) ;
+    auto &fpbb1 = fbb1->pbbs;
+    auto &fpbb2 = fbb2->pbbs;
+    fpbb1.push_back(bb) ;
+    fpbb2.push_back(bb) ;
 }
 
 void PushFollowBasieBlock(RawBasicBlock *&fbb){
     auto bb = getTempBasicBlock();
     auto &fbbs = bb->fbbs;
-    fbbs.buffer = (const void **) malloc(sizeof(const void *));
-    fbbs.len = 1;
-    fbbs.kind = RSK_BASICBLOCK;
-    fbbs.buffer[0] = fbb;
+    fbbs.push_back(fbb) ;
+    auto &fpbb = fbb->pbbs;
+    fpbb.push_back(bb) ;
 }
 
-void PushFollowBasieBlock(){
-    auto bb = getTempBasicBlock();
-    auto &fbbs = bb->fbbs;
-    fbbs.len = 0;
-    fbbs.kind = RSK_BASICBLOCK;
+void PushFollowBasieBlock(){}
+void MarkUse(RawValue *src,RawValue *target)
+{
+    if(src != nullptr)
+    src->usePoints.push_back(target);
 }
+
+void MarkDef(RawValue *src,RawValue *target)
+{
+    if(src != nullptr)
+    src->defPoints.push_back(target);
+}
+
+
+
+void ArrInit(RawValueP src, RawValueP target) {
+    assert(src->value.tag == RVT_AGGREGATE); 
+    auto &elements = src->value.aggregate.elements;
+    for(int i = 0; i < elements.size(); ++i) {
+        auto element = (RawValueP)elements[i];
+        auto tag = element->value.tag;
+        string sign;
+        generateRawValue(i);
+        string iNumber = to_string(i);
+        RawValueP Idx = signTable.getMidVar(iNumber);
+        generateElement(target,Idx,sign);
+        RawValueP Addr = signTable.getMidVar(sign);
+        if(tag == RVT_AGGREGATE) {
+            ArrInit(element,Addr);
+        } else {
+            auto AddrTag = Addr->ty->pointer.base->tag;
+            auto SrcTag = element->ty->tag;
+            if(AddrTag != SrcTag) {
+                cerr << "Addr = " << AddrTag << ", ElementTag = " << SrcTag << endl; 
+                generateConvert(element,sign);
+                RawValueP ElemCov = signTable.getMidVar(sign);
+                generateRawValue(ElemCov,Addr);
+            } else generateRawValue(element,Addr);
+        }
+    }
+}
+
+//哪些地方需要用到这个convert,我认为有以下几个地方：
+//1、decl的地方，这里先解决
+//2、接下来就是恐怖的表达式

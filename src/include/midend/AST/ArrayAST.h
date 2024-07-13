@@ -10,26 +10,29 @@ class ConstArrayInitAST : public BaseAST{
     }kind;
     unique_ptr<BaseAST> multiArrayElement;
     int type;
-    void generateGraph(string &sign) const override;
+    void generateGraph(string &sign, int &retType) const override;
+    void generateGraphGlobal(string &sign, int &retType) const override;
 };
 
 class MultiArrayElementAST : public BaseAST{
   public:
     vector<unique_ptr<BaseAST>> sinArrayElement;
-    void generateGraph(vector<RawValueP> &elem) const override;
+    void generateGraph(vector<RawValueP> &elem, int &retType) const override;
+    void generateGraphGlobal(vector<RawValueP> &elem, int &retType) const override;
 };
-
 
 class SinArrayElementAST : public BaseAST {
     public:
       enum {
         ARELEM_AI,
-        ARELEM_EX
+        ARELEM_EX,
+        FARELEM_EX
       }kind;
       unique_ptr<BaseAST> constExp;
       unique_ptr<BaseAST> constArrayInit;
       int type;
-      void generateGraph(string &sign) const override;
+      void generateGraph(string &sign, int &retType) const override;
+      void generateGraphGlobal(string &sign, int &retType) const override;
 };
 
 class ArrayDimenAST : public BaseAST {
@@ -63,6 +66,8 @@ class ParaTypeAST : public BaseAST {
   public:
     int type;
     void generateGraph() const override {}
+    int calc() const override { return type;}
 };
-#endif
 
+
+#endif

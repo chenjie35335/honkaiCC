@@ -45,6 +45,12 @@ CFLAGS += -I$(INC_DIR)
 CXXFLAGS += -I$(INC_DIR)
 LDFLAGS += -L$(LIB_DIR) -lkoopa
 
+# Tests
+FUNCTION := $(TOP_DIR)/functional
+HIDDEN_FUNCTION := $(TOP_DIR)/hidden_functional
+PERFORMANCE := $(TOP_DIR)/performance
+FINAL_PERFORMANCE := $(TOP_DIR)/final_performance
+
 # Source files & target files
 FB_SRCS := $(patsubst $(SRC_DIR)/%.l, $(BUILD_DIR)/%.lex$(FB_EXT), $(shell find $(SRC_DIR) -name "*.l"))
 FB_SRCS += $(patsubst $(SRC_DIR)/%.y, $(BUILD_DIR)/%.tab$(FB_EXT), $(shell find $(SRC_DIR) -name "*.y"))
@@ -96,18 +102,34 @@ $(BUILD_DIR)/%.tab$(FB_EXT): $(SRC_DIR)/%.y
 	$(BISON) $(BFLAGS) -o $@ $<
 
 
-.PHONY: clean
+.PHONY: clean floatTest
 
 clean:
 	-rm -rf $(BUILD_DIR)
 
 docker:
-	docker run -it -v $(TOP_DIR):/root/compiler maxxing/compiler-dev bash
+	docker run -it \
+	-v $(TOP_DIR):/root/compiler \
+	stormy/compiler:autotest bash
+
+docker-func:
+	docker run -it \
+	-v $(TOP_DIR):/root/compiler \
+	-v $(FUNCTION):/opt/bin/testcases/functional \
+	-v $(HIDDEN_FUNCTION):/opt/bin/testcases/hidden_functional \
+	stormy/compiler:autotest bash
+
+docker-perf:
+	docker run -it \
+	-v $(TOP_DIR):/root/compiler \
+	-v $(PERFORMANCE):/opt/bin/testcases/performance \
+	-v $(FINAL_PERFORMANCE):/opt/bin/testcases/final_performance \
+	stormy/compiler:autotest bash
 
 debug:
 	docker run -it -v $(TOP_DIR):/root/compiler \
   	--cap-add=SYS_PTRACE --security-opt seccomp=unconfined \
-  	maxxing/compiler-dev bash
+  	stormy/compiler:autotest bash
 
 test:
 	make clean
@@ -115,22 +137,32 @@ test:
 	build/compiler $(TARGET) hello.c -o hello.koopa
 
 autotest:
-	autotest -riscv -s lv8 /root/compiler
+	autotest -koopa -s lv8 /root/compiler
 
 koopa-test:
-	./build/compiler -koopa hello.c -o hello.koopa
+	./build/compiler -koopa -o hello.koopa  hello.c
 	koopac hello.koopa | llc --filetype=obj -o hello.o
-	clang hello.o -L$$CDE_LIBRARY_PATH/native -lsysy -o hello
+	clang hello.o -L $$CDE_LIBRARY_PATH/native -lsysy -o hello
 	./hello
 
 riscv-test:
-	./build/compiler -riscv hello.c -o hello.S
-	clang hello.S -c -o hello.o -target riscv32-unknown-linux-elf -march=rv32im -mabi=ilp32
-	ld.lld hello.o -L$$CDE_LIBRARY_PATH/riscv32 -lsysy -o hello
-	qemu-riscv32-static hello
+	./build/compiler -S -o hello.S hello.c 
+	clang hello.S -c -o hello.o -target riscv64-unknown-linux-elf -march=rv64im -mabi=lp64
+	ld.lld hello.o -L $$CDE_LIBRARY_PATH/riscv64 -lsys -o hello
+	riscv64-linux-gnu-objdump -d hello > hello.obj
+	qemu-riscv64-static hello 
 
 gdb:
-	apt-get update && apt-get install gdb
-	gdb --args ./build/compiler -riscv hello.c -o hello.S
+	gdb --args ./build/compiler -riscv -o hello.S  hello.c
+	# gdb --args ./build/compiler -astT -o test.ast test.c
+
+all:
+	sudo -S make
+
+riscv-debug:
+	qemu-riscv64-static -g 1234 hello &
+	gdb-multiarch hello
 
 -include $(DEPS)
+
+

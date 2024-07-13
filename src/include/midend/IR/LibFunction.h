@@ -16,4 +16,13 @@ void GeneratePutInt();
 void GeneratePutArray();
 /// @brief getarray
 void GenerateGetArray();
+/// @brief putfloat
+void GeneratePutFloat();
+/// @brief getfloat
+void GenerateGetFloat();
+/// @brief getfarray
+void GenerateGetFArray();
+/// @brief putfarray
+void GeneratePutFArray();
+
 #endif

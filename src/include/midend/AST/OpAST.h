@@ -35,6 +35,8 @@ class MulOpAST : public BaseAST {
 class EqOpAST : public BaseAST {
   public:
     uint32_t type;
+    mutable unique_ptr<BaseAST> op;
+    //void generateGraph(string &sign) const override;
     [[nodiscard]] int calc() const override{return (int)type;}
 } 
 ;

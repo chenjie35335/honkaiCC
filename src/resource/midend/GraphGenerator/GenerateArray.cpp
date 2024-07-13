@@ -6,6 +6,7 @@
 #include "../../../include/midend/ValueTable/SignTable.h"
 #include <cstdlib>
 #include <unordered_map>
+#define EXP 0.00000001
 using namespace std;
 extern IRBuilder* irBuilder;
 extern SignTable signTable;
@@ -36,31 +37,70 @@ void SinArrayDimenAST::generateGraph(string &name) const {
 
 //这个sign返回回去可以由前面通过查表获取这个aggregate对象
 //返回之后再调用进行转换
-void ConstArrayInitAST::generateGraph(string &sign) const {
+void ConstArrayInitAST::generateGraph(string &sign, int &retType) const {
     vector<RawValueP> elements;
     if(type == INIT_MUL) {
-    multiArrayElement->generateGraph(elements);
+        multiArrayElement->generateGraph(elements, retType);
+    }
+    generateRawValue(elements,sign);
+}
+
+void ConstArrayInitAST::generateGraphGlobal(string &sign, int &retType) const {
+    vector<RawValueP> elements;
+    if(type == INIT_MUL) {
+        multiArrayElement->generateGraphGlobal(elements, retType);
     }
     generateRawValue(elements,sign);
 }
 //对于每一个ConstArrayInit型的节点都需要建立一个aggregate对象，一个aggregate对象还是需要弄一个sign
 //因为对于init来说必定都是临时变量
-void MultiArrayElementAST::generateGraph(vector<RawValueP> &elem) const {
+void MultiArrayElementAST::generateGraph(vector<RawValueP> &elem, int &retType) const {
     for(auto &sinArrayElem : sinArrayElement) {
         string name;
-        sinArrayElem->generateGraph(name);
+        sinArrayElem->generateGraph(name,retType);
         RawValueP element;
         getMidVarValue(element,name); 
         elem.push_back(element);
     }
 }
+
+void MultiArrayElementAST::generateGraphGlobal(vector<RawValueP> &elem, int &retType) const {
+    for(auto &sinArrayElem : sinArrayElement) {
+        string name;
+        sinArrayElem->generateGraphGlobal(name,retType);
+        RawValueP element;
+        getMidVarValue(element,name); 
+        elem.push_back(element);
+    }
+}
+
 //这里就直接传字符串，然后返回查表获取了
-void SinArrayElementAST::generateGraph(string &sign) const {
+void SinArrayElementAST::generateGraph(string &sign, int &retType) const {
     switch(type) {
         case ARELEM_AI: 
-            constArrayInit->generateGraph(sign);break;
+            constArrayInit->generateGraph(sign, retType);
+            break;
+        case ARELEM_EX:{
+            constExp->generateGraph(sign);
+            break;
+        }
+        default:  assert(0);
+    }
+}
+
+void SinArrayElementAST::generateGraphGlobal(string &sign, int &retType) const {
+    switch(type) {
+        case ARELEM_AI: 
+            constArrayInit->generateGraphGlobal(sign, retType);
+            break;
         case ARELEM_EX:{
             int value = constExp->calc();
+            generateRawValueArr(value);
+            sign = to_string(value); 
+            break;
+        }
+        case FARELEM_EX:{
+            float value = constExp->fcalc();
             generateRawValueArr(value);
             sign = to_string(value); 
             break;

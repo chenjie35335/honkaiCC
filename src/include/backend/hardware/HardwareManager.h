@@ -1,6 +1,7 @@
 #include <unordered_map>
 #include <iostream>
 #include <cassert>
+#include<bits/stdc++.h>
 #include "../../midend/IR/IRGraph.h"
 using namespace std;
 #ifndef STORMY_HARDWARE
@@ -48,19 +49,24 @@ public:
     /// @brief 除此之外，这里还需要添加一个规定长度分配
     /// @param value 
     /// @return 
-    int StackAlloc(const RawValueP &value) {
-        if(tempOffset > maxAddress) {
-            cerr << "tempOffset " << tempOffset  << " exceed the maxAddress " << maxAddress << endl;
-            assert(0);
-        }
-        else {
-            
-            StackManager.insert(pair<RawValueP, int>(value, tempOffset));
+    int StackAlloc(const RawValueP &value,int op=-1) {
+        // if(tempOffset > maxAddress) {
+        //     cerr << "tempOffset " << tempOffset  << " exceed the maxAddress " << maxAddress << endl;
+        //     assert(0);
+        // }
+        //else
+        if(op!=-1){
+            StackManager.insert(pair<RawValueP, int>(value, op));
             int len = GetLen(value);
             //cout << "alloc tempOffset = " << tempOffset << ", len = " << len << endl;
             tempOffset += len;
             return StackManager.at(value);
         }
+            StackManager.insert(pair<RawValueP, int>(value, tempOffset));
+            int len = GetLen(value);
+            //cout << "alloc tempOffset = " << tempOffset << ", len = " << len << endl;
+            tempOffset += len;
+            return StackManager.at(value);
     }
     /// @brief 保存某个值的长度
     /// @param value 
@@ -87,8 +93,10 @@ public:
     /// @param max 
 
     void LoadRegister(int reg); 
-
     void SaveRegister(int reg);
+    //fregs
+    void LoadFRegister(int reg); 
+    void SaveFRegister(int reg);
 };
 
 class MemoryManager
@@ -120,8 +128,8 @@ public:
 
     bool IsMemory(const RawValueP &value) {return localArea.IsMemory(value);}
 
-    int StackAlloc(const RawValueP &value) {
-       return localArea.StackAlloc(value);
+    int StackAlloc(const RawValueP &value,int op=-1) {
+       return localArea.StackAlloc(value,op);
     }
 
     void LoadRegister(int reg) {
@@ -137,11 +145,36 @@ public:
     int GetLen(const RawValueP &value) { return localArea.GetLen(value);}
 };
 
+typedef enum {
+    FSRM_ROUND_TO_NEAREST,
+    FSRM_ROUND_TO_ZERO,
+    FSRM_ROUND_TO_POSITIVE_INFINITY,
+    FSRM_ROUND_TO_NEGATIVE_INFINITY
+} frm_mode_t;
+
+typedef struct {
+    unsigned int fp_control;
+    unsigned int fp_status;
+    unsigned int fp_tag;
+    unsigned int fp_ip;
+    unsigned int fp_cs;
+    unsigned int fp_dp;
+    unsigned int fp_ds;
+    unsigned int fp_op;
+} fsr_t;
+
 class RegisterManager
 {
 public:
     /// @brief 寄存器堆
     static const char *regs[32];
+    static const char *fregs[32];  //32位浮点
+    //static const char *dfregs[64]; //64-127的浮点
+    /// frm 浮点舍入模式寄存器
+    frm_mode_t frmReg;
+    /// fsr 浮点控制状态寄存器
+    fsr_t fsrReg;
+    //难点在于什么时候用这些寄存器
     /// @brief 调用者保存寄存器
     static const int callerSave[];
     /// @brief 被调用者保存寄存器
@@ -155,12 +188,50 @@ public:
     /// @brief 未满时，当前可用寄存器
     uint32_t tempRegister;
     /// @brief 构造函数
+
+    // points color
+    int vis[4000][4000]={0};
+    int rvis[4000][4000]={0};
+    // clash graph
+    int Ccolor;
+    map<RawValue*,int> mpp;
+    int n;
+   // map<RawValueP,int> kill;
+   // int killc[1000]={0};
+    vector<int> g[10000];
+    map<RawValueP,int> vp[10000]; //value的下标映射
+    map<int,RawValueP> rvp[10000];//反映射
+    map<int,string>hreg;//从虚拟到真实的的reg映射
+
+    map<RawValueP,int> sadd;
+
+
+
+    vector<pair<int,int> > LX;
+    vector<RawValueP> LY;
     RegisterManager() {}
 
-    const char *GetRegister(const RawValueP &value) {
+    const string GetRegister(const RawValueP &value,int id) {
+        // assert(registerLook.find(value) != registerLook.end());
+        // int loc = registerLook.at(value);
+
+        int clr=26-vis[id][vp[id][value]]+5;
+        //先不区分
+        if(value->value.tag==RVT_FUNC_ARGS){
+            auto e=value->value.funcArgs.index;
+            if(e<8) clr=10+e;
+            // else{
+            //     cout<<"WA ON ARGS GETREG"<<endl;
+            //     exit(0);
+            // }
+        }
+        return regs[clr];
+    }
+    //fregs
+    const char *GetFRegister(const RawValueP &value) {
         assert(registerLook.find(value) != registerLook.end());
         int loc = registerLook.at(value);
-        return regs[loc];
+        return fregs[loc];
     }
 
     bool IsRegister(const RawValueP &value){
@@ -172,6 +243,7 @@ public:
         int loc = registerLook.at(value);
         RegisterLock[loc] = true;
     }
+
 
     void LeaseLockRegister(const RawValueP &value) {
         assert(registerLook.find(value) != registerLook.end());
@@ -211,9 +283,10 @@ class HardwareManager {
     
     bool IsRegister(const RawValueP &value) {return registerManager.IsRegister(value);}
 
-    void init(const RawFunctionP &value);
+    int init(const RawFunctionP &value);
 
-    const char *GetRegister(const RawValueP &value) { return registerManager.GetRegister(value);}
+    const string GetRegister(const RawValueP &value,int id) { return registerManager.GetRegister(value,id);}
+    const char *GetFRegister(const RawValueP &value) { return registerManager.GetFRegister(value);}
 
     void addLockRegister(const RawValueP &value) { registerManager.addLockRegister(value);}
 
@@ -221,15 +294,18 @@ class HardwareManager {
     //分配指定寄存器
     void AssignRegister(const RawValueP &value,int loc) {registerManager.AssignRegister(value,loc);}
 
-    void LoadFromMemory(const RawValueP &value) ;
+    void LoadFromMemory(const RawValueP &value,int id) ;
 
-    void AllocRegister(const RawValueP &value);
+    void AllocRegister(const RawValueP &value,int id);
+    void AllocFRegister(const RawValueP &value);
 
+    void loadReg(int RandSelected);
     void StoreReg(int RandSelected);
+    void StoreFReg(int RandSelected);
 
     bool isValid(int loc) { return registerManager.IsValid(loc);}
 
-    int StackAlloc(const RawValueP &value) { return memoryManager.StackAlloc(value);}
+    int StackAlloc(const RawValueP &value,int op=-1) { return memoryManager.StackAlloc(value,op);}
 
     int getStackSize() {return memoryManager.StackSize;}
 
@@ -240,6 +316,14 @@ class HardwareManager {
     void SaveLen(const RawValueP value,int len) { memoryManager.SaveLen(value,len);}
 
     int GetLen(const RawValueP &value) {return memoryManager.GetLen(value);}
+
+    int struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector<RawValue*> &cuf);
+
+    void RegisterManagerAlloc();
+
+    void spill(vector<RawBasicBlockP> &bbbuffer,int id,vector<RawValue*> &cuf);
+
+    void InitallocReg(vector<RawBasicBlockP> &bbbuffer,int id,vector<RawValue*> &cuf);
 };
 
 /*

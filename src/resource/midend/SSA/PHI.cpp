@@ -12,32 +12,35 @@
 using namespace std;
 //这里需要考虑的是，如果我使用的是基本块常量的话，该如何处理
 void AddPhi(RawBasicBlock *&bb,RawValue *&data) {
-    auto &params = bb->params;
-    RawValue *blockarg = new RawValue();
-    blockarg->value.tag = RVT_BLOCK_ARGS;
-    blockarg->value.data.blockArgs.target = data;
-    params.buffer[params.len++] = blockarg;
-    blockarg->value.data.blockArgs.index = params.len;
+    auto &phis = bb->phi;
+    RawValue* phi = new RawValue();
+    phi->value.tag = RVT_PHI;
+    phi->value.phi.target = data;
+    phis.push_back(phi);
+    data->copiesValues.push_back(phi);
+    phi->defPoints.push_back(phi);
+    phi->defbbs.push_back(bb);
+    bb->defs.insert(data);
 }
 
 // 这里该怎么处理这个defsite集合？
 // 首先使用hash表那样弄不一定是一件好事
 void AddPhi(RawFunction *& func) {
-    auto &bbs = func->bbs;
+    auto &bbs = func->basicblock;
     auto &values = func->values;
-    for(int i = 0; i < bbs.len;i++) {
-        RawBasicBlock *bb = (RawBasicBlock *)bbs.buffer[i];
+    for(RawBasicBlock *bb : bbs) {
         auto &bbDef = bb->defs;
         for(RawValue* value : bbDef) {
-            value->defbbs.insert(bb);
+            value->defbbs.push_back(bb);
             values.insert(value);
         }
     }
     for(RawValue *value : values) {
         vector<RawBasicBlock *> W;
-        copy(value->defbbs.begin(),value->defbbs.end(),W.begin());
+        W = value->defbbs;
+        //copy(value->defbbs.begin(),value->defbbs.end(),W.begin());
         while(!W.empty()) {
-            RawBasicBlock *n = W[W.size()-1];
+            RawBasicBlock *n = W.back();
             W.pop_back();
             //computeDF(n);
             for(const RawBasicBlock *Y : n->df) {
@@ -46,7 +49,7 @@ void AddPhi(RawFunction *& func) {
                     AddPhi(y,value);
                     RawValueP phiValue = (RawValueP) value;
                     y->NessPhi.insert(phiValue);
-                    if(phiValue->defbbs.find(y) == phiValue->defbbs.end()) {
+                    if(find(phiValue->defbbs.begin(),phiValue->defbbs.end(),y) == phiValue->defbbs.end()) {
                         W.push_back(y);
                     }
                 }
@@ -56,9 +59,9 @@ void AddPhi(RawFunction *& func) {
 }
 
 void AddPhi(RawProgramme *& programme) {
-    auto &funcs = programme->Funcs;
-    for(int i = 0; i < funcs.len;i++) {
-        RawFunction* func = (RawFunction *)funcs.buffer[i];
+    auto &funcs = programme->funcs;
+    //cerr << "func.len:" << funcs.len << endl;
+    for(RawFunction* func : funcs) {
         AddPhi(func);
     }
 }

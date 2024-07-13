@@ -19,8 +19,13 @@
 
 #include "midend/IR/IRGraph.h"
 #include "IRTXT/IR_TXT.h"
+#include "IRTXT/AstPrint.h"
 #include "midend/SSA/DT.h"
 #include "midend/SSA/PHI.h"
+#include "midend/SSA/rename.h"
+#include "midend/SSA/ExitSSA.h"
+#include "midend/Optimizer/Optimize.h"
+
 
 using namespace std;
 #pragma once

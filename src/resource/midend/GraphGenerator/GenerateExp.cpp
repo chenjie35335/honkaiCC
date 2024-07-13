@@ -4,7 +4,10 @@
 #include "../../../include/midend/AST/AST.h"
 #include <cstdlib>
 #include <unordered_map>
+#include <memory>
 using namespace std;
+extern int IfNum;
+extern int WhileNum;
 // 这里这个RawProgramme是生成好
 
 void SinExpAST::generateGraph(string &sign,int &RetType) const
@@ -37,22 +40,48 @@ void LOrExpAST::generateGraph(string &sign) const
     break;
   case LOREXPAST_LOR:
   {
-    LOrExp->generateGraph(sign1);
-    LAndExp->generateGraph(sign2);
-    alloc_now++;
-    string OrSign = "%" + to_string(alloc_now);
-    RawValueP lhs, rhs;
-    getMidVarValue(lhs, sign1);
-    getMidVarValue(rhs, sign2);
-    generateRawValue(OrSign, lhs, rhs, RBO_OR);
-    alloc_now++;
-    sign = "%" + to_string(alloc_now);
+    string name = "aaaaaaa" + to_string(++alloc_now);
+    generateRawValue(name,RTT_INT32);
+    RawValueP MidValueData = signTable.getVarL(name);
+    RawValueP zero,one;
     string ZeroSign = to_string(0);
-    RawValueP zero, StmtOR;
+    string OneSign = to_string(1);
     generateRawValue(0);
     getMidVarValue(zero, ZeroSign);
-    getMidVarValue(StmtOR, OrSign);
-    generateRawValue(sign, StmtOR, zero, RBO_NOT_EQ);
+    generateRawValue(zero,MidValueData);
+    string ThenSign = "scthen" + to_string(IfNum);
+    string ElseSign = "scelse" + to_string(IfNum);
+    string EndSign = "scend" + to_string(IfNum);
+    IfNum++;
+    RawBasicBlock *Thenbb,*Elsebb,*Endbb;
+    generateRawBasicBlock(Thenbb,ThenSign.c_str());
+    generateRawBasicBlock(Elsebb,ElseSign.c_str());
+    generateRawBasicBlock(Endbb,EndSign.c_str());
+    LOrExp->generateGraph(sign1);
+    RawValueP cond1 = signTable.getMidVar(sign1);
+    generateRawValue(cond1, Thenbb, Elsebb);
+    PushFollowBasieBlock(Thenbb,Elsebb);
+    setTempBasicBlock(Thenbb);
+    PushRawBasicBlock(Thenbb);
+    setFinished(false);
+    generateRawValue(1);
+    getMidVarValue(one, OneSign);
+    generateRawValue(one,MidValueData);
+    generateRawValue(Endbb);
+    PushFollowBasieBlock(Endbb);
+    setTempBasicBlock(Elsebb);
+    PushRawBasicBlock(Elsebb);
+    setFinished(false);
+    LAndExp->generateGraph(sign2);
+    RawValueP cond2 = signTable.getMidVar(sign2);
+    generateRawValue(cond2, Thenbb, Endbb);
+    PushFollowBasieBlock(Thenbb,Endbb);
+    setTempBasicBlock(Endbb);
+    PushRawBasicBlock(Endbb);
+    setFinished(false);
+    alloc_now++;
+    sign = "%" + to_string(alloc_now);
+    generateRawValue(sign,MidValueData);
     break;
   }
   default:
@@ -70,27 +99,58 @@ void LAndExpAST::generateGraph(string &sign) const
     break;
   case LANDEXPAST_LAN:
   {
-    LAndExp->generateGraph(s1);
-    EqExp->generateGraph(s2);
-    RawValueP signL, signR;
-    getMidVarValue(signL, s1);
-    getMidVarValue(signR, s2);
-    RawValueP zero;
+    string name = "bbbbbb" + to_string(++alloc_now);
+    generateRawValue(name,RTT_INT32);
+    RawValueP MidValueData = signTable.getVarL(name);
+    RawValueP zero,one;
     string ZeroSign = to_string(0);
+    string OneSign = to_string(1);
+    generateRawValue(1);
+    getMidVarValue(one, OneSign);
+    generateRawValue(one,MidValueData);
+    string ThenSign = "scthen" + to_string(IfNum);
+    string ElseSign = "scelse" + to_string(IfNum);
+    string EndSign = "scend" + to_string(IfNum);
+    IfNum++;
+    RawBasicBlock *Thenbb,*Elsebb,*Endbb;
+    generateRawBasicBlock(Thenbb,ThenSign.c_str());
+    generateRawBasicBlock(Elsebb,ElseSign.c_str());
+    generateRawBasicBlock(Endbb,EndSign.c_str());
+    LAndExp->generateGraph(s1);
+    RawValueP lhs = signTable.getMidVar(s1);
+    s1 = "@" + to_string(++alloc_now);
     generateRawValue(0);
     getMidVarValue(zero, ZeroSign);
-    alloc_now++;
-    string Nelsign = "%" + to_string(alloc_now);
-    RawValueP StmtNeL, StmtNeR;
-    generateRawValue(Nelsign, signL, zero, RBO_NOT_EQ);
-    alloc_now++;
-    string Nersign = "%" + to_string(alloc_now);
-    generateRawValue(Nersign, signR, zero, RBO_NOT_EQ);
+    generateRawValue(s1,zero,lhs,RBO_EQ);
+    RawValueP cond1 = signTable.getMidVar(s1);
+    generateRawValue(cond1, Thenbb, Elsebb);
+    PushFollowBasieBlock(Thenbb,Elsebb);
+    setTempBasicBlock(Thenbb);
+    PushRawBasicBlock(Thenbb);
+    setFinished(false);
+    generateRawValue(0);
+    getMidVarValue(zero, ZeroSign);
+    generateRawValue(zero,MidValueData);
+    generateRawValue(Endbb);
+    PushFollowBasieBlock(Endbb);
+    setTempBasicBlock(Elsebb);
+    PushRawBasicBlock(Elsebb);
+    setFinished(false);
+    EqExp->generateGraph(s2);
+    RawValueP rhs = signTable.getMidVar(s2);
+    s2 = "@" + to_string(++alloc_now);
+    generateRawValue(0);
+    getMidVarValue(zero, ZeroSign);
+    generateRawValue(s2,zero,rhs,RBO_EQ);
+    RawValueP cond2 = signTable.getMidVar(s2);
+    generateRawValue(cond2, Thenbb, Endbb);
+    PushFollowBasieBlock(Thenbb,Endbb);
+    setTempBasicBlock(Endbb);
+    PushRawBasicBlock(Endbb);
+    setFinished(false);
     alloc_now++;
     sign = "%" + to_string(alloc_now);
-    getMidVarValue(StmtNeL,Nelsign);
-    getMidVarValue(StmtNeR,Nersign);
-    generateRawValue(sign, StmtNeL, StmtNeR, RBO_AND);
+    generateRawValue(sign,MidValueData);
     break;
   }
   default:
@@ -116,15 +176,34 @@ void EqExpAST::generateGraph(string &sign) const
     RawValueP signL, signR;
     getMidVarValue(signL, s1);
     getMidVarValue(signR, s2);
-    alloc_now++;
-    sign = "%" + to_string(alloc_now);
+    auto LTag = signL->ty->tag;
+    auto RTag = signR->ty->tag;
+    auto OpFloat = (LTag == RTT_FLOAT || RTag == RTT_FLOAT);
+    if(LTag == RTT_FLOAT && RTag != RTT_FLOAT) {
+      generateConvert(signR,s2);
+      getMidVarValue(signR, s2);
+    }
+    if(LTag != RTT_FLOAT && RTag == RTT_FLOAT) {
+      generateConvert(signL,s1);
+      getMidVarValue(signL, s1);
+    }
+    alloc_now++; sign = "%" + to_string(alloc_now);
     switch (OpType)
     {
     case EQOPAST_EQ:
-      generateRawValue(sign, signL, signR, RBO_EQ);
+      //signL->value.tag
+      if(OpFloat){//这里需要判断
+        generateRawValue(sign, signL, signR, RBO_FEQ);
+      } else {
+        generateRawValue(sign, signL, signR, RBO_EQ);
+      }
       break;
     case EQOPAST_NE:
-      generateRawValue(sign, signL, signR, RBO_NOT_EQ);
+      if(OpFloat){
+        generateRawValue(sign, signL, signR, RBO_NOT_FEQ);
+      } else {
+        generateRawValue(sign, signL, signR, RBO_NOT_EQ);
+      }
       break;
     default:
       assert(0);
@@ -154,21 +233,46 @@ void RelExpAST::generateGraph(string &sign) const
     RawValueP signL, signR;
     getMidVarValue(signL, s1);
     getMidVarValue(signR, s2);
-    alloc_now++;
-    sign = "%" + to_string(alloc_now);
+    auto LTag = signL->ty->tag;
+    auto RTag = signR->ty->tag;
+    auto OpFloat = (LTag == RTT_FLOAT || RTag == RTT_FLOAT);
+    if(LTag == RTT_FLOAT && RTag != RTT_FLOAT) {
+      generateConvert(signR,s2);
+      getMidVarValue(signR, s2);
+    }
+    if(LTag != RTT_FLOAT && RTag == RTT_FLOAT) {
+      generateConvert(signL,s1);
+      getMidVarValue(signL, s1);
+    }
+    alloc_now++; sign = "%" + to_string(alloc_now);
     switch (OpRel)
     {
     case RELOPAST_GE:
-      generateRawValue(sign, signL, signR, RBO_GE);
+      if(OpFloat)
+        generateRawValue(sign, signL, signR, RBO_FGE);
+      else 
+        generateRawValue(sign, signL, signR, RBO_GE);
       break;
     case RELOPAST_LE:
-      generateRawValue(sign, signL, signR, RBO_LE);
+      if(OpFloat){
+        generateRawValue(sign, signL, signR, RBO_FLE);
+      }else {
+        generateRawValue(sign, signL, signR, RBO_LE);
+      }
       break;
     case RELOPAST_L:
-      generateRawValue(sign, signL, signR, RBO_LT);
+      if(OpFloat){
+        generateRawValue(sign, signL, signR, RBO_FLT);
+      }else {
+        generateRawValue(sign, signL, signR, RBO_LT);
+      }
       break;
     case RELOPAST_G:
-      generateRawValue(sign, signL, signR, RBO_GT);
+      if(OpFloat){
+        generateRawValue(sign, signL, signR, RBO_FGT);
+      }else {
+        generateRawValue(sign, signL, signR, RBO_GT);
+      }
       break;
     default:
       assert(0);
@@ -196,14 +300,32 @@ void AddExpAST::generateGraph(string &sign) const
     RawValueP signL, signR;
     getMidVarValue(signL, s1);
     getMidVarValue(signR, s2);
-    alloc_now++;
-    sign = "%" + to_string(alloc_now);
+    auto LTag = signL->ty->tag;
+    auto RTag = signR->ty->tag;
+    auto OpFloat = (LTag == RTT_FLOAT || RTag == RTT_FLOAT);
+    if(LTag == RTT_FLOAT && RTag != RTT_FLOAT) {
+      generateConvert(signR,s2);
+      getMidVarValue(signR, s2);
+    }
+    if(LTag != RTT_FLOAT && RTag == RTT_FLOAT) {
+      generateConvert(signL,s1);
+      getMidVarValue(signL, s1);
+    }
+    alloc_now++; sign = "%" + to_string(alloc_now);
     switch (OpAdd){
     case '+':
-      generateRawValue(sign, signL, signR, RBO_ADD);
+      if(OpFloat){
+        generateRawValue(sign, signL, signR, RBO_FADD);
+      } else {
+        generateRawValue(sign, signL, signR, RBO_ADD);
+      }
       break;
     case '-':
-      generateRawValue(sign, signL, signR, RBO_SUB);
+      if(OpFloat){
+        generateRawValue(sign, signL, signR, RBO_FSUB);
+      }else {
+        generateRawValue(sign, signL, signR, RBO_SUB);
+      }
       break;
     default:
       assert(0);
@@ -214,6 +336,7 @@ void AddExpAST::generateGraph(string &sign) const
     assert(0);
   }
 }
+
 
 void MulExpAST::generateGraph(string &sign) const
 {
@@ -231,17 +354,36 @@ void MulExpAST::generateGraph(string &sign) const
     RawValueP signL, signR;
     getMidVarValue(signL, s1);
     getMidVarValue(signR, s2);
-    alloc_now++;
-    sign = "%" + to_string(alloc_now);
+    auto LTag = signL->ty->tag;
+    auto RTag = signR->ty->tag;
+    auto OpFloat = (LTag == RTT_FLOAT || RTag == RTT_FLOAT);
+    if(LTag == RTT_FLOAT && RTag != RTT_FLOAT) {
+      generateConvert(signR,s2);
+      getMidVarValue(signR, s2);
+    }
+    if(LTag != RTT_FLOAT && RTag == RTT_FLOAT) {
+      generateConvert(signL,s1);
+      getMidVarValue(signL, s1);
+    }
+    alloc_now++; sign = "%" + to_string(alloc_now);
     switch (OpMul)
     {
     case '*':
-      generateRawValue(sign, signL, signR, RBO_MUL);
+      if(OpFloat){
+        generateRawValue(sign, signL, signR, RBO_FMUL);
+      } else {
+        generateRawValue(sign, signL, signR, RBO_MUL);
+      }
       break;
     case '/':
-      generateRawValue(sign, signL, signR, RBO_DIV);
+      if(OpFloat){
+        generateRawValue(sign, signL, signR, RBO_FDIV);
+      }else {
+        generateRawValue(sign, signL, signR, RBO_DIV);
+      }
       break;
     case '%':
+      //浮点数不取余
       generateRawValue(sign, signL, signR, RBO_MOD);
       break;
     default:
@@ -283,17 +425,28 @@ void UnaryOpAST::generateGraph(string &sign) const
   case '!':
   {
     RawValueP exp;
-    RawValueP zero;
+    RawValueP zero, FloatZero;
+    int number = 0;
+    float floatNumber = 0.0;
     string ZeroSign = to_string(0);
+    string FloatZeroSign = to_string(0.0);
     generateRawValue(0);
+    generateRawValue(floatNumber);
     getMidVarValue(zero, ZeroSign);
+    getMidVarValue(FloatZero, FloatZeroSign);
     getMidVarValue(exp, sign);
     alloc_now++;
     sign = "%" + to_string(alloc_now);
     if (op == '-')
-      generateRawValue(sign, zero, exp, RBO_SUB);
+      if(exp->ty->tag == RTT_FLOAT){
+        generateRawValue(sign, FloatZero, exp, RBO_FSUB);
+      }else 
+        generateRawValue(sign,zero, exp, RBO_SUB);
     else
-      generateRawValue(sign, zero, exp, RBO_EQ);
+      if(exp->ty->tag == RTT_FLOAT)
+       generateRawValue(sign, FloatZero, exp, RBO_FEQ);
+      else 
+       generateRawValue(sign,zero,exp,RBO_EQ);
     break;
   }
   default:
@@ -312,6 +465,10 @@ void PrimaryExpAST::generateGraph(string &sign) const
     sign = to_string(number);
     generateRawValue(number);
     break;
+  case FLOAT_NUMBER:
+    sign = to_string(floatNumber);
+    generateRawValue(floatNumber);
+    break;
   case LVAL:
     Lval->generateGraph(sign);
     break;
@@ -321,7 +478,7 @@ void PrimaryExpAST::generateGraph(string &sign) const
 }
 
 void FuncExpAST::generateGraph(string &sign) const{
-  //cerr << "function name = " << ident << endl;
+  cerr << "function name = " << ident << endl;
   RawFunctionP callee= signTable.getFunction(ident);
   vector<RawValueP> paramsValue;
   para->generateGraph(paramsValue);

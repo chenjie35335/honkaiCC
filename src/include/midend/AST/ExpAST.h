@@ -9,6 +9,10 @@ public:
   {
     return LOrExp->calc();
   }
+  [[nodiscard]] float fcalc() const override
+  {
+    return LOrExp->fcalc();
+  }
   void generateGraph(string &sign) const override;
 };
 
@@ -24,7 +28,7 @@ class LOrExpAST : public BaseAST
 {
 public:
   std::unique_ptr<BaseAST> LAndExp;
-  std::unique_ptr<BaseAST> LOrExp;
+  mutable std::unique_ptr<BaseAST> LOrExp;
   uint32_t type;
   [[nodiscard]] int calc() const override
   {
@@ -37,9 +41,37 @@ public:
     case LOREXPAST_LOR:
     {
       int value1 = LOrExp->calc();
-      int value2 = LAndExp->calc();
-      value = value1 || value2;
+      if(value1 == 1) {
+        value = 1;
+        break;
+      } else {
+        int value2 = LAndExp->calc();
+        value = value1 || value2;
+        break;
+      }
+    }
+    }
+    return value;
+  }
+   [[nodiscard]] float fcalc() const override
+  {
+    float value = 0.0;
+    switch (type)
+    {
+    case LOREXPAST_LAN:
+      value = LAndExp->fcalc();
       break;
+    case LOREXPAST_LOR:
+    {
+      int value1 = LOrExp->calc();
+      if(value1 == 1) {
+        value = 1;
+        break;
+      } else {
+        int value2 = LAndExp->calc();
+        value = value1 || value2;
+        break;
+      }
     }
     }
     return value;
@@ -51,7 +83,7 @@ class LAndExpAST : public BaseAST
 {
 public:
   std::unique_ptr<BaseAST> EqExp;
-  std::unique_ptr<BaseAST> LAndExp;
+  mutable std::unique_ptr<BaseAST> LAndExp;
   uint32_t type;
   [[nodiscard]] int calc() const override
   {
@@ -61,6 +93,30 @@ public:
     case LANDEXPAST_EQE:
       value = EqExp->calc();
       break;
+    case LANDEXPAST_LAN:
+    {
+      int value1 = EqExp->calc();
+      if(value1 == 0) {
+        value = 0;
+        break;
+      } else {
+        int value2 = LAndExp->calc();
+        value = value1 && value2;
+        break;
+      }
+    }
+    }
+    return value;
+  }
+  [[nodiscard]] float fcalc() const override
+  {
+    float value = 0.0;
+    switch (type)
+    {
+    case LANDEXPAST_EQE:
+      value = EqExp->fcalc();
+      break;
+    //impossible 
     case LANDEXPAST_LAN:
     {
       int value1 = EqExp->calc();
@@ -83,11 +139,44 @@ public:
   uint32_t type;
   [[nodiscard]] int calc() const override
   {
+    //这里不能直接调fcalc()
+    //必须先对数据类型进行判断
     int value = 0;
     switch (type)
     {
     case EQEXPAST_REL:
       value = RelExp->calc();
+      break;
+    case EQEXPAST_EQE:
+    {
+      int value1 = EqExp->calc();
+      int value2 = RelExp->calc();
+      int OpType = EqOp->calc();
+      switch (OpType)
+      {
+      case EQOPAST_EQ:
+        value = value1 == value2;
+        break;
+      case EQOPAST_NE:
+        value = value1 != value2;
+        break;
+      default:
+        break;
+      }
+      break;
+    }
+    }
+    return value;
+  }
+  [[nodiscard]] float fcalc() const override
+  {
+    //这里不能直接调fcalc()
+    //必须先对数据类型进行判断
+    float value = 0.0;
+    switch (type)
+    {
+    case EQEXPAST_REL:
+      value = RelExp->fcalc();
       break;
     case EQEXPAST_EQE:
     {
@@ -124,6 +213,7 @@ public:
   {
     int value;
     int value1, value2;
+    float fv1, fv2;
     switch (type)
     {
     case RELEXPAST_ADD:
@@ -155,6 +245,51 @@ public:
       }
       break;
     }
+    case FRELEXPAST_REL:
+    {
+      fv1 = RelExp->calc();
+      fv2 = AddExp->calc();
+      int OpRel = RelOp->calc();
+      switch (OpRel)
+      {
+      case RELOPAST_GE:
+        value = fv1 >= fv2;
+        break;
+      case RELOPAST_LE:
+        value = fv1 <= fv2;
+        break;
+      case RELOPAST_G:
+        value = fv1 > fv2;
+        break;
+      case RELOPAST_L:
+        value = fv1 < fv2;
+        break;
+      default:
+        assert(0);
+      }
+      break;
+    }
+    default:
+      assert(0);
+    }
+    return value;
+  }
+  //考虑隐式类型转换
+  [[nodiscard]] float fcalc() const override
+  {
+    float value = 0.0;
+    switch (type)
+    {
+    case RELEXPAST_ADD:
+    {
+      value = AddExp->fcalc();
+      break;
+    }
+    case RELEXPAST_REL:
+    {
+      //not here
+      break;
+    }
     default:
       assert(0);
     }
@@ -183,6 +318,38 @@ public:
       int value1, value2;
       value1 = AddExp->calc();
       value2 = MulExp->calc();
+      int OpAdd = AddOp->calc();
+      switch (OpAdd)
+      {
+      case '+':
+        value = value1 + value2;
+        break;
+      case '-':
+        value = value1 - value2;
+        break;
+      default:
+        assert(0);
+      }
+      break;
+    }
+    default:
+      assert(0);
+    }
+    return value;
+  }
+  [[nodiscard]] float fcalc() const override
+  {
+    float value;
+    switch (type)
+    {
+    case MULEXP:
+      value = MulExp->fcalc();
+      break;
+    case ADDMUL:
+    {
+      float value1, value2;
+      value1 = AddExp->fcalc();
+      value2 = MulExp->fcalc();
       int OpAdd = AddOp->calc();
       switch (OpAdd)
       {
@@ -247,6 +414,43 @@ public:
     }
     return value;
   }
+  //有没有可能隐式类型转换
+  [[nodiscard]] float fcalc() const override
+  {
+    float value = 0.0;
+    switch (type)
+    {
+    case MULEXPAST_MUL:
+    {
+      float value1, value2;
+      value1 = MulExp->fcalc();
+      value2 = UnaryExp->fcalc();
+      int OpMul = MulOp->calc();
+      switch (OpMul)
+      {
+      case '*':
+        value = value1 * value2;
+        break;
+      case '/':
+        value = value1 / value2;
+        break;
+      case '%':
+        cout<<"error in % of float";
+        assert(-1);
+        //break;
+      default:
+        assert(0);
+      }
+      break;
+    }
+    case MULEXPAST_UNA:
+      value = UnaryExp->fcalc();
+      break;
+    default:
+      assert(0);
+    }
+    return value;
+  }
   void generateGraph(string &sign) const override;
 };
 
@@ -259,6 +463,14 @@ public:
   [[nodiscard]] int calc() const override
   {
     return PrimaryExp->calc();
+  }
+  [[nodiscard]] float fcalc() const override
+  {
+    return PrimaryExp->fcalc();
+  }
+  [[nodiscard]] int UnaryExpType() const override
+  {
+    return 1;
   }
   void generateGraph(string &sign) const override;
 };
@@ -290,6 +502,31 @@ public:
     }
     return value;
   }
+   [[nodiscard]] float fcalc() const override
+  {
+    float value;
+    int OpUnary = UnaryOp->calc();
+    float value1 = UnaryExp->calc();
+    switch (OpUnary)
+    {
+    case '+':
+      value = value1;
+      break;
+    case '-':
+      value = -value1;
+      break;
+    case '!':
+      value = !value1;
+      break;
+    default:
+      assert(0);
+    }
+    return value;
+  }
+  [[nodiscard]] int UnaryExpType() const override
+  {
+    return 2;
+  }
   void generateGraph(string &sign) const override;
 };
 
@@ -299,6 +536,13 @@ public:
   std::unique_ptr<BaseAST> FuncExp;
   [[nodiscard]] int calc() const override{
     return FuncExp->calc();
+  }
+  [[nodiscard]] float fcalc() const override{
+    return FuncExp->fcalc();
+  }
+  [[nodiscard]] int UnaryExpType() const override
+  {
+    return 3;
   }
   void generateGraph(string &sign) const override;
 };
@@ -350,6 +594,23 @@ public:
       break;
     case NUMBER:
       value = number;
+      break;
+    }
+    return value;
+  }
+  [[nodiscard]] float fcalc() const override
+  {
+    float value;
+    switch (kind)
+    {
+    case UNARYEXP:
+      value = Exp->fcalc();
+      break;
+    case LVAL:
+      value = Lval->fcalc();
+      break;
+    case FLOAT_NUMBER:
+      value = floatNumber;
       break;
     }
     return value;
