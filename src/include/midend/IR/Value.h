@@ -148,4 +148,6 @@ void ArrInit(RawValueP src,RawValueP target);
 
 void generateConvert(RawValueP &src,string &name);
 
+void generateRawValuePointer(string &name,RawType *ty);
+
 #endif

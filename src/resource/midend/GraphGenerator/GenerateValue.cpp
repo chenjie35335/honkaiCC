@@ -223,7 +223,7 @@ void generateRawValue(vector<RawValueP>elements,string &sign) {
     signTable.insertMidVar(sign,aggregate);
 }
 /**
- * @brief override of float
+ * @brief ArrType
  * @param ty 
  * @param dimens 
  * @param index 
@@ -248,7 +248,7 @@ void generateArrType(RawType *&ty,vector<int> &dimens,int index, int32_t flag) {
     }
 }
 /**
- * @brief override of float
+ * @brief global型分配数组
  * @param name 
  * @param dimen 
  * @param init 
@@ -434,27 +434,10 @@ void generateRawValueArgs(const string &ident,int index, int32_t flag){
     paramsTy.push_back(ty);
     signTable.insertVar(ident,value);
 }
-
-void generateRawValueSinArr(const string &ident,int index) {
-    auto function = getTempFunction();
-    auto &params = function->params;
-    RawValue *value = new RawValue();
-    value->value.tag = RVT_FUNC_ARGS;
-    value->value.funcArgs.index = index;
-    value->name = nullptr;
-    RawType *ty = new RawType();
-    ty->tag = RTT_POINTER;
-    RawType *pointerTy = new RawType();
-    pointerTy->tag = RTT_INT32;
-    ty->pointer.base = pointerTy;
-    value->ty = ty;
-    value->identType = IDENT_POINTER;
-    params.push_back(value);
-    auto &paramsTy = function->ty->function.params;
-    paramsTy.push_back(ty);
-    signTable.insertVar(ident,value);
-}
-
+/// @brief a[]类型的参数
+/// @param ident 
+/// @param index 
+/// @param flag 
 void generateRawValueSinArr(const string &ident,int index,int flag) {
     auto function = getTempFunction();
     auto &params = function->params;
@@ -499,6 +482,26 @@ void generateRawValueMulArr(const string &ident,int index,vector<int>dimens,int 
     auto &paramsTy = function->ty->function.params;
     paramsTy.push_back(ty) ;
     signTable.insertVar(ident,value);
+}
+//alloc型变量，但是指针指向的是临外的类型
+///ty为指向的类型
+void generateRawValuePointer(string &name,RawType *ty)
+{
+    auto bb = getTempBasicBlock();
+    auto &insts = bb->inst;
+    RawValue *alloc = new RawValue();
+    RawType *pointer = new RawType();
+    pointer->tag = RTT_POINTER;
+    pointer->pointer.base = ty;
+    char *ident = (char *) malloc(sizeof(char) * name.length());
+    string NameScope = name + "_" + to_string(signTable.IdentTable->level);
+    strcpy(ident,NameScope.c_str());
+    alloc->name = ident;
+    alloc->ty = (RawTypeP)pointer;
+    alloc->value.tag = RVT_ALLOC;
+    alloc->identType = IDENT_POINTER;
+    insts.push_back(alloc);
+    signTable.insertVar(name,alloc);
 }
 
 void createRawProgramme(RawProgramme *&Programme) {

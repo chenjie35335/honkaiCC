@@ -545,7 +545,7 @@ void Visit(const RawGetElement &data,const RawValueP &value,int id) {
         cout << "  li  " << ptrReg << ", " << elementLen << endl;
         cout << "  mul " << IndexReg << ", " << IndexReg << ", " << ptrReg << endl;
     }
-     cout << "  add  " << ptrReg << ", " << srcAddrReg << ", " << IndexReg << endl;
+    cout << "  add  " << ptrReg << ", " << srcAddrReg << ", " << IndexReg << endl;
 }
 
 

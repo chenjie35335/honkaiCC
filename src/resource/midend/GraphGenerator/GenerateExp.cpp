@@ -15,13 +15,13 @@ void SinExpAST::generateGraph(string &sign,int &RetType) const
   RetType = type;
   switch (type)
   {
-  case SINEXPAST_EXP:
-    Exp->generateGraph(sign);
-    break;
-  case SINEXPAST_NULL:
-    break;
-  default:
-    assert(0);
+    case SINEXPAST_EXP:
+      Exp->generateGraph(sign);
+      break;
+    case SINEXPAST_NULL:
+      break;
+    default:
+      assert(0);
   }
 }
 

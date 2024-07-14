@@ -110,35 +110,36 @@ void FuncFParamsAST::generateGraph() const{
 void SinFuncFParamAST::generateGraph(int &index) const{
     int para = paraType->calc();
     int RetFlag;
+    RawValueP TempArg,Arg;
+    string ArgName = ident+"_"+to_string(signTable.IdentTable->level);
+    string TempArgName = ident;
     if(para == TYPE_FLOAT) RetFlag = RTT_FLOAT;
     else RetFlag = RTT_INT32;
     switch(type) {
         case PARA_VAR:{
-                string ArgName = ident+"_"+to_string(signTable.IdentTable->level);
-                //cerr << ArgName << endl;
-                string TempArgName = ident;
-                //cerr << TempArgName << endl;
                 generateRawValueArgs(ArgName,index,RetFlag);
                 generateRawValue(TempArgName,RetFlag);
-                RawValueP TempArg = signTable.getVarR(TempArgName);
-                RawValueP Arg = signTable.getVarR(ArgName);
-                generateRawValue(Arg,TempArg);
             break;
-        }  
-        case PARA_ARR_SIN:{
-                generateRawValueSinArr(ident,index,RetFlag);
+        }
+        case PARA_ARR_SIN:{//这里还是要改成那种形式，就是
+            generateRawValueSinArr(ArgName,index,RetFlag);
+            Arg = signTable.getVarR(ArgName);
+            generateRawValuePointer(TempArgName,(RawType *)Arg->ty);//生成指针，用于以后的使用
             break;
         }
         case PARA_ARR_MUL:{
-             vector<int>dimens;
-            //int para = paraType->calc();
+            vector<int>dimens;
             arrayDimen->generateGraph(dimens);
             generateRawValueMulArr(ident,index,dimens,RetFlag);
+            Arg = signTable.getVarR(ArgName);
+            generateRawValuePointer(TempArgName,(RawType *)Arg->ty);
             break;
-        }  
+        }
+        default: assert(0);
     }
+    TempArg = signTable.getVarR(TempArgName);
+    generateRawValue(Arg,TempArg);
 }
-
 //这个blockAST的generateGraph对于分支语句来说是个重点
 //所以需要一个数据结构来存储当前的RawFunction下的RawSlice
 //到了函数阶段以后，由于产生了函数调用，所以可能还需要添加当前RawProgram下的RawSlice
