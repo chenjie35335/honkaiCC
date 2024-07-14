@@ -91,7 +91,7 @@ string GetValueType(const RawTypeP &ty)
             return str;
         }
         case RTT_POINTER:{
-            return GetValueType(ty->pointer.base);
+            return "*"+GetValueType(ty->pointer.base);
         }
         default:{
             cerr << "{tag:} " << ty->tag << endl;
@@ -278,7 +278,7 @@ void Visit_Alloc(const RawValueP &value)
     }
     
     Symbol_List[value] = "@"+string(value->name);
-    cout<<"  "<<Symbol_List[value]<< " = alloc "<<GetValueType(value->ty)<<endl;
+    cout<<"  "<<Symbol_List[value]<< " = alloc "<<GetValueType(value->ty->pointer.base)<<endl;
 }
 void Visit_Load(const RawValueP &value)
 {
@@ -352,7 +352,7 @@ void Visit_Global(const RawValueP &value)
     Global_List[value] = '@'+string(value->name);
     RawGlobal global = value->value.global;
 
-    cout<<"global "<<Global_List[value]<<" = alloc "<<GetValueType(value->ty)<<", ";
+    cout<<"global "<<Global_List[value]<<" = alloc "<<GetValueType(value->ty->pointer.base)<<", ";
         
     //全局变量初始值
     Visit_Value(global.Init);
@@ -526,7 +526,7 @@ void Visit_Value(const RawValueP &value) {
             break;
         }
         case RVT_FLOAT:{
-            cout<<"Value:{RVT_FLOAT}:" << value->value.floatNumber.value<<endl;
+            //cout<<"Value:{RVT_FLOAT}:" << value->value.floatNumber.value<<endl;
             Visit_Float(value);
             break;
         }

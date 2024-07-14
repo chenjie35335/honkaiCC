@@ -317,8 +317,7 @@ void generateRawValue(string &name, RawValueP &src)
     auto &insts = bb->inst;
     RawValue * load = new RawValue();
     RawType *ty = new RawType();
-    ty->tag = src->ty->pointer.base->tag;
-    load->ty = (RawTypeP) ty;
+    load->ty = (RawTypeP) src->ty->pointer.base;
     load->name = nullptr;
     load->value.tag = RVT_LOAD;
     load->value.load.src = src;

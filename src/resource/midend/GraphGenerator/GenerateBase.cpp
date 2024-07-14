@@ -119,6 +119,7 @@ void SinFuncFParamAST::generateGraph(int &index) const{
         case PARA_VAR:{
                 generateRawValueArgs(ArgName,index,RetFlag);
                 generateRawValue(TempArgName,RetFlag);
+                Arg = signTable.getVarR(ArgName);
             break;
         }
         case PARA_ARR_SIN:{//这里还是要改成那种形式，就是
@@ -130,7 +131,7 @@ void SinFuncFParamAST::generateGraph(int &index) const{
         case PARA_ARR_MUL:{
             vector<int>dimens;
             arrayDimen->generateGraph(dimens);
-            generateRawValueMulArr(ident,index,dimens,RetFlag);
+            generateRawValueMulArr(ArgName,index,dimens,RetFlag);
             Arg = signTable.getVarR(ArgName);
             generateRawValuePointer(TempArgName,(RawType *)Arg->ty);
             break;
@@ -239,6 +240,9 @@ void StmtAST::generateGraph() const {
                      DestBaseTag = dest->ty->pointer.base->tag;
                  }
             } else if(DestType == IDENT_POINTER) {
+                alloc_now++;ElementSign = "%"+to_string(alloc_now);
+                generateRawValue(ElementSign,dest);
+                dest = signTable.getMidVar(ElementSign);
                 auto it = dimens.begin();
                 generatePtr(dest, *it, ElementSign);
                 dest = signTable.getMidVar(ElementSign);

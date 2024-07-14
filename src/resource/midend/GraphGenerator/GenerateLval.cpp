@@ -38,7 +38,12 @@ void LValRAST::generateGraph(string &sign) const {
                 generateElement(IdentSrc,zero,sign);
                 //IdentSrc = signTable.getMidVar(sign);
                 //generateElement(IdentSrc,zero,sign);
-            } else assert(0);
+            } else if(PointerTag == RTT_POINTER) {
+                generateRawValue(sign,IdentSrc);
+            } else {
+                cerr << "Unknown type " << PointerTag << endl;
+                assert(0);
+            } 
             break;
         }//这里如果是ptr还得用getptr或者getelementptr
         case RVT_FUNC_ARGS://一个比较好的解决办法是将这个存入一个临时变量中，这个可能之后是个隐患，但是这里先不管
@@ -66,6 +71,9 @@ void LValRAST::generateGraph(string &sign) const {
                 SrcBaseTag = IdentSrc->ty->pointer.base->tag;
             }
         } else if(IdentType == IDENT_POINTER) {
+            alloc_now++;sign = "%"+to_string(alloc_now);
+            generateRawValue(sign,IdentSrc);
+            IdentSrc = signTable.getMidVar(sign);
             auto it = dimens.begin();
             generatePtr(IdentSrc, *it, sign);
             IdentSrc = signTable.getMidVar(sign);
@@ -83,6 +91,9 @@ void LValRAST::generateGraph(string &sign) const {
             generateRawValue(sign,IdentSrc);
         } else if(SrcBaseTag == RTT_ARRAY) {
             generateElement(IdentSrc,zero,sign);
-        } else assert(0);
+        } else {
+            cerr << "unknown type in generateGraph: " << SrcBaseTag << endl;
+            assert(0);
+        }
     }
 }
