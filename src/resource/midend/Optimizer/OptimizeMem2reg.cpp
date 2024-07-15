@@ -68,7 +68,7 @@ void mem2reg(RawBasicBlock *&block) {
         for(auto phi : block->phi) {
             auto mem = phi;
             auto reg = phi;
-            phi->isDeleted = true;
+            //phi->isDeleted = true;
             builder.insert(mem,reg);
             auto &PhiElems = phi->value.phi.phi;
             for(auto &phiElem : PhiElems) {
@@ -88,6 +88,7 @@ void mem2reg(RawBasicBlock *&block) {
                 inst->isDeleted = true;
                 RawValue *reg = builder.lookup(src);
                 for(auto use : inst->usePoints) {
+                    reg->usePoints.push_back(use);
                     ReplaceReg(use,reg,inst);
                 }
                 break;
