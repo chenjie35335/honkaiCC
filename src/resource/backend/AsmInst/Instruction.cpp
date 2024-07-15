@@ -1,5 +1,7 @@
 #include "../../../include/backend/AsmInst/instruction.h"
+#include "../../../include/backend/hardware/HardwareManager.h"
 #include <cassert>
+
 
 AsmInst *AsmInst::CreateAdd(uint32_t rd, uint32_t rs1, uint32_t rs2){
     string label = "";
@@ -127,7 +129,7 @@ AsmInst * AsmInst::CreateFgts(uint32_t frd, uint32_t frs1, uint32_t frs2){
 }
 
 AsmInst * AsmInst::CreateFles(uint32_t frd, uint32_t frs1, uint32_t frs2){
-    AsmInst *inst = new AsmInst(RISCV_FLES,0,0,0,0,0.0,frs1,frs2,frd,"");
+    AsmInst *inst = new AsmInst(RISCV_FLTS,0,0,0,0,0.0,frs1,frs2,frd,"");
     return inst;
 }
 
@@ -141,8 +143,8 @@ AsmInst * AsmInst::CreateFeqs(uint32_t frd, uint32_t frs1, uint32_t frs2){
     return inst;
 }
 
-AsmInst * AsmInst::CreateBneq(string label, int imm){
-    AsmInst *inst = new AsmInst(RISCV_BNEQ,0,0,0,0,0.0,0,0,0,label);
+AsmInst * AsmInst::CreateBnez(uint32_t rs1,string label){
+    AsmInst *inst = new AsmInst(RISCV_BNEZ,rs1,0,0,0,0.0,0,0,0,label);
     return inst;
 }
 
@@ -158,33 +160,95 @@ AsmInst * AsmInst::CreateMv(uint32_t rd,int rs1){
 
 ostream & operator << (ostream &os,const AsmInst &inst){
     auto type = inst.Op;
+    string rd = RegisterManager::regs[inst.rd],rs1 = RegisterManager::regs[inst.rs1],rs2 = RegisterManager::regs[inst.rs2];
+    string frd = RegisterManager::fregs[inst.frd],frs1 = RegisterManager::fregs[inst.frs1],frs2 = RegisterManager::fregs[inst.frs2];
     switch(type){
         case RISCV_ADD:
-            os << "\t" << "add " << inst.rd << ", " << inst.rs1 << ", " << inst.rs2;
+            os << "\t" << "add " << rd << ", " << rs1 << ", " << rs2;
             break;
         case RISCV_SUB:
-            os << "\t" << "sub " << inst.rd << ", " << inst.rs1 << ", " << inst.rs2;
+            os << "\t" << "sub " << rd << ", " << rs1 << ", " << rs2;
             break;
         case RISCV_ADDI:
-            os << "\t" << "addi " << inst.rd << ", " << inst.rs1 << ", " << inst.imm;
+            os << "\t" << "addi " << rd << ", " << rs1 << ", " << inst.imm;
             break;
         case RISCV_SLT:
-            os << "\t" << "slt " << inst.rd << ", " << inst.rs1 << ", " << inst.rs2;
+            os << "\t" << "slt " << rd << ", " << rs1 << ", " << rs2;
             break;
         case RISCV_LA:
-            os << "\t" << "li " << inst.rd << ", " << inst.imm << endl;
+            os << "\t" << "li " << rd << ", " << inst.imm << endl;
             break;
-        case RISCV_XOR: 
-            os << "\t" << "xor " << inst.rd << ", " << inst.rs1 << ", " << inst.rs2;
+        case RISCV_XOR:
+            os << "\t" << "xor " << rd << ", " << rs1 << ", " << rs2 << endl;
             break;
         case RISCV_MV:
-            os << "\t" << "mv " << inst.rd << ", " << inst.rs1 << endl;
+            os << "\t" << "mv " << rd << ", " << rs1 << endl;
             break;
         case RISCV_LW:
-            os << "\t" << "lw " << inst.rd << ", " << inst.imm << "(" << inst.rs1 << ")" << endl;
+            os << "\t" << "lw " << rd << ", " << inst.imm << "(" << rs1 << ")" << endl;
             break;
         case RISCV_SW:
-            os << "\t" << "sw " << inst.rd << ", " << inst.imm << "(" << inst.rs1 << ")" << endl;
+            os << "\t" << "sw " << rd << ", " << inst.imm << "(" << rs1 << ")" << endl;
+            break;
+        case RISCV_LI:
+            os << "\t" << "li " << rd << ", " << inst.imm << endl;
+            break;
+        case RISCV_CALL:
+            os << "\t" << "call " << inst.label << endl;
+            break;
+        case RISCV_SLLI:
+            os << "\t" << "slli " << rd << ", " << rs1 << ", " << inst.imm<<endl;
+            break;
+        case RISCV_MUL:
+            os << "\t" << "mul " << rd << ", " << rs1 << ", " << rs2 << endl;
+            break;
+        case RISCV_RET:
+            os << "\t" << "ret " << endl;
+            break;
+        case RISCV_SEQZ:   
+            os << "\t" << "seqz " << rd << ", " << rs1 << endl;
+            break;
+        case RISCV_SNEZ:
+            os << "\t" << "snez " << rd << "," << rs1 << endl;
+            break;
+        case RISCV_DIV:
+            os << "\t" << "div " << rd << ", " << rs1 << ", " << rs2 << endl;
+            break;
+        case RISCV_REM:   
+            os << "\t" << "rem " << rd << ", " << rs1 << ", " << rs2 << endl;
+            break;
+        case RISCV_OR:
+            os << "\t" << "or " << rd << ", " << rs1 << ", " << rs2 << endl;
+            break;
+        case RISCV_FADDS:
+            os << "\t" << "fadd.s " << frd << ", " << frs1 << ", " << frs2 << endl;
+            break;
+        case RISCV_FSUBS:   
+            os << "\t" << "fsub.s " << frd << ", " << frs1 << ", " << frs2 << endl;
+            break;
+        case RISCV_FMULS:
+            os << "\t" << "fmul.s " << frd << ", " << frs1 << ", " << frs2 << endl;
+            break;
+        case RISCV_FDIVS:
+            os << "\t" << "fdiv.s " << frd << ", " << frs1 << ", " << frs2 << endl;
+            break;
+        case RISCV_FGES:   
+            os << "\t" << "fge.s " << frd << ", " << frs1 << ", " << frs2 << endl;
+            break;
+        case RISCV_FLTS:   
+            os << "\t" << "flt.s " << frd << ", " << frs1 << ", " << frs2 << endl;
+            break;
+        case RISCV_FEQS:
+            os << "\t" << "feq.s " << frd << ", " << frs1 << ", " << frs2 << endl;
+            break;
+        case RISCV_FNEQS:   
+            os << "\t" << "fne.s " << frd << ", " << frs1 << ", " << frs2 << endl;
+            break;
+        case RISCV_BNEZ:   
+            os << "\t" << "bnez " << frs1 << ", " << inst.label << endl;
+            break;
+        case RISCV_J:   
+            os << "\t" << "j " << inst.label << endl;
             break;
         default: {
             cerr << "Unsupported instruction" << endl;

@@ -65,6 +65,20 @@ void mem2reg(RawBasicBlock *&block) {
         return ;
     } else {
         block->isVisited = true;
+        for(auto phi : block->phi) {
+            auto mem = phi;
+            auto reg = phi;
+            phi->isDeleted = true;
+            builder.insert(mem,reg);
+            auto &PhiElems = phi->value.phi.phi;
+            for(auto &phiElem : PhiElems) {
+                if(phiElem.second->value.tag != RVT_VALUECOPY) continue;
+                else {
+                    auto reg = builder.lookup(phiElem.second);
+                    phiElem.second = reg;
+                }
+            }
+        }
         for(auto inst : block->inst) {//需不需要考虑phi函数？
         //实际上这里我们已经将所有的替换成了copy形式，也就是说一个store其实已经就是定值了，只不过现在需要的就是把使用的部分进行替换
         auto InstTag = inst->value.tag;
@@ -72,8 +86,8 @@ void mem2reg(RawBasicBlock *&block) {
             case RVT_LOAD: {
                 auto src = (RawValue *) inst->value.load.src;
                 inst->isDeleted = true;
-                RawValue *reg = builder.lookup(inst);
-                for(auto use : src->usePoints) {
+                RawValue *reg = builder.lookup(src);
+                for(auto use : inst->usePoints) {
                     ReplaceReg(use,reg,inst);
                 }
                 break;
@@ -96,6 +110,7 @@ void mem2reg(RawBasicBlock *&block) {
 
 void mem2reg(RawFunction *func) {//这里我们做了一定的修改以后其实不需要考虑参数的问题了(仅限)
     auto &bbs = func->basicblock;
+    if(bbs.empty()) return;
     RawBasicBlock *first = *bbs.begin();
     mem2reg(first);
 }
@@ -109,3 +124,7 @@ void mem2regTop(RawProgramme *programme){
         ClearInst(func);
 }
 }
+
+//这里这个phi应该怎么处理感觉有点困难
+//首先是这个phi先定义后得load出来然后才能使用，也就是说这里将
+//这个phi看成了临时变量，这样的话相当于说phi的reg和mem其实都是他自己
