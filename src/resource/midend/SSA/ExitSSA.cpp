@@ -93,7 +93,9 @@ void InsertStore(RawValue* &value){//store这里得先获得需要插入的基�
     auto target = value->value.phi.target;
     for(auto phi : phis) {
         auto src = phi.second;
+        auto phiTag = src->value.tag;
         auto block = phi.first;
+        if(phiTag != RVT_PHI) {
         auto store = new RawValue();
         store->value.tag = RVT_STORE;
         store->value.store.dest = target;
@@ -102,6 +104,7 @@ void InsertStore(RawValue* &value){//store这里得先获得需要插入的基�
         ty->tag = RTT_UNIT;
         store->ty = ty;
         InsertStore(store,block);
+        }
     }
 }
 
@@ -132,3 +135,5 @@ void exitSSA(RawProgramme *&programme) {
         exitSSA(func);
     }
 }
+
+//在基本块的入口处进行的声明
