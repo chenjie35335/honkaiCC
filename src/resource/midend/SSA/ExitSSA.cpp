@@ -95,7 +95,7 @@ void InsertStore(RawValue* &value){//store这里得先获得需要插入的基�
         auto src = phi.second;
         auto phiTag = src->value.tag;
         auto block = phi.first;
-        if(phiTag != RVT_PHI) {
+        if(phiTag != RVT_PHI && phiTag != RVT_VALUECOPY) {
         auto store = new RawValue();
         store->value.tag = RVT_STORE;
         store->value.store.dest = target;
