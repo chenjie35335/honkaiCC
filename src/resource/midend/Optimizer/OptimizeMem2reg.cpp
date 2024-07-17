@@ -1,4 +1,6 @@
 #include "../../../include/midend/Optimizer/OptimizeMem2Reg.h"
+#include<algorithm>
+using namespace std;
 //这里我们将要点先行列出
 //首先这个phi的形式可能要改了，就是说必须要知道后面每个元素的来源，来源于哪个基本块
 //然后是每个基本块后面的那个值可能不一定是copy,也可能是其他类型
@@ -21,6 +23,11 @@ void InsertAlloc(RawBasicBlock *block) {
     for(auto alloc : builder.allocs) {
         insts.push_front(alloc);
     }
+}
+
+void RemoveAlloc(RawBasicBlock *bb){
+    auto &insts = bb->inst;
+    insts.erase(remove_if(insts.begin(),insts.end(),[](RawValue * data){return data->value.tag == RVT_ALLOC;}),insts.end());
 }
 
 void ReplaceReg(RawValue *&use,RawValue *reg,RawValue *mem) {
@@ -160,6 +167,9 @@ void mem2reg(RawFunction *func) {//这里我们做了一定的修改以后其实
     }
     for(auto &bb : bbs) {
        mem2reg(bb);
+    }
+    for(auto &bb : bbs) {
+        RemoveAlloc(bb);
     }
     InsertAlloc(*bbs.begin());
 }
