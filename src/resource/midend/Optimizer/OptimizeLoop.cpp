@@ -362,6 +362,29 @@ void addLoopPreNode(RawBasicBlock * &bb,RawFunction* &func,Loop * &loop)
     //初始化循环的外提节点
     loop->outloopNode = preLoopBlock;
 }
+//将子循环的前置结点添加到父循环中
+void addPreBBToLoop(vector<Loop *> natureLoops){
+    for(int i=0;i<natureLoops.size();i++){
+        for (int j=0;j<natureLoops.size();j++)
+        {
+            if(i==j)continue;
+            else{
+                //判断父子关系(i包含j)
+                bool isSubSet = std::includes(natureLoops[i]->body.begin(), natureLoops[i]->body.end(),
+                natureLoops[j]->body.begin(), natureLoops[j]->body.end());
+                if(isSubSet){
+                    natureLoops[j]->fatherLoops.insert(natureLoops[i]);
+                }
+            }
+        }
+        
+    }
+    for(auto loop:natureLoops){//为该循环的父循环的基本块集合添加该循环的前置结点
+        for(auto fa_loop:loop->fatherLoops){
+            fa_loop->body.insert(loop->outloopNode);
+        }
+    }
+}
 //循环优化
 void OptimizeLoop(RawProgramme *&IR){
     for(auto &func : IR->funcs){
@@ -370,12 +393,15 @@ void OptimizeLoop(RawProgramme *&IR){
         if(bbs.size()>0){//非空函数
             vector<Loop *>natureLoops;//对每个函数进行循环优化
             map<RawBasicBlock*,unordered_set<RawValue*>> actValIn,actValOut;//对每个函数进行活跃性分析
+            // cout<<"111111111111111"<<endl;
             cal_actVal(func,actValIn,actValOut);
+            //  cout<<"222222222222222222"<<endl;
             findBackEdges(func,natureLoops);
             for(auto &loop:natureLoops)//每个自然循环添加前置节点
             {
                 addLoopPreNode(loop->head,func,loop);
             }
+            addPreBBToLoop(natureLoops);
             //对自然循环处理
             for(auto &loop : natureLoops)
             {

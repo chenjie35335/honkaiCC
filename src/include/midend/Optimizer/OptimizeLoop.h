@@ -11,6 +11,7 @@ class Loop{
     unordered_set<RawBasicBlock *> backEdgeStart;//回边起点(可能有多个共用一个循环头)
     unordered_set<RawBasicBlock *> body;//循环的所有基本块
     unordered_set<RawBasicBlock *> exitNode;
+    unordered_set<Loop *> fatherLoops;//父循环集合
     unordered_map<RawValue *,RawBasicBlock *> loopValues;//循环的所有value
     list<RawValue * > inVar;//循环的所有不变量
 
@@ -46,6 +47,8 @@ void move_inVar(Loop * &loop,map<RawBasicBlock*,unordered_set<RawValue*>> actVal
 void findBackEdges(const RawFunctionP &func,vector<Loop *> &natureLoops);
 //创建循环前置节点
 void addLoopPreNode(RawBasicBlock * &bb,RawFunction* &func,Loop * &loop);
+//将子循环的前置结点添加到父循环中
+void addPreBBToLoop(vector<Loop *> natureLoops);
 //循环优化
 void OptimizeLoop(RawProgramme *&IR);
 #endif
