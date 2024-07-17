@@ -392,6 +392,7 @@ void generateRawValue(RawFunctionP callee,vector<RawValueP> paramsValue,string &
         }
     } 
     auto retType = callee->ty->function.ret->tag;
+    //cout << "retType of "<< callee->name << " is " << retType << endl;
     RawType *ty = new RawType();
     ty->tag = retType;
     call->ty = ty;
@@ -501,7 +502,7 @@ void generateRawValuePointer(string &name,RawType *ty)
     alloc->identType = IDENT_POINTER;
     insts.push_back(alloc);
     signTable.insertVar(name,alloc);
-}
+}//这个应该不会产生说是phi函数
 
 void createRawProgramme(RawProgramme *&Programme) {
     Programme = new RawProgramme();
@@ -761,6 +762,8 @@ void generateElement(RawValueP &src,RawValueP &index,string &name) {
     alloc_now++;name = "%"+to_string(alloc_now);
     insts.push_back(GetElement);
     signTable.insertMidVar(name,GetElement);
+    MarkDef(GetElement,GetElement);
+    MarkUse((RawValue *)index,GetElement);
 }//这里的这个类型我是直接定义成为数组
 //当前还有三个任务没有完成：
 /*
@@ -781,6 +784,8 @@ void generatePtr(RawValueP &src, RawValueP &index, string &name){
     alloc_now++;name = "%"+to_string(alloc_now);
     insts.push_back(GetPtr);
     signTable.insertMidVar(name,GetPtr);
+    MarkDef(GetPtr,GetPtr);
+    MarkUse((RawValue *)index,GetPtr);
 }
 
 void PushFollowBasieBlock(RawBasicBlock *&fbb1,RawBasicBlock *&fbb2) {

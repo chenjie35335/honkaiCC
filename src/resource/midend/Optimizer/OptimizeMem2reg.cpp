@@ -1,4 +1,6 @@
 #include "../../../include/midend/Optimizer/OptimizeMem2Reg.h"
+#include<algorithm>
+using namespace std;
 //这里我们将要点先行列出
 //首先这个phi的形式可能要改了，就是说必须要知道后面每个元素的来源，来源于哪个基本块
 //然后是每个基本块后面的那个值可能不一定是copy,也可能是其他类型
@@ -12,9 +14,21 @@ mem2regBuilder builder;
 RawValue *mem2regBuilder::lookup(RawValue *mem) {
     if(IncomingVals.find(mem) == IncomingVals.end()) {
         cerr << "Could not find mem's reg in programme" << endl;
-        assert(0);
+        assert(false);
+    } else return IncomingVals[mem];
+}
+
+void InsertAlloc(RawBasicBlock *block) {
+    auto &insts = block->inst; 
+    for(auto alloc : builder.allocs) {
+        //cout << "inserting value " << alloc->name << endl;
+        insts.push_front(alloc);
     }
-    return IncomingVals[mem];
+}
+
+void RemoveAlloc(RawBasicBlock *bb){
+    auto &insts = bb->inst;
+    insts.erase(remove_if(insts.begin(),insts.end(),[](RawValue * data){return data->value.tag == RVT_ALLOC;}),insts.end());
 }
 
 void ReplaceReg(RawValue *&use,RawValue *reg,RawValue *mem) {
@@ -55,64 +69,131 @@ void ReplaceReg(RawValue *&use,RawValue *reg,RawValue *mem) {
                 if(phi.second == mem) phi.second = reg;
             }
         }
+        case RVT_GET_ELEMENT: {
+            auto &index = use->value.getelement.index;
+            if(index == mem) index = reg;
+            break;
+        }
+        case RVT_GET_PTR: {
+            auto &index = use->value.getptr.index;
+            if(index == mem) index = reg;
+            break;
+        }
         default:
             break;
     }
 }
 
-void mem2reg(RawBasicBlock *&block) {
-    if(block->isVisited) {
-        return ;
-    } else {
-        block->isVisited = true;
-        for(auto phi : block->phi) {
-            auto mem = phi;
-            auto reg = phi;
-            phi->isDeleted = true;
+void phi2reg(RawBasicBlock *block){
+    //cout << "phi2reg block Name:" << block->name << endl;
+    for(auto phi : block->phi){
+        auto mem = phi;
+        auto reg = phi;
+        builder.insert(mem,reg);
+    }
+    for(auto inst : block->inst) {
+        auto InstTag = inst->value.tag;
+        //cout << "VisitTag" << InstTag << endl;
+        if(InstTag == RVT_LOAD) {
+            auto src = (RawValue *)inst->value.load.src;
+            auto SrcTag = src->value.tag;
+            //cout << "SrcTag: " << SrcTag << endl;
+            if(SrcTag == RVT_PHI) {
+                inst->isDeleted = true;
+                auto reg = builder.lookup(src);
+                for(auto use: inst->usePoints){
+                    reg->usePoints.push_back(use);
+                    ReplaceReg(use,reg,inst);
+                }
+                
+            }
+        }
+    }
+}
+
+void getreg(RawBasicBlock *&block){
+    for(auto inst : block->inst){
+        auto InstTag = inst->value.tag;
+        if(InstTag == RVT_STORE) {
+            auto mem = (RawValue *)inst->value.store.dest;
+            auto reg = (RawValue *)inst->value.store.value;
+            if(mem->identType != IDENT_VAR) continue;
+            if(mem->value.tag != RVT_ALLOC && mem->value.tag != RVT_VALUECOPY) continue;
+            inst->isDeleted = true;
             builder.insert(mem,reg);
+        }
+    }
+}
+
+void mem2reg(RawBasicBlock *&block) {
+        //cout << "mem2reg visit block :" << block->name << endl;
+        for(auto &phi : block->phi) {
             auto &PhiElems = phi->value.phi.phi;
             for(auto &phiElem : PhiElems) {
-                if(phiElem.second->value.tag != RVT_VALUECOPY) continue;
-                else {
-                    auto reg = builder.lookup(phiElem.second);
-                    phiElem.second = reg;
-                }
+               if(phiElem.second->value.tag != RVT_VALUECOPY) continue;
+               else {
+                   //cout <<"handle block " << phiElem.first->name << " to " << phiElem.second->value.valueCop.target->name << endl;
+                   auto reg = builder.lookup(phiElem.second);
+                   if(reg != nullptr)
+                   phiElem.second = reg;
+               }
             }
         }
         for(auto inst : block->inst) {//需不需要考虑phi函数？
         //实际上这里我们已经将所有的替换成了copy形式，也就是说一个store其实已经就是定值了，只不过现在需要的就是把使用的部分进行替换
         auto InstTag = inst->value.tag;
+        //cout << "InstTag: " << InstTag << endl;
         switch(InstTag) {
             case RVT_LOAD: {
                 auto src = (RawValue *) inst->value.load.src;
+                auto SrcTag = src->value.tag;
+                //auto PointerTag = src->ty->pointer.base->tag;
+                //cout << "SrcTag: " << SrcTag << endl;
+                if(src->identType != IDENT_VAR) continue;
+                if(SrcTag != RVT_ALLOC && SrcTag != RVT_VALUECOPY) continue;
+                // if(SrcTag == RVT_PHI) {
+                    // cout << "PHI target:" << src->value.phi.target->name << endl;
+                // } else if(SrcTag == RVT_VALUECOPY) {
+                    // cout << "Valuecopy target:" << src->value.valueCop.target->name << endl;
+                // }
                 inst->isDeleted = true;
                 RawValue *reg = builder.lookup(src);
+                //cout << "inst useNumber:" << inst->usePoints.size() << endl;
                 for(auto use : inst->usePoints) {
+                    //cout << "use tag" << use->value.tag << endl;
+                    reg->usePoints.push_back(use);
                     ReplaceReg(use,reg,inst);
                 }
                 break;
             }
-            case RVT_STORE: {
-                auto mem = (RawValue *)inst->value.store.dest;
-                auto reg = (RawValue *)inst->value.store.value;
-                inst->isDeleted = true;
-                builder.insert(mem,reg);
+            case RVT_ALLOC: {
+                builder.allocs.push_back(inst);
+                //cout << "push alloc " << inst->name << endl;
                 break;
             }
             default: break;
         }
         }
-        for(auto &fbb : block->fbbs) {
-            mem2reg(fbb);
-        }
     }
-}
+
 
 void mem2reg(RawFunction *func) {//这里我们做了一定的修改以后其实不需要考虑参数的问题了(仅限)
     auto &bbs = func->basicblock;
     if(bbs.empty()) return;
-    RawBasicBlock *first = *bbs.begin();
-    mem2reg(first);
+    builder.allocs.clear();
+    for(auto &bb : bbs) {
+        phi2reg(bb);
+    }
+    for(auto &bb : bbs) {
+        getreg(bb);
+    }
+    for(auto &bb : bbs) {
+       mem2reg(bb);
+    }
+    for(auto &bb : bbs) {
+        RemoveAlloc(bb);
+    }
+    InsertAlloc(*bbs.begin());
 }
 
 void mem2regTop(RawProgramme *programme){
@@ -120,11 +201,15 @@ void mem2regTop(RawProgramme *programme){
     for(auto func : funcs) {
         mem2reg(func);
     }
-    for(auto func : funcs) {
+    for(auto &func : funcs) {
+        if(!func->basicblock.empty())
         ClearInst(func);
+    }
 }
-}
-
+//mem2reg这个地方我的想法是将所有的alloc找出来，放到一个vector里面，然后全部放到entry的顶部
+//因为我在前端的时候已经判断过这里是否正确了，因此不需要考虑作用域的问题
 //这里这个phi应该怎么处理感觉有点困难
 //首先是这个phi先定义后得load出来然后才能使用，也就是说这里将
 //这个phi看成了临时变量，这样的话相当于说phi的reg和mem其实都是他自己
+//这个地方感觉还是出现了点问题就是访问不完全的问题
+//但是其实本质上是这个phi的问题，也就是说我们要用一轮遍历除掉phi的load,将其特殊转为

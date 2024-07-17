@@ -52,6 +52,9 @@ class RawValue {
     uint32_t status;
     /// identStatus
     uint32_t identType;
+    /// count of copy
+    uint32_t copyCount;
+
 
     RawValue * addr;
 
@@ -61,11 +64,13 @@ class RawValue {
         this->isDeleted = false;
         this->status = BOT;
         this->identType = IDENT_UNIT;
+        this->copyCount = 0;
     }
     RawValue(RawValue*oldvalue){
         this->isDeleted = false;
         this->status = BOT;
         this->identType = IDENT_UNIT;
+        this->copyCount = 0;
         
         if(!!oldvalue->name){
             size_t bufSize = strlen(oldvalue->name);

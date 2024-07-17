@@ -12,6 +12,7 @@
 class mem2regBuilder {
     public:
         unordered_map <RawValue* , RawValue *> IncomingVals;
+        vector<RawValue *> allocs;//存储所有的alloc,放到开头
 
     void insert(RawValue * mem,RawValue *reg) { IncomingVals.insert(pair<RawValue *,RawValue *>(mem,reg));}
     RawValue * lookup(RawValue *mem);

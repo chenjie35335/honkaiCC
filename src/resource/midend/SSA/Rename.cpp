@@ -42,6 +42,7 @@ void renameValue(RawValue *&inst) {
             auto &load = inst->value.load;
             RawValue* src = (RawValue *)load.src;
             auto SrcTag = src->value.tag;
+            if(src->identType != IDENT_VAR) break;
             if(SrcTag == RVT_ALLOC || SrcTag == RVT_VALUECOPY) {
             load.src = src->tempCopy.top();
             src->tempCopy.top()->usePoints.push_back(inst);
@@ -52,15 +53,18 @@ void renameValue(RawValue *&inst) {
             auto &store = inst->value.store;
             RawValue *dest = (RawValue *) store.dest;
             auto DestTag = dest->value.tag;
+            if(dest->identType != IDENT_VAR) break;
             if(DestTag == RVT_ALLOC || DestTag == RVT_VALUECOPY) {
             RawValue *copy = new RawValue();
             copy->value.tag = RVT_VALUECOPY;
             copy->value.valueCop.target = dest;
+            copy->identType = IDENT_VAR;
             //cout << "push " << copy->value.valueCop.target->name << endl;
             dest->tempCopy.push (copy);
             dest->copiesValues.push_back(copy);
             copy->defPoints.push_back(inst);
             store.dest = copy;
+
             }
             break;
         }
