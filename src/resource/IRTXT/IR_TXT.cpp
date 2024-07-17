@@ -309,6 +309,8 @@ void Visit_Alloc(const RawValueP &value)
 
 void Name_Load(const RawValueP &value) {
     alloc_symbol(value);
+    //auto &src = value->value.load.src;
+    //Name_Value(src);
 }
 
 void Visit_Load(const RawValueP &value)
@@ -317,6 +319,7 @@ void Visit_Load(const RawValueP &value)
     auto &src = value->value.load.src;
     string srcName = Symbol_List[value->value.load.src];
     cout<<"  "<<res<<" = load "<<srcName<<endl;
+    //cout << " load: " << src->value.tag << endl;
 }
 
 void Name_Store(const RawValueP &value) {
@@ -325,9 +328,11 @@ void Name_Store(const RawValueP &value) {
     Name_Value(src);
     if(SSAmode)//多次赋值
     {
+        if(dest->value.tag == RVT_VALUECOPY){
         RawValueP target = dest->value.valueCop.target;
         var_id[target]++;
         Symbol_List[dest] = "@"+ string(target->name) +'_'+to_string(var_id[target]); 
+        }
     }
     return;
 }
@@ -361,11 +366,16 @@ void Visit_Jump(const RawValueP &value)
 void Name_Call(const RawValueP &value) {
     if (value->ty->tag != RTT_UNIT)
         alloc_symbol(value);
+    for(auto arg : value->value.call.args ){
+        //cout << "args' tag " << arg->value.tag << endl;
+        Name_Value(arg);
+    }
 }
 
 void Visit_Call(const RawValueP &value)
 {
     const RawCall call = value->value.call;
+   // cout << "call's type" << value->ty->tag << endl;
     if (value->ty->tag != RTT_UNIT)//函数有返回值
     {
         cout<<"  "<<Symbol_List[value]<<" = call @";
@@ -413,12 +423,14 @@ void Visit_Global(const RawValueP &value)
 
 void Name_get_element(const RawValueP &value){
     alloc_ptr_symbol(value);
+    Name_Value(value->value.getelement.index);
 }
 
 void visit_get_element(const RawValueP &value)
 {
     RawValueP src = value->value.getelement.src;
     RawValueP index = value->value.getelement.index;
+    //cout << "index tag" << index->value.tag << endl;
     cout<<"  "<<Symbol_List[value]<<" = getelemptr "<<Symbol_List[src]<<", "<<Symbol_List[index]<<endl;
 }
 
@@ -445,6 +457,8 @@ void visit_aggregate(const RawValueP &value)
 
 void Name_get_ptr(const RawValueP &value){
     alloc_ptr_symbol(value);
+    //Name_Value(value->value.getptr.src);
+    Name_Value(value->value.getptr.index);
 }
 
 void visit_get_ptr(const RawValueP &value)
@@ -460,8 +474,11 @@ void Name_PHI(const RawValueP &value) {
         return;
     }
     RawValueP target =value->value.phi.target;
+    //cout << "target tag" << target->value.tag << endl;
+    Name_Value(target);
     var_id[target]++;
-    Symbol_List[value] = "@"+ string(target->name) +'_'+to_string(var_id[target]);
+    string PhiName = "@"+ string(target->name) +'_'+to_string(var_id[target]);
+    Symbol_List[value] = PhiName;
 }
 
 void Visit_PHI(const RawValueP &value) {

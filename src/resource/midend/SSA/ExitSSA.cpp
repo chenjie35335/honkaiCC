@@ -55,6 +55,16 @@ void replaceLoad(RawValue *load,RawValue *phi) {
                 if(phiElem.second == phi) phiElem.second = load;
             }
         }
+        case RVT_GET_ELEMENT: {
+            auto &index = use->value.getelement.index;
+            if(index == phi) index = load;
+            break;
+        }
+        case RVT_GET_PTR: {
+            auto &index = use->value.getptr.index;
+            if(index == phi) index = load;
+            break;
+        }
         default:
             break;
     }
@@ -91,11 +101,12 @@ void InsertStore(RawValue* &value,RawBasicBlock *&block){
 void InsertStore(RawValue* &value){//store这里得先获得需要插入的基本块
     auto &phis = value->value.phi.phi;
     auto target = value->value.phi.target;
+    //cout << "target tag: " << target->value.tag << endl;
     for(auto phi : phis) {
         auto src = phi.second;
         auto phiTag = src->value.tag;
         auto block = phi.first;
-        if(phiTag != RVT_PHI && phiTag != RVT_VALUECOPY) {
+        if(phiTag != RVT_PHI && phiTag != RVT_VALUECOPY && phiTag != RVT_ALLOC) {
         auto store = new RawValue();
         store->value.tag = RVT_STORE;
         store->value.store.dest = target;

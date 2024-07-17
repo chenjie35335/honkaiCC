@@ -21,6 +21,7 @@ RawValue *mem2regBuilder::lookup(RawValue *mem) {
 void InsertAlloc(RawBasicBlock *block) {
     auto &insts = block->inst; 
     for(auto alloc : builder.allocs) {
+        //cout << "inserting value " << alloc->name << endl;
         insts.push_front(alloc);
     }
 }
@@ -68,12 +69,23 @@ void ReplaceReg(RawValue *&use,RawValue *reg,RawValue *mem) {
                 if(phi.second == mem) phi.second = reg;
             }
         }
+        case RVT_GET_ELEMENT: {
+            auto &index = use->value.getelement.index;
+            if(index == mem) index = reg;
+            break;
+        }
+        case RVT_GET_PTR: {
+            auto &index = use->value.getptr.index;
+            if(index == mem) index = reg;
+            break;
+        }
         default:
             break;
     }
 }
 
 void phi2reg(RawBasicBlock *block){
+    //cout << "phi2reg block Name:" << block->name << endl;
     for(auto phi : block->phi){
         auto mem = phi;
         auto reg = phi;
@@ -81,11 +93,13 @@ void phi2reg(RawBasicBlock *block){
     }
     for(auto inst : block->inst) {
         auto InstTag = inst->value.tag;
+        //cout << "VisitTag" << InstTag << endl;
         if(InstTag == RVT_LOAD) {
             auto src = (RawValue *)inst->value.load.src;
             auto SrcTag = src->value.tag;
             //cout << "SrcTag: " << SrcTag << endl;
             if(SrcTag == RVT_PHI) {
+                inst->isDeleted = true;
                 auto reg = builder.lookup(src);
                 for(auto use: inst->usePoints){
                     reg->usePoints.push_back(use);
@@ -103,6 +117,8 @@ void getreg(RawBasicBlock *&block){
         if(InstTag == RVT_STORE) {
             auto mem = (RawValue *)inst->value.store.dest;
             auto reg = (RawValue *)inst->value.store.value;
+            if(mem->identType != IDENT_VAR) continue;
+            if(mem->value.tag != RVT_ALLOC && mem->value.tag != RVT_VALUECOPY) continue;
             inst->isDeleted = true;
             builder.insert(mem,reg);
         }
@@ -110,11 +126,13 @@ void getreg(RawBasicBlock *&block){
 }
 
 void mem2reg(RawBasicBlock *&block) {
+        //cout << "mem2reg visit block :" << block->name << endl;
         for(auto &phi : block->phi) {
             auto &PhiElems = phi->value.phi.phi;
             for(auto &phiElem : PhiElems) {
                if(phiElem.second->value.tag != RVT_VALUECOPY) continue;
                else {
+                   //cout <<"handle block " << phiElem.first->name << " to " << phiElem.second->value.valueCop.target->name << endl;
                    auto reg = builder.lookup(phiElem.second);
                    if(reg != nullptr)
                    phiElem.second = reg;
@@ -129,7 +147,10 @@ void mem2reg(RawBasicBlock *&block) {
             case RVT_LOAD: {
                 auto src = (RawValue *) inst->value.load.src;
                 auto SrcTag = src->value.tag;
-                // cout << "SrcTag: " << SrcTag << endl;
+                //auto PointerTag = src->ty->pointer.base->tag;
+                //cout << "SrcTag: " << SrcTag << endl;
+                if(src->identType != IDENT_VAR) continue;
+                if(SrcTag != RVT_ALLOC && SrcTag != RVT_VALUECOPY) continue;
                 // if(SrcTag == RVT_PHI) {
                     // cout << "PHI target:" << src->value.phi.target->name << endl;
                 // } else if(SrcTag == RVT_VALUECOPY) {
@@ -147,6 +168,7 @@ void mem2reg(RawBasicBlock *&block) {
             }
             case RVT_ALLOC: {
                 builder.allocs.push_back(inst);
+                //cout << "push alloc " << inst->name << endl;
                 break;
             }
             default: break;

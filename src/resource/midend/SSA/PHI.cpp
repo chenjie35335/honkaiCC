@@ -33,12 +33,14 @@ void AddPhi(RawFunction *& func) {
     for(RawBasicBlock *bb : bbs) {
         auto &bbDef = bb->defs;
         for(RawValue* value : bbDef) {
+            if(value->value.tag == RVT_ALLOC){
             value->defbbs.push_back(bb);
             values.insert(value);
+            }
         }
     }
     // for(RawValue *value : values) {
-        // cout << func->name << " use value as follows: " << value->name << endl;
+    //     cout << func->name << " use value as follows: " << value->value.tag << endl;
     // }
     for(RawValue *value : values) {
         //cout << "handle value " << value->name << endl;
