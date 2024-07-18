@@ -9,6 +9,7 @@ extern void DCE(RawProgramme *&programme);
 extern void ConstCombine(RawProgramme *&prgramme);
 extern void CondCCP(RawProgramme *&programme);
 extern void backend_advanced(RawProgramme *& programme);
+extern void MarkUseDef(RawProgramme *&programme);
 int main(int argc, const char *argv[]) {
   // 解析命令行参数. 测试脚本/评测平台要求你的编译器能接收如下参数:
   // compiler0 -S1 -o2 输出文件3 输入文件4
@@ -32,15 +33,16 @@ int main(int argc, const char *argv[]) {
   freopen(output,"w",stdout);
   RawProgramme *irGraph;
   ast->generateGraph(irGraph);
+  MarkUseDef(irGraph);
   //if(optMode != nullptr && strcmp(optMode,"-O1") == 0) {
-      //GeneratorIRTxt(irGraph,false);
+     // GeneratorIRTxt(irGraph,false);
       //OptimizeFuncInline(irGraph);
       GeneratorDT(irGraph,0);
       AddPhi(irGraph);
       renameValue(irGraph);
       //  循环优化需要基于支配树
      // OptimizeLoop(irGraph);
-      //GeneratorIRTxt(irGraph,true);
+     // GeneratorIRTxt(irGraph,true);
       //mem2regTop(irGraph);
       //GeneratorIRTxt(irGraph,true);
       //DCE(irGraph);

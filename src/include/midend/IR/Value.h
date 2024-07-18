@@ -38,6 +38,8 @@ class RawValue {
     RawTypeP ty;
     /// @brief basicblock which define the value
     vector<RawBasicBlock *> defbbs;
+    ///
+    vector<RawBasicBlock *> usebbs;
     /// value rename stack(no matter global or local)
     stack<RawValue *> tempCopy;
     /// 定值点
@@ -138,8 +140,6 @@ void generateZeroInit(RawValue *&zeroinit);
 void generateElement(RawValueP &src,RawValueP &index,string &name);
 
 void generatePtr(RawValueP &src,RawValueP &index,string &name);
-
-void generateRawValueSinArr(const string &ident,int index);
 
 void generateRawValueSinArr(const string &ident,int index, int flag);
 

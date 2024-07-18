@@ -45,7 +45,6 @@ void generateRawValue(RawValueP src)
     value->value.ret.value = src;
     value->ty = (RawTypeP) ty;
     insts.push_back(value);
-    MarkUse((RawValue *)src,value);
 }
 /// @brief binary型value
 /// @param sign 
@@ -72,9 +71,6 @@ void generateRawValue(string &name, RawValueP lhs, RawValueP rhs, uint32_t op)
     value->ty = (RawTypeP) ty;
     insts.push_back(value);
     signTable.insertMidVar(name,value);
-    MarkUse((RawValue *)lhs,value);
-    MarkUse((RawValue *)rhs,value);
-    MarkDef(value,value);
 }
 /// @brief 
 /// @param number 
@@ -172,10 +168,7 @@ void generateRawValue(RawValueP &src, RawValueP &dest)
     store->value.store.value = src;
     store->value.store.dest = dest;
     RawValue *DestValue = (RawValue*)dest;
-    bb->defs.insert(DestValue);
     insts.push_back(store);
-    MarkUse((RawValue *) src,store);
-    MarkDef((RawValue *) dest,store);
 }
 /// @brief alloc型value
 /// @param sign 
@@ -321,12 +314,9 @@ void generateRawValue(string &name, RawValueP &src)
     load->name = nullptr;
     load->value.tag = RVT_LOAD;
     load->value.load.src = src;
-    MarkUse((RawValue *)src,load);
     insts.push_back(load);
     RawValue *SrcValue = (RawValue*) src;
-    bb->uses.insert(SrcValue);
     signTable.insertMidVar(name,load);
-    MarkDef(load,load);
 }
 /// @brief branch型value
 /// @param cond 
@@ -345,7 +335,6 @@ void generateRawValue(RawValueP &cond, RawBasicBlock* &Truebb, RawBasicBlock* &F
     br->value.branch.true_bb = (RawBasicBlockP)Truebb;
     br->value.branch.false_bb = (RawBasicBlockP)Falsebb;
     insts.push_back(br);
-    MarkUse((RawValue *)cond,br);
 }
 /// @brief jump型value
 /// @param TargetBB 
@@ -380,12 +369,10 @@ void generateRawValue(RawFunctionP callee,vector<RawValueP> paramsValue,string &
         auto paramType = (RawType *) calleeParams[i];
         if(funcParam->ty->tag == paramType->tag){
             params.push_back((RawValue *)funcParam);
-            MarkUse((RawValue *)funcParam,call);
         } else if(paramType->tag == RTT_INT32 || paramType->tag == RTT_FLOAT){//这里就是如果这之中有个浮点但是其他是整型
             generateConvert(funcParam,sign);
             funcParam = signTable.getMidVar(sign);
             params.push_back((RawValue *)funcParam);
-            MarkUse((RawValue *)funcParam,call);
         } else {
             cerr << "wrong types, param " << i << " has " << funcParam->ty->tag << ", expect " << paramType->tag << endl;
             assert(0);
@@ -762,8 +749,6 @@ void generateElement(RawValueP &src,RawValueP &index,string &name) {
     alloc_now++;name = "%"+to_string(alloc_now);
     insts.push_back(GetElement);
     signTable.insertMidVar(name,GetElement);
-    MarkDef(GetElement,GetElement);
-    MarkUse((RawValue *)index,GetElement);
 }//这里的这个类型我是直接定义成为数组
 //当前还有三个任务没有完成：
 /*
@@ -784,8 +769,6 @@ void generatePtr(RawValueP &src, RawValueP &index, string &name){
     alloc_now++;name = "%"+to_string(alloc_now);
     insts.push_back(GetPtr);
     signTable.insertMidVar(name,GetPtr);
-    MarkDef(GetPtr,GetPtr);
-    MarkUse((RawValue *)index,GetPtr);
 }
 
 void PushFollowBasieBlock(RawBasicBlock *&fbb1,RawBasicBlock *&fbb2) {
