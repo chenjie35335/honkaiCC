@@ -41,7 +41,7 @@ int main(int argc, const char *argv[]) {
       //  循环优化需要基于支配树
      // OptimizeLoop(irGraph);
       //GeneratorIRTxt(irGraph,true);
-      mem2regTop(irGraph);
+      //mem2regTop(irGraph);
       //GeneratorIRTxt(irGraph,true);
       //DCE(irGraph);
       //GeneratorIRTxt(irGraph,true);
