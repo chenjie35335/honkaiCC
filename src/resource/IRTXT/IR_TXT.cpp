@@ -325,7 +325,7 @@ void Visit_Load(const RawValueP &value)
 void Name_Store(const RawValueP &value) {
     auto dest = value->value.store.dest;
     auto src = value->value.store.value;
-    //Name_Value(src);
+    Name_Value(src);
     if(SSAmode)//多次赋值
     {
         if(dest->value.tag == RVT_VALUECOPY){

@@ -45,13 +45,20 @@ void InsertStore(RawValue* &value,RawBasicBlock *&block){
 void InsertStore(RawValue* &value){//store这里得先获得需要插入的基本块
     auto &phis = value->value.phi.phi;
     auto target = value->value.phi.target;
-    //cout << "target tag: " << target->value.tag << endl;
+    // cout << "target tag: " << target->name << endl;
     for(auto phi : phis) {
         auto src = phi.second;
         auto phiTag = src->value.tag;
         auto block = phi.first;
-        if(phiTag != RVT_PHI && phiTag != RVT_VALUECOPY && phiTag != RVT_ALLOC) {
         auto store = new RawValue();
+        if(phiTag == RVT_PHI) {
+            auto Phitarget = src->value.phi.target;
+            if(Phitarget == target) {
+                // cout << "skip store" << endl;
+                continue;
+            }
+        }
+        // cout << "ready to store " << phiTag << endl; 
         store->value.tag = RVT_STORE;
         store->value.store.dest = target;
         store->value.store.value = src;
@@ -59,7 +66,6 @@ void InsertStore(RawValue* &value){//store这里得先获得需要插入的基�
         ty->tag = RTT_UNIT;
         store->ty = ty;
         InsertStore(store,block);
-        }
     }
 }
 
@@ -70,10 +76,13 @@ void exitSSA(RawValue* &value,RawBasicBlock *&block) {
 
 void exitSSA(RawBasicBlock *&bb) {
     auto &phis = bb->phi;
-    auto &insts = bb->inst;
     for(auto phi: phis) {
         exitSSA(phi,bb);
     }
+}
+
+void InsertLoad(RawBasicBlock *&bb) {
+    auto &insts = bb->inst;
     auto it = insts.begin();
     for(;it != insts.end();it++) {
         auto inst = *it;
@@ -107,6 +116,7 @@ void exitSSA(RawBasicBlock *&bb) {
         case RVT_STORE: {
             auto &src = inst->value.store.value;
             if(src->value.tag == RVT_PHI) {
+                // cout << "replace " << src->value.phi.target->name << endl;
                 auto load = InsertLoad((RawValue *)src);
                 src = load;
                 insts.insert(it,load);
@@ -161,6 +171,9 @@ void exitSSA(RawFunction * &func) {
     auto &bbs = func->basicblock;
     for(auto bb : bbs) {
         exitSSA(bb);
+    }
+    for(auto bb : bbs) {
+        InsertLoad(bb);
     }
 }
 /// @brief 退出SSA形式 programme层

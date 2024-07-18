@@ -33,7 +33,7 @@ void AddPhi(RawFunction *& func) {
     for(RawBasicBlock *bb : bbs) {
         auto &bbDef = bb->defs;
         for(RawValue* value : bbDef) {
-            if(value->value.tag == RVT_ALLOC){
+            if(value->value.tag == RVT_ALLOC && value->identType == IDENT_VAR){
             value->defbbs.push_back(bb);
             values.insert(value);
             }

@@ -163,7 +163,7 @@ void renameValue(RawFunction *&function) {
     }
     for(auto bb : bbs) {
         auto &insts = bb->inst;
-        insts.erase(remove_if(insts.begin(),insts.end(),[](RawValue *data){return data->value.tag == RVT_ALLOC;}),insts.end());
+        insts.erase(remove_if(insts.begin(),insts.end(),[](RawValue *data){return (data->value.tag == RVT_ALLOC) && (data->identType == IDENT_VAR);}),insts.end());
     }
     for(auto value : values) {
         auto &sbbInst = startbbPtr->inst;
