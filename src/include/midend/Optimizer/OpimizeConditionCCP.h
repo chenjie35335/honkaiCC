@@ -10,7 +10,11 @@ class CondCCPTabl{
     public:
         unordered_map<RawValue *,int> MidIntTable;
 
-    int LookValue(RawValue *data) { return this->MidIntTable[data];}
+    int LookValue(RawValue *data) { 
+        if(data->value.tag == RVT_INTEGER) return data->value.integer.value;
+        else if(data->value.tag == RVT_FLOAT) return data->value.floatNumber.value;
+        return this->MidIntTable[data];
+    }
 
     RawValue * generateNumber(int value) {
     RawValue *data = new RawValue();

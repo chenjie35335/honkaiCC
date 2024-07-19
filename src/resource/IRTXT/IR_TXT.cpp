@@ -169,6 +169,7 @@ void Visit_Return(const RawValueP &value)
 
 void Name_Return(const RawValueP &value) 
 {
+    Name_Value(value->value.ret.value);
     return;
 }
 
@@ -191,6 +192,11 @@ void Name_Float(const RawValueP &value) {
 }
 
 void Name_Binary(const RawValueP &value) {
+    const RawBinary &data = value->value.binary;
+    const auto &lhs = data.lhs;
+    const auto &rhs = data.rhs;
+    Name_Value(lhs);
+    Name_Value(rhs);
     alloc_symbol(value);
 }
 
@@ -347,6 +353,7 @@ void Visit_Store(const RawValueP &value)
 }
 
 void Name_Branch(const RawValueP &value) {
+    Name_Value(value->value.branch.cond);
     return;
 }
 
@@ -475,7 +482,14 @@ void Name_PHI(const RawValueP &value) {
         cout<<"在非SSA模式的IR中使用PHI函数"<<endl;
         return;
     }
+    
     RawValueP target =value->value.phi.target;
+    auto &phis = value->value.phi.phi;
+    for(auto phi : phis) {
+        //cout << "phi's tag " << phi->value.tag << endl;
+        if(phi.second->value.tag == RVT_INTEGER || phi.second->value.tag == RVT_FLOAT)
+        Name_Value(phi.second);
+    }
     //cout << "target tag" << target->value.tag << endl;
     Name_Value(target);
     var_id[target]++;

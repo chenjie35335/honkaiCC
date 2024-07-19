@@ -42,7 +42,7 @@ int main(int argc, const char *argv[]) {
       renameValue(irGraph);
       //  循环优化需要基于支配树
      // OptimizeLoop(irGraph);
-     // GeneratorIRTxt(irGraph,true);
+      //GeneratorIRTxt(irGraph,true);
       //mem2regTop(irGraph);
       //GeneratorIRTxt(irGraph,true);
       //DCE(irGraph);
@@ -51,7 +51,8 @@ int main(int argc, const char *argv[]) {
       //GeneratorIRTxt(irGraph,true);
       // ConstCombine(irGraph);
       // DCE(irGraph);
-      //  CondCCP(irGraph);
+      CondCCP(irGraph);
+      //GeneratorIRTxt(irGraph,true);
       exitSSA(irGraph);
   //}
   if(strcmp(mode,"-riscv") == 0 || strcmp(mode,"-S") == 0) {

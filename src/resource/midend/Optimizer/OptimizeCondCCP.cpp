@@ -28,6 +28,22 @@ void MarkExc(RawBasicBlock *&bb) {
     bb->isExec = true;
 }
 
+bool IsVal(RawValue *v) {
+    if(v->status == VAL) return true;
+    if(v->value.tag == RVT_INTEGER) return true;
+    return false;
+}
+
+bool IsTop(RawValue *v) {
+    if(v->status == TOP) return true;
+    return false;
+}
+
+bool IsBot(RawValue *v) {
+    if(v->status == BOT) return true;
+    else return false;
+}
+
 void MarkTop(RawValue *value) {
     value->status = TOP;
 }
@@ -37,46 +53,57 @@ void MarkVal(RawValue *value) {
 }
 
 void AddWorkerCCP(RawFunction *&func) {
+    
     auto &bbs = func->basicblock;
+    if(bbs.empty()) return;
+    Wb.clear();
+    Wv.clear();
     auto EntryBB = *bbs.begin();
     MarkExc(EntryBB);//条件2
-    for(auto bb : bbs) {
-        Wb.push_back(bb);
-        auto &phis = bb->phi;
-        auto &insts = bb->inst;
-        for(auto phi : phis) {
-            AddWorkerCCP(phi);
-        }
-        for(auto inst : insts) {
-            AddWorkerCCP(inst);
-        }
-    }
+    Wb.push_back(EntryBB);
 }
 
 void branchHandler(RawValue * &value) {
+    // cout << "branch handle" << endl;
     auto &br = value->value.branch;
     auto cond = (RawValue *)br.cond;
     auto trueBB = (RawBasicBlock *) br.true_bb;
     auto falseBB = (RawBasicBlock *) br.false_bb;
-    if(cond->status == VAL) {
+    if(IsVal(cond)) {
         auto condValue = CCPController.LookValue(cond);
         if(condValue) {
-            MarkExc(trueBB);
-            Wb.push_back(trueBB);
-            value->value.tag = RVT_JUMP;
-            value->value.jump.target = trueBB;
+            if(!trueBB->isExec){
+                MarkExc(trueBB);
+                Wb.push_back(trueBB);
+                for(auto trueFBB : trueBB->fbbs) {
+                    if(!trueFBB->isExec) Wb.push_back(trueFBB);
+                }
+            }
         } else {
-            MarkExc(falseBB);
-            Wb.push_back(falseBB);
-            value->value.tag = RVT_JUMP;
-            value->value.jump.target = falseBB;
+            if(!falseBB->isExec){
+                MarkExc(falseBB);
+                Wb.push_back(falseBB);
+                for(auto falseFBB : trueBB->fbbs) {
+                    if(!falseFBB->isExec) Wb.push_back(falseFBB);
+                }
+            }
         }
-    } else if(cond->status == TOP){
-        MarkExc(trueBB);
-        MarkExc(falseBB);
-        Wb.push_back(trueBB);
-        Wb.push_back(falseBB);
-    } else return;
+    } else {
+        if(!trueBB->isExec){
+                MarkExc(trueBB);
+                Wb.push_back(trueBB);
+                for(auto trueFBB : trueBB->fbbs) {
+                    if(!trueFBB->isExec) Wb.push_back(trueFBB);
+                }
+        }
+        if(!falseBB->isExec){
+                MarkExc(falseBB);
+                Wb.push_back(falseBB);
+                for(auto falseFBB : trueBB->fbbs) {
+                    if(!falseFBB->isExec) Wb.push_back(falseFBB);
+                }
+            }
+    }
 }
 
 int evaluate(int32_t op,RawValueP lhs,RawValueP rhs) {
@@ -87,67 +114,55 @@ int evaluate(int32_t op,RawValueP lhs,RawValueP rhs) {
 
 void binaryHandler(RawValue *&value) {
     auto &binary = value->value.binary;
-    auto lhs = binary.lhs;
-    auto rhs = binary.rhs;
+    auto lhs = (RawValue *)binary.lhs;
+    auto rhs = (RawValue *)binary.rhs;
     auto op = binary.op;
-    if(lhs->status == TOP || rhs->status == TOP) {
-        MarkTop(value);
-        Wv.push_back((RawValue *) value);
-        return;
-    } else if(lhs->status == VAL || rhs->status == VAL) {
+    if(IsVal(lhs) && IsVal(rhs)) {
+        // cout << "binary val" << endl;
+        if(value->status == BOT) Wv.push_back(value);
         value->status = VAL;
         auto result = evaluate(op,lhs,rhs);
         CCPController.MidIntTable.insert(pair<RawValue *,int>(value,result));
-        Wv.push_back((RawValue *) value);
-    } else return;
+    } else if(IsTop(lhs) || IsTop(rhs)) {
+        // cout << "binary top" << endl;
+        if(IsVal(value) || IsBot(value)) {
+            Wv.push_back(value);
+        }
+        value->status = TOP;
+    } else if(IsBot(lhs) || IsBot(rhs)) {
+        if(value->status == BOT || value->status == VAL) Wv.push_back(value);
+        value->status = TOP;
+    }
 }
 
-void loadHandler(RawValue* &value) {
+void loadHandler(RawValue* &value) {//在mem2reg的情况下不会发生这样的事情，因此load我可以认为直接判为TOP
     auto &load  = value->value.load;
-    auto src = load.src;
-    if(src->value.tag == RVT_GLOBAL) {
-        MarkTop(value);
-        Wv.push_back((RawValue *) value);
-        return;
-    }
-    if(src->status == TOP) MarkTop(value);
-    else if(src->status == VAL) {
-        MarkVal(value);
-        auto SrcValue = CCPController.LookValue((RawValue *)src);
-        CCPController.MidIntTable.insert(pair<RawValue *,int>(value,SrcValue));
-        Wv.push_back((RawValue *) value);
-    } else return;
+    value->status = TOP;
 }
 
 void storeHandler(RawStore &store) {
     auto src = store.value;
     auto dest = store.dest;
-    if(dest->value.tag == RVT_GLOBAL) return;
-    if(src->status == TOP) {
-        MarkTop((RawValue *)dest);
-        Wv.push_back((RawValue *) dest);
-    }
-    else if(src->status == VAL) {
-        MarkVal((RawValue *)dest);
-        auto SrcValue = CCPController.LookValue((RawValue *)src);
-        CCPController.MidIntTable.insert(pair<RawValue *,int>((RawValue *)dest,SrcValue));
-        Wv.push_back((RawValue *)dest);
-    } else return;
+    return;
 }
 
 bool handleCond8(RawValue *&value){
     auto &phi = value->value.phi;
     auto &phiElements = phi.phi;
+    // cout << "handleCond8: " << endl;
      for(auto phiElement : phiElements) {
      if(phiElement.second->status == TOP) {
-         auto phiElembb = *phiElement.second->defbbs.begin();
+         auto phiElembb = phiElement.first;
          if(phiElembb->isExec) {
-             MarkTop(value);
-             Wv.push_back((RawValue *) value);
+             if(IsBot(value) || IsVal(value))
+                Wv.push_back((RawValue *) value);
+            MarkTop(value);
+            // cout << "cond 8 return true" << endl;
              return true;
          }
      }
  }
+    // cout << "cond 8 return false" << endl;
     return false;
 }
 
@@ -155,24 +170,35 @@ void handleCond9(RawValue *&value) {
     auto &phi = value->value.phi;
     auto &phiElements = phi.phi;
     vector<int> ValData;
+    // cout << "begin to handleCon9" << endl;
     for(auto phiElement : phiElements) {
-        if(phiElement.second->status == VAL) {
-            auto phiElembb = *phiElement.second->defbbs.begin();
+        // cout << "handle ones" << endl;
+        if(IsVal(phiElement.second)) {
+            auto phiElembb = phiElement.first;
+            // cout << "phi bb:" << phiElembb->name << " is Exec? " << phiElembb->isExec << endl;
                 if(phiElembb->isExec) {
                     auto ElemValue = CCPController.LookValue(phiElement.second);
+                    // cout << "push back: " << ElemValue << endl;
                     ValData.push_back(ElemValue);
                 }
         }
     }
+    if(ValData.empty()) return;
     if(std::all_of(ValData.begin(), ValData.end(), 
                  [&](int value) { return value == ValData[0]; })) {
+                    //  cout << "Mark Value" << endl;
+                     if(IsBot(value)) Wv.push_back((RawValue *) value);
                     MarkVal(value);
                     CCPController.MidIntTable.insert(pair<RawValue *,int>((RawValue *)value,ValData[0]));
+                    // cout << "Insert success" << endl;
                  } else {
+                    //  cout << "Mark Top" << endl;
+                     if(IsBot(value) || IsVal(value)){
+                        Wv.push_back(value);
+                     }
                      MarkTop(value);
-                     
                  }
-                 Wv.push_back((RawValue *) value);
+                 
 }
 
 //phi函数这里也就条件8比较好判断
@@ -187,53 +213,69 @@ void Valuehandler(RawValue *&value) {
     auto tag = value->value.tag;
     switch(tag) {
         case RVT_BINARY:{
+            // cout <<" value binary" << endl;
             binaryHandler(value);
             break;
         }
         case RVT_LOAD: {
+            // cout <<" value load" << endl;
             loadHandler(value);
             break;
         }
         case RVT_STORE: {
+            // cout <<" value store" << endl;
             auto &store = value->value.store;
             storeHandler(store);
             break;
         }
         case RVT_BRANCH: {
+            // cout <<" value branch" << endl;
             branchHandler(value);
             break;
         }
         case RVT_CALL: {
+            // cout <<" value call" << endl;
             MarkTop(value);
             break;
         }
         case RVT_PHI: {
+            // cout <<" value phi" << endl;
             phiHandler(value);
             break;
         }
-        default: break;
+        default: {
+            // cout << "unhandled value type: " << tag << endl;
+            break;
+        }
         }
 }
 
 //对于变量来说，这里可以直接操作
 //不用关心，因为只需要清空就行
 void Handler(RawValue *&Sv) {
-    if(Sv->status != VAL) return;
+    // cout << "begin handle value" << endl;
     auto &uses = Sv->usePoints;
     for(auto use : uses) {
         Valuehandler(use);
     }
+    // cout << "end handle value" << endl;
 }
 
 void Handler(RawBasicBlock *&Sb) {
-    if(!Sb->isExec) return;
     auto &fbbs = Sb->fbbs;
-    if(fbbs.size() == 1) {
-        for(auto fbb : fbbs) {
-            Wb.push_back(fbb);
+    //条件3
+    if(Sb->isExec == true && fbbs.size() == 1) {
+        auto fbb = fbbs.front();
+        if(!fbb->isExec) {
             fbb->isExec = true;
+            Wb.push_back(fbb);
+            for(auto ffbb : fbb->fbbs) {
+                if(ffbb->isExec == true) {
+                    Wb.push_back(ffbb);
+                }
+            }
         }
-    }//条件3
+    }
     auto &phis = Sb->phi;
     auto &insts = Sb->inst;
     for(auto phi : phis) {
@@ -243,17 +285,20 @@ void Handler(RawBasicBlock *&Sb) {
         Valuehandler(inst);
     }
 }
-//现在这个算法其实不是让人很能理解：
-//什么叫做或，两个中选一个？
-//要是我的话就像这样
+//就是每次取一个基本块，然后每次从Sv中取一个
 void CondCCPHandler() {
     while(!Wb.empty() || !Wv.empty()) {
-        auto Sv = Wv.back();
-        Wv.pop_back();//一个比较神奇的是，这个
-        auto Sb = Wb.back();
-        Wb.pop_back();
-        Handler(Sv);
-        Handler(Sb);
+        if(!Wb.empty()){
+            auto Sb = Wb.back();
+            Wb.pop_back();
+            Handler(Sb);
+        }
+        if(!Wv.empty()) {
+            auto Sv = Wv.back();
+            Wv.pop_back();//一个比较神奇的是，这个
+            Handler(Sv);
+        }
+        
     }
 }
 
@@ -261,39 +306,37 @@ void CondReplaceValue(RawValue *value) {
 switch(value->value.tag) {
     case RVT_RETURN: {
         auto &src = value->value.ret.value;
-        if(src->status == VAL) {
+        if(!src) break;
+        if(IsVal((RawValue *)src)) {
             auto SrcValue = CCPController.LookValue((RawValue *)src);
+            // cout << "Replace return in value" << SrcValue << endl;
             src = CCPController.generateNumber(SrcValue);
         }
         break;
     }
     case RVT_BINARY:{
-        if(value->status == VAL)
+        if(IsVal(value))
             value->isDeleted = true;
         else {
             auto &lhs = value->value.binary.lhs;
             auto &rhs = value->value.binary.rhs;
-            if(lhs->status == VAL) {
+            if(IsVal((RawValue *)lhs)) {
                 auto SrcValue = CCPController.LookValue((RawValue *)lhs);
                 lhs = CCPController.generateNumber(SrcValue);
             }
-            if(rhs->status == VAL) {
+            if(IsVal((RawValue *)rhs)) {
                 auto SrcValue = CCPController.LookValue((RawValue *)rhs);
                 rhs = CCPController.generateNumber(SrcValue);
             }
         }
         break;
     }
-    case RVT_LOAD: {
-        if(value->status == VAL)
-            value->isDeleted = true;
-        break;
-    }
-    case RVT_STORE: {
-        auto &store = value->value.store;
-        auto dest = (RawValue *)store.dest;
-        if(dest->status == VAL) {
-            dest->isDeleted = true;
+    case RVT_STORE:{
+        auto &src = value->value.store.value;
+        if(IsVal((RawValue *)src)) {
+            auto SrcValue = CCPController.LookValue((RawValue *)src);
+            // cout << "Replace return in value" << SrcValue << endl;
+            src = CCPController.generateNumber(SrcValue);
         }
         break;
     }
@@ -302,12 +345,38 @@ switch(value->value.tag) {
         auto &call = value->value.call;
         auto &args = call.args;
         for(auto &arg : args) {
-            if(arg->status == VAL) {
+            if(IsVal(arg)) {
                 auto SrcValue = CCPController.LookValue((RawValue *)arg);
                 arg = CCPController.generateNumber(SrcValue);
             }
         }
         break;
+    }
+    case RVT_PHI: {
+        auto &phis = value->value.phi.phi;
+        for(auto &phi : phis) {
+            if(IsVal(phi.second)) {
+                auto SrcValue = CCPController.LookValue((RawValue *)phi.second);
+                phi.second = CCPController.generateNumber(SrcValue);
+            }
+        }
+        break;
+    }
+    case RVT_BRANCH: {
+        auto &cond = value->value.branch.cond;
+        auto &trueBB = value->value.branch.true_bb;
+        auto &falseBB = value->value.branch.false_bb;
+        int jumpCond;
+        if(IsVal((RawValue *)cond)) {
+            jumpCond = CCPController.LookValue((RawValue *)cond);
+        } else break;
+        if(jumpCond) {
+             value->value.tag = RVT_JUMP;
+             value->value.jump.target = trueBB;
+        } else {
+            value->value.tag = RVT_JUMP;
+             value->value.jump.target = falseBB;
+        }
     }
     default:
         return;
@@ -354,13 +423,10 @@ void MarkDeletedBB(RawProgramme *&programme) {
 void CondCCP(RawProgramme *&programme) {
     auto &values = programme->values;
     auto &funcs = programme->funcs;
-    for(auto value : values){
-    AddWorkerCCP(value);
-    value->status = TOP;//条件1
-    }
-    for(auto func : funcs)
+    for(auto func : funcs){
     AddWorkerCCP(func);
     CondCCPHandler();
+    }
     MarkDeletedBB(programme);
     for(auto func : funcs) {
         ClearInst(func);
