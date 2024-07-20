@@ -255,6 +255,7 @@ void Valuehandler(RawValue *&value) {
         }
         case RVT_CALL: {
             // cout <<" value call" << endl;
+            if(IsBot(value) || IsVal(value)) Wv.push_back(value);
             MarkTop(value);
             break;
         }
