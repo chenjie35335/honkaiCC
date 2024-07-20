@@ -169,8 +169,9 @@ void Visit_Return(const RawValueP &value)
 
 void Name_Return(const RawValueP &value) 
 {
-    Name_Value(value->value.ret.value);
-    return;
+    auto src = value->value.ret.value;
+    if(!src) return;
+    Name_Value(src);
 }
 
 void Visit_Integer(const RawValueP &value)
@@ -503,8 +504,10 @@ void Visit_PHI(const RawValueP &value) {
         cout<<"在非SSA模式的IR中使用PHI函数"<<endl;
         return;
     }
+    
     cout<<"  "<<Symbol_List[value]<<" = phi {";
     for(auto pvalue:value->value.phi.phi){
+        // cout << "bb's exec: " << pvalue.first->isExec << endl;
         cout<<'('<<pvalue.first->name<<',' << Symbol_List[pvalue.second]<<')';
         if(pvalue != value->value.phi.phi.back())
             cout<<", ";
@@ -696,6 +699,7 @@ void Visit_Fun(const RawFunctionP &func)
 
 void Visit_Value(const RawValueP &value) {
     const auto& kind = value->value;
+    //cout << " value Status: " << value->status << endl;
     // cout<<"valueType:{"<<kind.tag<<"}"<<endl;
     switch(kind.tag) {
         case RVT_RETURN: {

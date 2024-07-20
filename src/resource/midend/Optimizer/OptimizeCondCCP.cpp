@@ -61,6 +61,7 @@ void AddWorkerCCP(RawFunction *&func) {
     auto EntryBB = *bbs.begin();
     MarkExc(EntryBB);//条件2
     Wb.push_back(EntryBB);
+    // cout << "Addworker push bb" << EntryBB->name << endl;
 }
 
 void branchHandler(RawValue * &value) {
@@ -75,16 +76,25 @@ void branchHandler(RawValue * &value) {
             if(!trueBB->isExec){
                 MarkExc(trueBB);
                 Wb.push_back(trueBB);
+                // cout << "cond true push bb " << trueBB->name << endl;
                 for(auto trueFBB : trueBB->fbbs) {
-                    if(!trueFBB->isExec) Wb.push_back(trueFBB);
+                    if(trueFBB->isExec) {
+                        Wb.push_back(trueFBB);
+                        // cout << "cond true f push bb " << trueFBB->name << endl;
+                    }
                 }
             }
         } else {
             if(!falseBB->isExec){
                 MarkExc(falseBB);
                 Wb.push_back(falseBB);
-                for(auto falseFBB : trueBB->fbbs) {
-                    if(!falseFBB->isExec) Wb.push_back(falseFBB);
+                // cout << "cond false push bb " << falseBB->name << endl;
+                for(auto falseFBB : falseBB->fbbs) {
+                    if(falseFBB->isExec) {
+                        Wb.push_back(falseFBB);
+                        // cout << "cond false f push bb " << falseFBB->name << endl;
+                    }
+
                 }
             }
         }
@@ -92,15 +102,23 @@ void branchHandler(RawValue * &value) {
         if(!trueBB->isExec){
                 MarkExc(trueBB);
                 Wb.push_back(trueBB);
+                // cout << "cond u true push bb " << trueBB->name << endl;
                 for(auto trueFBB : trueBB->fbbs) {
-                    if(!trueFBB->isExec) Wb.push_back(trueFBB);
+                    if(trueFBB->isExec) {
+                        Wb.push_back(trueFBB);
+                        // cout << "cond u true f push bb " << trueFBB->name << endl;
+                    }
                 }
         }
         if(!falseBB->isExec){
                 MarkExc(falseBB);
                 Wb.push_back(falseBB);
-                for(auto falseFBB : trueBB->fbbs) {
-                    if(!falseFBB->isExec) Wb.push_back(falseFBB);
+                // cout << "cond u false push bb " << falseBB->name << endl;
+                for(auto falseFBB : falseBB->fbbs) {
+                    if(falseFBB->isExec) {
+                        Wb.push_back(falseFBB);
+                        // cout << "cond u false push bb " << falseFBB->name << endl;
+                    }
                 }
             }
     }
@@ -130,13 +148,14 @@ void binaryHandler(RawValue *&value) {
         }
         value->status = TOP;
     } else if(IsBot(lhs) || IsBot(rhs)) {
-        if(value->status == BOT || value->status == VAL) Wv.push_back(value);
+        if(IsBot(value) || IsVal(value)) Wv.push_back(value);
         value->status = TOP;
     }
 }
 
 void loadHandler(RawValue* &value) {//在mem2reg的情况下不会发生这样的事情，因此load我可以认为直接判为TOP
     auto &load  = value->value.load;
+    if(IsBot(value)) Wv.push_back(value);
     value->status = TOP;
 }
 
@@ -151,15 +170,13 @@ bool handleCond8(RawValue *&value){
     auto &phiElements = phi.phi;
     // cout << "handleCond8: " << endl;
      for(auto phiElement : phiElements) {
-     if(phiElement.second->status == TOP) {
-         auto phiElembb = phiElement.first;
-         if(phiElembb->isExec) {
-             if(IsBot(value) || IsVal(value))
+     if(IsTop(phiElement.second) && phiElement.first->isExec) {
+            if(IsBot(value) || IsVal(value))
                 Wv.push_back((RawValue *) value);
             MarkTop(value);
             // cout << "cond 8 return true" << endl;
              return true;
-         }
+         
      }
  }
     // cout << "cond 8 return false" << endl;
@@ -169,21 +186,24 @@ bool handleCond8(RawValue *&value){
 void handleCond9(RawValue *&value) {
     auto &phi = value->value.phi;
     auto &phiElements = phi.phi;
+    // cout << "handle phi target: " << phi.target->name << " status: " << value->status << endl;
     vector<int> ValData;
     // cout << "begin to handleCon9" << endl;
     for(auto phiElement : phiElements) {
         // cout << "handle ones" << endl;
-        if(IsVal(phiElement.second)) {
-            auto phiElembb = phiElement.first;
-            // cout << "phi bb:" << phiElembb->name << " is Exec? " << phiElembb->isExec << endl;
-                if(phiElembb->isExec) {
-                    auto ElemValue = CCPController.LookValue(phiElement.second);
-                    // cout << "push back: " << ElemValue << endl;
-                    ValData.push_back(ElemValue);
-                }
+        auto phiElembb = phiElement.first;
+        // cout << "phi bb:" << phiElembb->name << " is Exec? " << phiElembb->isExec << endl;
+        // cout << "phi value: " << phiElement.second->status << endl;
+        if(IsVal(phiElement.second) && phiElembb->isExec) {
+             auto ElemValue = CCPController.LookValue(phiElement.second);
+            //  cout << "push back: " << ElemValue << endl;
+             ValData.push_back(ElemValue);
         }
     }
-    if(ValData.empty()) return;
+    if(ValData.empty()) {
+            
+            return;
+    }
     if(std::all_of(ValData.begin(), ValData.end(), 
                  [&](int value) { return value == ValData[0]; })) {
                     //  cout << "Mark Value" << endl;
@@ -255,13 +275,16 @@ void Valuehandler(RawValue *&value) {
 void Handler(RawValue *&Sv) {
     // cout << "begin handle value" << endl;
     auto &uses = Sv->usePoints;
+    // cout << "begin handle value tag: " << Sv->value.tag << endl;
     for(auto use : uses) {
+        // cout << "begin handle use tag: " << use->value.tag << endl;
         Valuehandler(use);
     }
     // cout << "end handle value" << endl;
 }
 
 void Handler(RawBasicBlock *&Sb) {
+    // cout << "begin handle bb: " << Sb->name << endl;
     auto &fbbs = Sb->fbbs;
     //条件3
     if(Sb->isExec == true && fbbs.size() == 1) {
@@ -269,9 +292,11 @@ void Handler(RawBasicBlock *&Sb) {
         if(!fbb->isExec) {
             fbb->isExec = true;
             Wb.push_back(fbb);
+            // cout << "3 push bb " << fbb->name << endl;
             for(auto ffbb : fbb->fbbs) {
                 if(ffbb->isExec == true) {
                     Wb.push_back(ffbb);
+                    // cout << "3 f push bb " << ffbb->name << endl;
                 }
             }
         }
@@ -279,9 +304,11 @@ void Handler(RawBasicBlock *&Sb) {
     auto &phis = Sb->phi;
     auto &insts = Sb->inst;
     for(auto phi : phis) {
+        // cout << "visit phis" << endl;
         Valuehandler(phi);
     }
     for(auto inst : insts) {
+        // cout << "visit insts" << endl;
         Valuehandler(inst);
     }
 }
@@ -291,6 +318,7 @@ void CondCCPHandler() {
         if(!Wb.empty()){
             auto Sb = Wb.back();
             Wb.pop_back();
+            // cout << "CCP block: " << Sb->name << endl;
             Handler(Sb);
         }
         if(!Wv.empty()) {
@@ -371,11 +399,11 @@ switch(value->value.tag) {
             jumpCond = CCPController.LookValue((RawValue *)cond);
         } else break;
         if(jumpCond) {
-             value->value.tag = RVT_JUMP;
-             value->value.jump.target = trueBB;
+            value->value.tag = RVT_JUMP;
+            value->value.jump.target = trueBB;
         } else {
             value->value.tag = RVT_JUMP;
-             value->value.jump.target = falseBB;
+            value->value.jump.target = falseBB;
         }
     }
     default:

@@ -48,11 +48,11 @@ int main(int argc, const char *argv[]) {
       //DCE(irGraph);
       //GeneratorIRTxt(irGraph,true);
       //  DCE(irGraph);
-      //GeneratorIRTxt(irGraph,true);
+       //GeneratorIRTxt(irGraph,true);
       // ConstCombine(irGraph);
       // DCE(irGraph);
       CondCCP(irGraph);
-      //GeneratorIRTxt(irGraph,true);
+       //GeneratorIRTxt(irGraph,true);
       exitSSA(irGraph);
   //}
   if(strcmp(mode,"-riscv") == 0 || strcmp(mode,"-S") == 0) {
