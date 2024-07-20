@@ -10,6 +10,7 @@ extern void ConstCombine(RawProgramme *&prgramme);
 extern void CondCCP(RawProgramme *&programme);
 extern void backend_advanced(RawProgramme *& programme);
 extern void MarkUseDef(RawProgramme *&programme);
+extern void LCSE_Run(RawProgramme *programme);
 int main(int argc, const char *argv[]) {
   // 解析命令行参数. 测试脚本/评测平台要求你的编译器能接收如下参数:
   // compiler0 -S1 -o2 输出文件3 输入文件4
@@ -49,9 +50,11 @@ int main(int argc, const char *argv[]) {
       //GeneratorIRTxt(irGraph,true);
       //  DCE(irGraph);
       //GeneratorIRTxt(irGraph,true);
-      // ConstCombine(irGraph);
+      //ConstCombine(irGraph);
       // DCE(irGraph);
       CondCCP(irGraph);
+      //GeneratorIRTxt(irGraph,true);
+      LCSE_Run(irGraph);
       //GeneratorIRTxt(irGraph,true);
       exitSSA(irGraph);
   // }
