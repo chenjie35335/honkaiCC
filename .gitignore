@@ -51,6 +51,7 @@ user/
 *.jpg
 *.zip
 *.g
+*.txt
 hello
 final_performance/
 hidden_functional/
