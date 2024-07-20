@@ -215,15 +215,15 @@ void check(RawValueP y,map<RawValueP,int>&vdef){
                                 for(auto  it:vec) check(it,vdef);
                                 break;
                             }
-                            case RVT_GET_ELEMENT:{
-                                auto qq=(y->value.getelement.src);
-                                auto qqq=(y->value.getelement.index);
+                            case RVT_GET_PTR:{
+                                auto qq=(y->value.getptr.index);
+                                auto qqq=(y->value.getptr.src);
                                 check(qq,vdef);check(qqq,vdef);
                                 break;
                             }
-                            case RVT_GET_PTR:{
-                                auto qq=(y->value.getptr.src);
-                                auto qqq=(y->value.getptr.index);
+                            case RVT_GET_ELEMENT:{
+                                auto qq=(y->value.getelement.src);
+                                auto qqq=(y->value.getelement.index);
                                 check(qq,vdef);check(qqq,vdef);
                                 break;
                             }
@@ -239,7 +239,7 @@ void check(RawValueP y,map<RawValueP,int>&vdef){
                                 break;
                             }
                             default:{
-                                cerr << "unknown kind: " << y->value.tag << endl;
+                                cout << "unknown kind: " << y->value.tag << endl;
                                 assert(false); 
                             }
                         }
@@ -253,7 +253,7 @@ void make_def_use(vector<RawBasicBlockP> bbbuffer){
     for(auto bb:bbbuffer){
         for(auto it:bb->inst){
             int xx=it->ty->tag;
-            if(xx==RTT_INT32){
+            if(xx==0){
                 def[mp[it]].push_back(it);
             }
             auto x= it->value.tag;
@@ -262,38 +262,40 @@ void make_def_use(vector<RawBasicBlockP> bbbuffer){
                             case RVT_INTEGER:{
                                 break;
                             }
+                            case RVT_FLOAT:{
+                                break;
+                            }
                             case RVT_ALLOC:{
                                 break;
                             }
                             case RVT_LOAD:{
                                 break;
                             }
-                            case RVT_FLOAT:{
-                                break;
-                            }
                             case RVT_STORE:{
                                 auto qq=(y->value.store.value);    
                                 auto qqq=(y->value.store.dest);
-                                if(qq->ty->tag==RTT_INT32) use[mp[it]].push_back(qq);
-                                if(qqq->ty->tag==RTT_INT32) use[mp[it]].push_back(qqq);
+                                if(qq->ty!=NULL)
+                                if(qq->ty->tag==0) use[mp[it]].push_back(qq);
+                                if(qqq->ty!=NULL)
+                                if(qqq->ty->tag==0) use[mp[it]].push_back(qqq);
                                 break;
                             }
                             case RVT_RETURN:{
                                 auto qq=(y->value.ret.value);
                                 if(qq!=NULL)
-                                if(qq->ty->tag==RTT_INT32) use[mp[it]].push_back(qq);
+                                if(qq->ty->tag==0) use[mp[it]].push_back(qq);
                                 break;
                             }
                             case RVT_BINARY:{
                                 auto qq=(y->value.binary.lhs);
                                 auto qqq=(y->value.binary.rhs);
-                                if(qq->ty->tag==RTT_INT32) use[mp[it]].push_back(qq);
-                                if(qqq->ty->tag==RTT_INT32) use[mp[it]].push_back(qqq);
+                                if(qq->ty->tag==0) use[mp[it]].push_back(qq);
+                                if(qqq->ty->tag==0) use[mp[it]].push_back(qqq);
                                 break;
                             }
                             case RVT_BRANCH:{
                                 auto qq=(y->value.branch.cond);
-                                if(qq->ty->tag==RTT_INT32) use[mp[it]].push_back(qq);
+                                if(qq->ty->tag==0) use[mp[it]].push_back(qq);
                                 break;
                                 //block 处理
                             }
@@ -306,25 +308,25 @@ void make_def_use(vector<RawBasicBlockP> bbbuffer){
                                 }
                                 break;
                             }
+                            case RVT_GET_PTR:{
+                                auto qq=(y->value.getptr.index);
+                                auto qqq=(y->value.getptr.src);
+                                if(qq->ty->tag==0) def[mp[it]].push_back(qq),use[mp[it]].push_back(qq);
+                                if(qqq->ty->tag==0) def[mp[it]].push_back(qqq),use[mp[it]].push_back(qqq);
+                                break;
+                            }
                             case RVT_GET_ELEMENT:{
                                 auto qq=(y->value.getelement.src);
                                 auto qqq=(y->value.getelement.index);
-                               if(qq->ty->tag==0) use[mp[it]].push_back(qq);
-                                if(qqq->ty->tag==0) use[mp[it]].push_back(qqq);
-                                break;
-                            }
-                            case RVT_GET_PTR:{
-                                auto qq=(y->value.getptr.src);
-                                auto qqq=(y->value.getptr.index);
-                                if(qq->ty->tag==0) use[mp[it]].push_back(qq);
-                                if(qqq->ty->tag==0) use[mp[it]].push_back(qqq);
+                                if(qq->ty->tag==0) def[mp[it]].push_back(qq),use[mp[it]].push_back(qq);
+                                if(qqq->ty->tag==0) def[mp[it]].push_back(qqq),use[mp[it]].push_back(qqq);
                                 break;
                             }
                             case RVT_AGGREGATE:{
                                 break;
                             }
                             default:{
-                                cerr << "unknown kind: " << y->value.tag << endl;
+                                cout << "unknown kind: " << y->value.tag << endl;
                                 assert(false); 
                             }
                         }
@@ -367,12 +369,17 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
             if(!ko){
                 ko=1;yy=*it;
             }
+            if((*it)->value.tag==RVT_GET_ELEMENT||(*it)->value.tag==RVT_GET_PTR){
+                auto u=(*it)->value.getelement.index;
+                auto v=(*it)->value.getelement.src;
+                mp[u]=cnt;def[cnt].clear();use[cnt].clear();cnt++;
+                mp[v]=cnt;def[cnt].clear();use[cnt].clear();cnt++;
+            }
             mp[*it]=cnt;
             def[cnt].clear();use[cnt].clear();
             cnt++;
         }
     }
-
     make_def_use(bbbuffer);
     // for(auto i=cuf.begin();i!=cuf.end();i++){
     //     auto e=i;
@@ -499,35 +506,6 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
         }
     }
 
-    //     for(auto bb:bbbuffer){
-    //     auto insts=bb->inst;
-    //     for(auto it:insts)if(it->value.tag==RVT_BINARY&&it->value.binary.op==RBO_ADD){
-    //         auto l=it->value.binary.lhs;
-    //         auto r=it->value.binary.rhs;
-    //         cout<<mp[l]<<" "<<mp[r]<<endl;
-    //         cout<<mp[it]<<" "<<it->ty->tag<<" "<<" in:";
-    //         for(auto itt:in[mp[it]]){
-    //             cout<<mp[itt]<<" ";
-    //         }
-    //         cout<<endl;
-    //         cout<<"out:";
-    //         for(auto itt:out[mp[it]]){
-    //             cout<<mp[itt]<<" ";
-    //         }
-    //         cout<<endl;
-    //         cout<<"use:";
-    //         for(auto itt:use[mp[it]]){
-    //             cout<<mp[itt]<<":"<<itt->value.tag<<" ";
-    //         }
-    //         cout<<endl;
-    //         cout<<"def:";
-    //         for(auto itt:def[mp[it]]){
-    //             cout<<mp[itt]<<" ";
-    //         }
-    //         cout<<endl;
-    //     }
-    // }
-
     int tot=0;
     registerManager.vp[id].clear();
     registerManager.rvp[id].clear();
@@ -579,38 +557,7 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
     //     cout<<endl;
     // }
     // cout<<"!!!"<<endl;
-    // for(auto blk:bbbuffer){
-    //     int cnt=mp[blk];
-    //     for(auto it:blk->inst)if(ls[it]){
-    //             RawValueP u1=it;
-    //             for(auto v1:in[cnt]){
-    //             if(vis[{u1,v1}]) continue;
-    //             int u=registerManager.vp[u1],v=registerManager.vp[v1];
-    //             registerManager.g[u].push_back(v);
-    //             registerManager.g[v].push_back(u);
-    //             vis[{u1,v1}]=vis[{v1,u1}]=1;
-    //         }
-    //     }
-    //     for(auto it:blk->inst)if(ls[it]){
-    //             RawValueP u1=it;
-    //             for(auto v1:blk->inst)if(ls[v1]&&v1!=u1){
-    //             if(vis[{u1,v1}]) continue;
-    //             int u=registerManager.vp[u1],v=registerManager.vp[v1];
-    //             registerManager.g[u].push_back(v);
-    //             registerManager.g[v].push_back(u);
-    //             vis[{u1,v1}]=vis[{v1,u1}]=1;
-    //         }
-    //     }
-    // }
-
-        // for(auto blk:bbbuffer){
-        // int cnt=mp[blk];
-        // for(auto it:blk->inst){
-        //         if(vdef[it]){
-        //             cout<<registerManager.vp[it]<<endl;
-        //         }
-        //     }
-        // }
+   
     // for(int i=0;i<=registerManager.n;i++){
     //     for(auto it:registerManager.g[i]) cout<<it<<" ";
     //     cout<<endl;
@@ -638,15 +585,95 @@ int checkuse(RawValue * y,RawValueP xx,int op){
         if(it==xx) return 1;
     }
     return 0;
+    //  uint32_t ee=(y->ty->tag);
+    //             if(ee==RTT_INT32){
+    //                 if((RawValueP)y==xx){
+    //                     return op;
+    //                 }
+    //               }
+                  
+    //                 uint32_t e=(y->value.tag);
+    //                 // cout<<e<<endl;
+    //                     switch(e){
+    //                         case RVT_INTEGER:{
+    //                             return 0;
+    //                         }
+    //                         case RVT_ALLOC:{
+    //                             return 0;
+    //                         }
+    //                         case RVT_LOAD:{
+    //                             return checkuse((RawValue*)y->value.load.src,xx,2);
+    //                         }
+    //                         case RVT_STORE:{
+    //                             return checkuse((RawValue*)y->value.store.value,xx,2)+checkuse((RawValue*)y->value.store.dest,xx,2);
+    //                         }
+    //                         case RVT_BRANCH:{
+    //                             return checkuse((RawValue*)y->value.branch.cond,xx,2);
+    //                         }
+    //                         case RVT_RETURN:{
+    //                             return checkuse((RawValue*)y->value.ret.value,xx,2);
+    //                         }
+    //                         case RVT_BINARY:{
+    //                             auto qq=(y->value.binary.lhs);
+    //                             auto qqq=(y->value.binary.rhs);
+    //                             int sum=0;
+    //                             sum=checkuse((RawValue *)qqq,xx,2)+checkuse((RawValue *)qq,xx,2);
+    //                             return sum;
+    //                         }
+    //                         case RVT_JUMP:{
+    //                             //块内处理
+    //                             // list<RawValue *> lst=(y->value.jump.target->inst);
+    //                             // solve(lst,xx);
+    //                             return 0;
+    //                         }
+    //                         case RVT_CALL:{
+    //                             RawFunctionP f=y->value.call.callee;
+    //                             int sum=0;
+    //                             for(auto it:(f->params)){
+    //                                 sum+=checkuse(it,xx,2);
+    //                             }
+    //                             return sum;
+    //                             // //func内处理：如何处理？
+                                
+                                
+    //                             // // for(auto it:(f->values)) check(it,vdef);
+    //                             // list<RawBasicBlock *> lst=(f->basicblock);
+    //                             // for(auto bb:lst){
+    //                             //     for(auto it:(bb->inst))
+    //                             //     solve((bb->inst),xx);
+    //                             // }
+    //                             // //vec是否处理,如何处理？暂时假定不处理
+                                
+    //                         }
+    //                         case RVT_FUNC_ARGS:{
+    //                             return 0;
+    //                         }
+    //                         // case RVT_GET_ELEMENT:{
+    //                         //     auto qq=(y->value.getelement.src);
+    //                         //     auto qqq=(y->value.getelement.index);
+    //                         //     int sum=checkuse((RawValue *)qq,xx,1)+checkuse((RawValue *)qqq,xx,2);
+    //                         //     return sum;
+    //                         // }
+    //                         // case RVT_VALUECOPY:{
+    //                         //     auto qq=(y->value.valueCop.target);
+    //                         //     return checkuse((RawValue *)qq,xx,1);
+    //                         // }
+    //                         default:{
+    //                             cout<<"checkusemiss"<<e<<endl;
+    //                             exit(0);
+    //                         }
+    //                     }
 }
 
 
 void chg(RawValueP &y,RawValueP &xx,RawValue* &u){
      uint32_t ee=(y->ty->tag);
                 RawValue* yy=(RawValue*) y;
+                    
                     if(yy==xx){
                         y=u;return;
                     }
+
                     uint32_t e=(y->value.tag);
                         switch(e){
                             case RVT_ALLOC:{
@@ -699,25 +726,20 @@ void chg(RawValueP &y,RawValueP &xx,RawValue* &u){
                                 // cout<<"ARGS"<<endl;
                                 return;
                             }
-                            case RVT_GET_PTR: {
-                                break;
+                            case RVT_GET_ELEMENT:{
+                                auto qq=(y->value.getelement.src);
+                                auto qqq=(y->value.getelement.index);
+                                chg(qq,xx,u);
+                                chg(qqq,xx,u);
+                                return;
                             }
-                            case RVT_GET_ELEMENT: {
-                                break;
-                            }
-                            // case RVT_GET_ELEMENT:{
-                            //     auto qsq=(y->value.getelement.src);
-                            //     auto qqq=(y->value.getelement.index);
-                            //     int sum=checkuse((RawValue *)qq,xx,1)+checkuse((RawValue *)qqq,xx,2);
-                            //     return sum;
-                            // }
                             // case RVT_VALUECOPY:{
                             //     auto qq=(y->value.valueCop.target);
                             //     return checkuse((RawValue *)qq,xx,1);
                             // }
                             default:{
-                                cerr<<e<<endl;
-                                assert(0);
+                                cout<<e<<endl;
+                                exit(0);
                             }
                         
                   }
@@ -737,8 +759,6 @@ void HardwareManager::spill(vector<RawBasicBlockP> &bbbuffer,int id,vector<RawVa
             pos=i;
         }
     }
-    // cout<<pos<<"P"<<m<<endl;
-    // cout<<"!!!"<<endl;
     //delete pos,and insert "load" and "store" to the position pos at.
     //需添加value所属block集合的map 假定为v_b
     // map<RawValueP,vector<RawBasicBlock*>> v_b;//改为*
@@ -820,20 +840,6 @@ void HardwareManager::spill(vector<RawBasicBlockP> &bbbuffer,int id,vector<RawVa
             alloc->name="qqq";
             aloc=alloc;
             // signTable.insertVar(namee,alloc);//alloc要不要存？
-
-            //造int型
-            // RawValue *value = new RawValue();
-            // value->name = nullptr;
-            // value->value.tag = pvue->value.tag;
-
-            // value->value.integer.value = pvue->value.integer.value;
-            // RawType *ty1 = new RawType();
-            // ty1->tag = RTT_INT32;
-            // value->ty = ty1;
-            // nf[value]=1;
-            // registerManager.n++;
-            // registerManager.rvp[++m]=(RawValueP)value;
-            // registerManager.vp[(RawValueP)value]=m;
 
             //store
             auto &instss = it->inst;
@@ -1103,6 +1109,8 @@ void HardwareManager::StoreFReg(int RandSelected)
     }
 }
 
+
+
 const char *RegisterManager::regs[32] = {
     "x0", "ra", "sp", "gp", "tp", "t0", "t1", "t2",
     "s0", "s1", "a0", "a1", "a2", "a3", "a4", "a5",
@@ -1111,7 +1119,7 @@ const char *RegisterManager::regs[32] = {
 };
 
 const char *RegisterManager::fregs[32] = {
-    "f0", "fra", "fsp", "fgp", "ftp", "f5", "f6", "f7",
+    "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7",
     "f8", "f9", "f10", "f11", "f12", "f13", "f14", "f15",
     "f16", "f17", "f18", "f19", "f20", "f21", "f22", "f23",
     "f24", "f25", "f26", "f27", "f28", "f29", "f30", "f31"

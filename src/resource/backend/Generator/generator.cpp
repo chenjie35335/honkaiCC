@@ -75,7 +75,7 @@ void Visit(const RawLoad &data, const RawValueP &value,int id) {
 int F[1000];
 //处理aggregate类型//首先是先计算地址然后store？
 void Visit(const RawAggregate &aggregate,string src,string dest,int &index,int id) {
-    //cout<<"!!!!!!"<<endl;
+    cout<<"!!!!!!"<<endl;
     auto &elements = aggregate.elements;
     for(auto element : elements) {
         auto elementTag = element->value.tag;
@@ -84,7 +84,7 @@ void Visit(const RawAggregate &aggregate,string src,string dest,int &index,int i
         } else if(elementTag == RVT_INTEGER) {
             auto value = element->value.integer.value;
             //int offset = index *4;
-            //cout<<"Agg"<<endl;
+            cout<<"Agg"<<endl;
             cout << "  li  " << src << ", " << value << endl;
             cout << "  sw  " << src << ", " << 0 << '(' << dest << ')' << endl;
             cout << "  addi " << dest <<  ", " << dest << ", " << 4 << endl;
@@ -522,22 +522,24 @@ void Visit(const RawGetElement &data,const RawValueP &value,int id) {
         hardware.AllocRegister(src,id);
         srcAddrReg = hardware.GetRegister(src,id);
         int srcAddr = hardware.getTargetOffset(src);
-        //cout<<"ELe"<<endl;
+        // cout<<"ELe"<<endl;
         cout << "  li  " << srcAddrReg << ", " << srcAddr << endl; 
         cout << "  add " << srcAddrReg << ", sp, " << srcAddrReg << endl;  
      } else {
         srcAddrReg = hardware.GetRegister(src,id);
      }
  //    hardware.addLockRegister(src);
+
      Visit(index,id);
+
 //     hardware.addLockRegister(index);
      string IndexReg = hardware.GetRegister(index,id);
      //这个地方应该乘的是单个元素的长度，这里先解决的是一维数组的问题
      //cout << "calptrlen = " << calPtrLen(src) << ", elementlen" << (src->ty->data.array.len) << endl;
+     //int elementLen = calPtrLen(src);??
      int elementLen = calPtrLen(src)/(src->ty->pointer.base->array.len);
+
      hardware.AllocRegister(value,id);
-     hardware.LeaseLockRegister(src);
-     hardware.LeaseLockRegister(index);
      string ptrReg = hardware.GetRegister(value,id);
      if(elementLen == 4) {
         cout << "  slli " << IndexReg << ", " << IndexReg << ", " << 2 << endl;
@@ -545,16 +547,9 @@ void Visit(const RawGetElement &data,const RawValueP &value,int id) {
         cout << "  li  " << ptrReg << ", " << elementLen << endl;
         cout << "  mul " << IndexReg << ", " << IndexReg << ", " << ptrReg << endl;
     }
-    cout << "  add  " << ptrReg << ", " << srcAddrReg << ", " << IndexReg << endl;
+     cout << "  add  " << ptrReg << ", " << srcAddrReg << ", " << IndexReg << endl;
+
 }
-
-
-/// visit convert
-void Visit(const RawConvert * data)
-{
-    return;
-}
-
 
 //这个Value是重点，如果value已经被分配了寄存器，直接返回
 //如果存在内存当中，调用loadreg后直接返回
@@ -874,70 +869,21 @@ void Visits(const RawCall &data,const RawValueP &value,list<RawValue*>::const_it
 
 }
 
-void Visits(const RawGetPtr &data, const RawValueP &value) {
+void Visits(const RawGetPtr &data, const RawValueP &value,list<RawValue*>::const_iterator it,RawBasicBlockP bb) {
     //cout << "parse getptr" << endl;
-    // auto src = data.src;
-    // auto index = data.index;
-    // string srcAddrReg;
-    // Visits(src);
-    // srcAddrReg = hardware.GetRegister(src);
-    // hardware.addLockRegister(src);
-    // Visits(index);
-    // hardware.addLockRegister(index);
-    // string IndexReg = hardware.GetRegister(index);
-    // int elementLen = calPtrLen(src);
-    // hardware.AllocRegister(value);
-    // hardware.LeaseLockRegister(src);
-    // hardware.LeaseLockRegister(index);
-    // string ptrReg = hardware.GetRegister(value);
-
-//不太懂
-    // if(elementLen == 4) {
-    //     cout << "  slli " << IndexReg << ", " << IndexReg << ", " << 2 << endl;
-    // } else {
-    //     cout << "  li  " << ptrReg << ", " << elementLen << endl;
-    //     cout << "  mul " << IndexReg << ", " << IndexReg << ", " << ptrReg << endl;
-    // }
-    // cout << "  add  " << ptrReg << ", " << srcAddrReg << ", " << IndexReg << endl;
+    auto src = data.src;
+    auto index = data.index;
+    string srcAddrReg;
+    Visits(src,it,bb);
+    Visits(index,it,bb);
 }
 
 //先不处理
-void Visits(const RawGetElement &data,const RawValueP &value) {
-    //  //cout << "Visit GetElement" << endl;
-    //  auto &src = data.src;
-    //  auto &index = data.index;
-    //  string srcAddrReg;
-    //  if(src->value.tag == RVT_GLOBAL) {
-    //     hardware.AllocRegister(src);
-    //     srcAddrReg = hardware.GetRegister(src);
-    //     cout << "  la  " << srcAddrReg << ", " << src->name << endl;
-    //  } else if(hardware.IsMemory(src)){//这里包含了参数值的问题
-    //     hardware.AllocRegister(src);
-    //     srcAddrReg = hardware.GetRegister(src);
-    //     int srcAddr = hardware.getTargetOffset(src);
-    //     cout << "  li  " << srcAddrReg << ", " << srcAddr << endl; 
-    //     cout << "  add " << srcAddrReg << ", sp, " << srcAddrReg << endl;  
-    //  } else {
-    //     srcAddrReg = hardware.GetRegister(src);
-    //  }
-    //  hardware.addLockRegister(src);
-    //  Visit(index);
-    //  hardware.addLockRegister(index);
-    //  string IndexReg = hardware.GetRegister(index);
-    //  //这个地方应该乘的是单个元素的长度，这里先解决的是一维数组的问题
-    //  //cout << "calptrlen = " << calPtrLen(src) << ", elementlen" << (src->ty->data.array.len) << endl;
-    //  int elementLen = calPtrLen(src)/(src->ty->array.len);
-    //  hardware.AllocRegister(value);
-    //  hardware.LeaseLockRegister(src);
-    //  hardware.LeaseLockRegister(index);
-    //  string ptrReg = hardware.GetRegister(value);
-    //  if(elementLen == 4) {
-    //     cout << "  slli " << IndexReg << ", " << IndexReg << ", " << 2 << endl;
-    // } else {
-    //     cout << "  li  " << ptrReg << ", " << elementLen << endl;
-    //     cout << "  mul " << IndexReg << ", " << IndexReg << ", " << ptrReg << endl;
-    // }
-    //  cout << "  add  " << ptrReg << ", " << srcAddrReg << ", " << IndexReg << endl;
+void Visits(const RawGetElement &data,const RawValueP &value,list<RawValue*>::const_iterator it,RawBasicBlockP bb) {
+     auto &src = data.src;
+     auto &index = data.index;
+     Visits(src,it,bb);
+     Visits(index,it,bb);
 }
 map<RawValueP,int> vv;
 void Visits(const RawValueP &value,list<RawValue*>::const_iterator it,RawBasicBlockP b) {    
@@ -1041,14 +987,14 @@ void Visits(const RawValueP &value,list<RawValue*>::const_iterator it,RawBasicBl
         break;
     }
     case RVT_GET_PTR: {
-        // const auto &getptr = kind.getptr;
-        // Visits(getptr,value,it);
+        const auto &getptr = kind.getptr;
+        Visits(getptr,value,it,bb);
         break;
     }
     case RVT_GET_ELEMENT: {//对于这种element类型的变量，直接分配空间就行
     //貌似对于多维数组来说，基地址已经存进寄存器中了，其他的只需要调用就行
-        // const auto &getElement = kind.getelement;
-        // Visit(getElement,value,it);
+        const auto &getElement = kind.getelement;
+        Visits(getElement,value,it,bb);
         break;
     }
     default:{
@@ -1106,16 +1052,6 @@ void Visits(const RawFunctionP &func,int id)
         auto e1=*(bbs.begin());
         auto j=e1->inst.begin();
         int ee=params.size();
-    //     for(int i = 8; i < min(ee,130); i++) {
-    //         RawValue * load = new RawValue();
-    //         RawType *tyy = new RawType();
-    //         tyy->tag = RTT_INT32;
-    //         load->ty = (RawTypeP) tyy;
-    //         load->name = nullptr;
-    //         load->value.tag = RVT_LOAD;
-    //         load->value.load.src =params[i];
-    //         e1->inst.insert(j,load);
-    // }
         for(auto bb : bbs)
          Visits(bb);
         }

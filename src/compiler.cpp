@@ -33,9 +33,9 @@ int main(int argc, const char *argv[]) {
   freopen(output,"w",stdout);
   RawProgramme *irGraph;
   ast->generateGraph(irGraph);
-  MarkUseDef(irGraph);
-  //if(optMode != nullptr && strcmp(optMode,"-O1") == 0) {
+  if(optMode != nullptr && strcmp(optMode,"-O1") == 0) {
      // GeneratorIRTxt(irGraph,false);
+     MarkUseDef(irGraph);
       //OptimizeFuncInline(irGraph);
       GeneratorDT(irGraph,0);
       AddPhi(irGraph);
@@ -54,7 +54,7 @@ int main(int argc, const char *argv[]) {
       CondCCP(irGraph);
        //GeneratorIRTxt(irGraph,true);
       exitSSA(irGraph);
-  //}
+  }
   if(strcmp(mode,"-riscv") == 0 || strcmp(mode,"-S") == 0) {
     // OptimizeFuncInline(irGraph);
     // exitSSA(irGraph);
