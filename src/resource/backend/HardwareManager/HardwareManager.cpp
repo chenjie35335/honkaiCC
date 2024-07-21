@@ -145,7 +145,7 @@ vector<RawValueP> midl;
 void check(RawValueP y,map<RawValueP,int>&vdef){
                 if(vdef[y]) return;
                 uint32_t e=(y->ty->tag);
-                if(e==RTT_INT32||e==RTT_FLOAT){
+                if(e==RTT_INT32||e==RTT_POINTER){
                     vdef[y]=1;
                     midl.push_back(y);
                   }
@@ -253,7 +253,7 @@ void make_def_use(vector<RawBasicBlockP> bbbuffer){
     for(auto bb:bbbuffer){
         for(auto it:bb->inst){
             int xx=it->ty->tag;
-            if(xx==0){
+            if(xx==0||xx==4){
                 def[mp[it]].push_back(it);
             }
             auto x= it->value.tag;
@@ -275,27 +275,27 @@ void make_def_use(vector<RawBasicBlockP> bbbuffer){
                                 auto qq=(y->value.store.value);    
                                 auto qqq=(y->value.store.dest);
                                 if(qq->ty!=NULL)
-                                if(qq->ty->tag==0) use[mp[it]].push_back(qq);
+                                if(qq->ty->tag==0||qq->ty->tag==4) use[mp[it]].push_back(qq);
                                 if(qqq->ty!=NULL)
-                                if(qqq->ty->tag==0) use[mp[it]].push_back(qqq);
+                                if(qqq->ty->tag==0||qqq->ty->tag==4) use[mp[it]].push_back(qqq);
                                 break;
                             }
                             case RVT_RETURN:{
                                 auto qq=(y->value.ret.value);
                                 if(qq!=NULL)
-                                if(qq->ty->tag==0) use[mp[it]].push_back(qq);
+                                if(qq->ty->tag==0||qq->ty->tag==4) use[mp[it]].push_back(qq);
                                 break;
                             }
                             case RVT_BINARY:{
                                 auto qq=(y->value.binary.lhs);
                                 auto qqq=(y->value.binary.rhs);
-                                if(qq->ty->tag==0) use[mp[it]].push_back(qq);
-                                if(qqq->ty->tag==0) use[mp[it]].push_back(qqq);
+                                if(qq->ty->tag==0||qq->ty->tag==4) use[mp[it]].push_back(qq);
+                                if(qqq->ty->tag==0||qqq->ty->tag==4) use[mp[it]].push_back(qqq);
                                 break;
                             }
                             case RVT_BRANCH:{
                                 auto qq=(y->value.branch.cond);
-                                if(qq->ty->tag==0) use[mp[it]].push_back(qq);
+                                if(qq->ty->tag==0||qq->ty->tag==4) use[mp[it]].push_back(qq);
                                 break;
                                 //block 处理
                             }
@@ -311,15 +311,15 @@ void make_def_use(vector<RawBasicBlockP> bbbuffer){
                             case RVT_GET_PTR:{
                                 auto qq=(y->value.getptr.index);
                                 auto qqq=(y->value.getptr.src);
-                                if(qq->ty->tag==0) def[mp[it]].push_back(qq),use[mp[it]].push_back(qq);
-                                if(qqq->ty->tag==0) def[mp[it]].push_back(qqq),use[mp[it]].push_back(qqq);
+                                if(qq->ty->tag==0||qq->ty->tag==4) use[mp[it]].push_back(qq);
+                                if(qqq->ty->tag==0||qqq->ty->tag==4) use[mp[it]].push_back(qqq);
                                 break;
                             }
                             case RVT_GET_ELEMENT:{
                                 auto qq=(y->value.getelement.src);
                                 auto qqq=(y->value.getelement.index);
-                                if(qq->ty->tag==0) def[mp[it]].push_back(qq),use[mp[it]].push_back(qq);
-                                if(qqq->ty->tag==0) def[mp[it]].push_back(qqq),use[mp[it]].push_back(qqq);
+                                if(qq->ty->tag==0||qq->ty->tag==4) use[mp[it]].push_back(qq);
+                                if(qqq->ty->tag==0||qqq->ty->tag==4) use[mp[it]].push_back(qqq); 
                                 break;
                             }
                             case RVT_AGGREGATE:{
@@ -369,18 +369,18 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
             if(!ko){
                 ko=1;yy=*it;
             }
-            if((*it)->value.tag==RVT_GET_ELEMENT||(*it)->value.tag==RVT_GET_PTR){
-                auto u=(*it)->value.getelement.index;
-                auto v=(*it)->value.getelement.src;
-                mp[u]=cnt;def[cnt].clear();use[cnt].clear();cnt++;
-                mp[v]=cnt;def[cnt].clear();use[cnt].clear();cnt++;
-            }
             mp[*it]=cnt;
+            // if((*it)->value.tag==RVT_GET_ELEMENT){
+            //     cout<<mp[*(it)]<<"!"<<endl;
+            //     cout<<mp[(*it)->value.getelement.index]<<" "<<mp[(*it)->value.getelement.src]<<endl;
+            //     cout<<(*it)->value.getelement.src->value.tag<<"?"<<endl;
+            // }
             def[cnt].clear();use[cnt].clear();
             cnt++;
         }
     }
     make_def_use(bbbuffer);
+
     // for(auto i=cuf.begin();i!=cuf.end();i++){
     //     auto e=i;
     //     e++;
@@ -394,8 +394,7 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
      for(auto bb:bbbuffer){
         auto &insts=bb->inst;
         for(auto it=insts.begin();it!=insts.end();it++){
-            // if(count){
-            //     count--;
+                // cout<<mp[*it]<<":"<<((*it)->ty->tag)<<endl;
                 // cout<<"DEF:";
                 // for(auto it:def[mp[*it]]) cout<<mp[it]<<" ";
                 // cout<<endl;
@@ -403,7 +402,6 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
                 // for(auto it:use[mp[*it]]) cout<<mp[it]<<" ";
                 // cout<<endl;
                 // cout<<"!!!"<<endl;
-            // }
             auto j=it;
             j++;
             int x=mp[*it];

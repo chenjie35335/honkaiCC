@@ -876,6 +876,11 @@ void Visits(const RawGetPtr &data, const RawValueP &value,list<RawValue*>::const
     string srcAddrReg;
     Visits(src,it,bb);
     Visits(index,it,bb);
+    // RawBasicBlock* bbb=(RawBasicBlock*)bb;
+    //  RawValue* srcc=(RawValue*)src;
+    //  RawValue* indexx=(RawValue*)index;
+    //  bbb->inst.insert(it,srcc);
+    //  bbb->inst.insert(it,indexx);
 }
 
 //先不处理
@@ -884,6 +889,11 @@ void Visits(const RawGetElement &data,const RawValueP &value,list<RawValue*>::co
      auto &index = data.index;
      Visits(src,it,bb);
      Visits(index,it,bb);
+    //  RawBasicBlock* bbb=(RawBasicBlock*)bb;
+    //  RawValue* srcc=(RawValue*)src;
+    //  RawValue* indexx=(RawValue*)index;
+    //  bbb->inst.insert(it,srcc);
+    //  bbb->inst.insert(it,indexx);
 }
 map<RawValueP,int> vv;
 void Visits(const RawValueP &value,list<RawValue*>::const_iterator it,RawBasicBlockP b) {    
