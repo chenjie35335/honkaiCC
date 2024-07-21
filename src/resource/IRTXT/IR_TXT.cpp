@@ -311,7 +311,9 @@ void Name_Alloc(const RawValueP &value) {
 
 void Visit_Alloc(const RawValueP &value)
 {
-    cout<<"  "<<Symbol_List[value]<< " = alloc "<<GetValueType(value->ty->pointer.base)<<endl;
+    cerr << "alloc" << Symbol_List[value] << endl;
+    cout<<"  "<<Symbol_List[value]<< " = alloc ";
+    cout <<GetValueType(value->ty->pointer.base)<<endl;
 }
 
 void Name_Load(const RawValueP &value) {

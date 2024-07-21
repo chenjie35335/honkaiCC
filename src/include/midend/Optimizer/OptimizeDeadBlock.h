@@ -11,7 +11,7 @@
 //这个算法的实施肯定以函数为单位进行
 //全局变量作为的是额外的影响，不能一概而论。
 //这样的话倒是有个比较好的想法，在插入的时候插入到alloc的RawValue当中，就没关系了
-void DCE(RawProgramme *&programme);
+void OptimizeDCE(RawProgramme *&programme);
 #endif
 
 

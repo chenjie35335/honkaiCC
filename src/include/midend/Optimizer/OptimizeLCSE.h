@@ -17,5 +17,5 @@ class LCSE_Builder{
     LCSE_Builder(){}
 };
 
-void LCSE_Run(RawProgramme *programme);
+void OptimizeLCSE(RawProgramme *programme);
 #endif

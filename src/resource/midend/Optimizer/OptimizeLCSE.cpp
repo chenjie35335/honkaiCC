@@ -200,7 +200,7 @@ void func_eliminate(RawFunction *func) {
     }
 }
 
-void LCSE_Run(RawProgramme *programme) {
+void OptimizeLCSE(RawProgramme *programme) {
     auto &funcs = programme->funcs;
     auto &values = programme->values;
     for(auto func : funcs) {

@@ -35,7 +35,7 @@ class Combine{
         bool find(RawValue *data) { return this->IntValue.find(data) != this->IntValue.end();}
 };
 
-void ConstCombine(RawProgramme *&programme);
+void OptimizeConstCombine(RawProgramme *&programme);
 
 #endif
 
