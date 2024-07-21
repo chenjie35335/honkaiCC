@@ -1,5 +1,5 @@
-#ifndef STORMY_GCSE
-#define STORMY_GCSE
+#ifndef STORMY_LCSE
+#define STORMY_LCSE
 #include <unordered_set>
 #include "../IR/common.h"
 #include "../IR/Value.h"

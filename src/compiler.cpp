@@ -40,7 +40,7 @@ int main(int argc, const char *argv[]) {
   // if(optMode != nullptr && strcmp(optMode,"-O1") == 0) {
      // GeneratorIRTxt(irGraph,false);
       MarkUseDef(irGraph);
-      OptimizeFuncInline(irGraph);
+      //OptimizeFuncInline(irGraph);
       GeneratorDT(irGraph,0);
       //  循环优化需要基于支配树
      // OptimizeLoop(irGraph);
@@ -56,6 +56,7 @@ int main(int argc, const char *argv[]) {
       // DCE(irGraph);
       OptimizeSCCP(irGraph);
       //GeneratorIRTxt(irGraph,true);
+      GeneratorDT(irGraph,0);
       OptimizeGCSE(irGraph);
       OptimizeLCSE(irGraph);
       //GeneratorIRTxt(irGraph,true);

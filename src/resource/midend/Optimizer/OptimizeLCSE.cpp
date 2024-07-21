@@ -11,7 +11,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <queue>
-LCSE_Builder gcse;
+LCSE_Builder lcse;
 void ClearInst(RawFunction *&function);
 
 void ReplaceExp(RawValue *&use,RawValue *reg,RawValue *mem) {
@@ -119,7 +119,6 @@ bool ExpCompare(RawValue *value1, RawValue *value2) {
             auto rhs2 = (RawValue *)value2->value.binary.rhs;
             auto op1 = value1->value.binary.op;
             auto op2 = value2->value.binary.op;
-            
             if(op1 != op2) return false;
             else if(!ValueCompare(lhs1,lhs2) || !ValueCompare(rhs1,rhs2)) {
                 //cout << "op: " << op1 << endl;
@@ -153,7 +152,7 @@ bool ExpCompare(RawValue *value1, RawValue *value2) {
 }
 
 void exp_eliminate(RawValue *inst) {
-    for(auto expr : gcse.Expressions) {//如果这个遍历到最后，就说明没有找到过
+    for(auto expr : lcse.Expressions) {//如果这个遍历到最后，就说明没有找到过
         if(expr->value.tag != inst->value.tag) continue;
         else {
             if(ExpCompare(expr,inst)) {
@@ -168,14 +167,14 @@ void exp_eliminate(RawValue *inst) {
         }
     }
     //最后加入到gcse当中
-    gcse.Expressions.insert(inst);//这里insert一定要保证进来的tag满足条件
+    lcse.Expressions.insert(inst);//这里insert一定要保证进来的tag满足条件
 }
 
 //这个函数我们和学长的很不一样，需要重新设计
 void inst_eliminate(RawBasicBlock *block) {
-    gcse.Expressions.clear();
+    lcse.Expressions.clear();
     auto &insts = block->inst;//对于phi函数来说不需要替换
-    for(auto inst : insts) {//这里我们不同的地方是我们可以直接比较内存，不需要重新编号
+    for(auto inst : insts) {          //这里我们不同的地方是我们可以直接比较内存，不需要重新编号
         if(IsExp(inst))
             exp_eliminate(inst);
     }
