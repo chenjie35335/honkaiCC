@@ -9,7 +9,6 @@ void OptimizeMem2Reg(RawProgramme *&programme);
 extern void OptimizeDCE(RawProgramme *&programme);
 extern void OptimizeConstCombine(RawProgramme *&prgramme);
 extern void OptimizeSCCP(RawProgramme *&programme);
-extern void backend_advanced(RawProgramme *& programme);
 extern void MarkUseDef(RawProgramme *&programme);
 extern void OptimizeLCSE(RawProgramme *programme);
 extern void OptimizeGCSE(RawProgramme *programme);

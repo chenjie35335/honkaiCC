@@ -21,17 +21,17 @@ void ReplaceExp(RawValue *&use,RawValue *reg,RawValue *mem);
 
 void global_exp_eliminate(RawValue *inst){
     for(auto expr : expressions) {//如果这个遍历到最后，就说明没有找到过
-         if(expr->value.tag != inst->value.tag) continue;
-         else {
-             if(ExpCompare(expr,inst)) {
-                 inst->isDeleted = true;
-                 for(auto use : inst->usePoints) {
-                     ReplaceExp(use,expr,inst);
-                     expr->usePoints.push_back(use);
-                 }//这里只考虑使用的情况
-                 return;
-             } else continue;
-         }
+        if(expr->value.tag != inst->value.tag) continue;
+        else {
+            if(ExpCompare(expr,inst)) {
+                inst->isDeleted = true;
+                for(auto use : inst->usePoints) {
+                    ReplaceExp(use,expr,inst);
+                    expr->usePoints.push_back(use);
+                }//这里只考虑使用的情况
+                return;
+            } else continue;
+        }
     }
     expressions.insert(inst);//这里insert一定要保证进来的tag满足条件
 }
