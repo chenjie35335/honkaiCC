@@ -1,3 +1,4 @@
+#include <set>
 #include <map>
 #include <list>
 #include <vector>
@@ -24,8 +25,8 @@ bool isInVar(RawValue * value)
     }
     return false;//在不变量集合中
 }
-//判断从start基本块到end基本块的边是否是回边
-bool isBackEdge(const RawBasicBlockP &start,const RawBasicBlockP &end)
+//判断从start基本块到end基本块的边是否是回边 
+bool isBackEdge(const RawBasicBlockP start,const RawBasicBlockP end)
 {
     //判断end是否控制start
     stack<RawBasicBlockP> pbbs;
@@ -256,43 +257,26 @@ void move_inVar(Loop * &loop,map<RawBasicBlock*,unordered_set<RawValue*>> actVal
         }
     }
 }
-//查找所有回边
-void findBackEdges(const RawFunctionP &func,vector<Loop *> &natureLoops)
+//查找所有回边 
+void findBackEdges(const RawFunctionP func,vector<Loop *> &Loops)
 {
     unordered_map<RawBasicBlockP,Loop*> head_loop;//方便查找循环头对应的循环
-    auto &bbs = func->basicblock;
-    unordered_set<RawBasicBlockP>vbbs;//判断是否访问过
-    stack<RawBasicBlockP>stack_bbs;
-    stack_bbs.push(*bbs.begin());//初始化,将起始节点入栈
-    while (!stack_bbs.empty())
-    {
-        //获取并弹出栈顶元素
-        RawBasicBlockP pbb = stack_bbs.top();stack_bbs.pop();
-        //判断是否遍历过该元素
-        if(vbbs.find(pbb)==vbbs.end())//未遍历过该元素
-        {
-            vbbs.insert(pbb);//标记当前访问过的元素
-            
-            auto& fbbs = pbb->fbbs;
-            for (RawBasicBlockP npbb : fbbs){//广度优先
-                if(isBackEdge(pbb,npbb))//判断是否是回边
+    //遍历所有边判断是否是回边
+    for(auto bb:func->basicblock){
+        for(auto nextbb:bb->fbbs){
+            if(isBackEdge(bb,nextbb))//判断是否是回边
+            {
+                if(head_loop.count(nextbb)>0)//循环头已经存在
                 {
-                    // backedges.push_back(make_pair((RawBasicBlock*)pbb,(RawBasicBlock*)npbb));
-                    if(head_loop.count(npbb)>0)//循环头已经存在
-                    {
-                        auto loop = head_loop[npbb];
-                        loop->backEdgeStart.insert((RawBasicBlock*)pbb);
-                    }
-                    else
-                    {
-                        Loop * loop = new Loop((RawBasicBlock*)npbb,(RawBasicBlock*)pbb);
-                        natureLoops.push_back(loop);
-                        head_loop[npbb] = loop;
-                    }
+                    auto loop = head_loop[nextbb];
+                    loop->backEdgeStart.insert((RawBasicBlock*)bb);
                 }
-                if(vbbs.find(npbb)==vbbs.end()){//未访问过添加到栈中
-                    stack_bbs.push(npbb);
-                }
+                else
+                {
+                    Loop * loop = new Loop((RawBasicBlock*)nextbb,(RawBasicBlock*)bb);
+                    Loops.push_back(loop);
+                    head_loop[nextbb] = loop;
+                 }
             }
         }
     }
@@ -385,24 +369,69 @@ void addPreBBToLoop(vector<Loop *> natureLoops){
         }
     }
 }
+//定值到达分析
+void ReachDef(RawFunction* func){
+    map<RawBasicBlock *,set<RawValue *>> gen,kill,in,out;
+    map<RawBasicBlock*,int>outsize;
+    for(auto bb:func->basicblock){//构造每个基本块的gen集合与kill集合
+        outsize[bb]=0;
+        for (auto it = bb->inst.rbegin(); it != bb->inst.rend(); ++it) {
+            RawValue * value = *it;
+            if(value->value.tag==RVT_STORE)//定值
+            {
+                if(kill[bb].find(value)==kill[bb].end())//gen[bb]=gen[val_n]U(gen[val_n-1]-kill[val_n~val_n-1])
+                {
+                    gen[bb].insert(value);
+                }
+                for(auto defpoint:value->value.store.dest->defPoints){//kill[bb]=kill[val_n]U...Ukill[val_1]
+                    if(defpoint!=value)
+                    {
+                        kill[bb].insert(defpoint);
+                    }
+                }
+            }
+        }
+    }
+    bool needit = true;
+    while(needit){//存在out变化就需要继续迭代
+        needit = false;
+        auto it = func->basicblock.begin();++it; // 跳过第一个元素
+        // 从第二个元素开始遍历
+        for (; it != func->basicblock.end(); ++it){//除了entry的所有基本块
+            auto bb = (*it);
+            for(auto prebb:bb->pbbs){//in[bb]= Uout[prebb]
+                for(auto val:out[prebb])
+                    in[bb].insert(val);
+            }
+            out[bb] = gen[bb];
+            std::set_difference(in[bb].begin(), in[bb].end(),
+                                kill[bb].begin(), kill[bb].end(),
+                                std::inserter(out[bb],out[bb].begin()));
+            if(out[bb].size()!=outsize[bb]){//存在out变化需要继续迭代
+                outsize[bb] = out[bb].size();
+                needit = true;
+            }
+        } 
+    }
+}
 //循环优化
-void OptimizeLoop(RawProgramme *&IR){
+void OptimizeLoop(RawProgramme *IR){
     for(auto &func : IR->funcs){
-        //查找该函数的所有回边并找出自然循环
+        //对每个函数进行循环优化
         auto &bbs = func->basicblock;
         if(bbs.size()>0){//非空函数
-            vector<Loop *>natureLoops;//对每个函数进行循环优化
-            map<RawBasicBlock*,unordered_set<RawValue*>> actValIn,actValOut;//对每个函数进行活跃性分析
-            // cout<<"111111111111111"<<endl;
-            cal_actVal(func,actValIn,actValOut);
-            //  cout<<"222222222222222222"<<endl;
-            findBackEdges(func,natureLoops);
+            vector<Loop *>natureLoops;//当前函数的循环结合
+                // map<RawBasicBlock*,unordered_set<RawValue*>> actValIn,actValOut;//对每个函数进行活跃性分析
+                // cout<<"111111111111111"<<endl;
+                // cal_actVal(func,actValIn,actValOut);
+                //  cout<<"222222222222222222"<<endl;
+            findBackEdges(func,natureLoops);//计算回边
             for(auto &loop:natureLoops)//每个自然循环添加前置节点
             {
                 addLoopPreNode(loop->head,func,loop);
             }
-            addPreBBToLoop(natureLoops);
-            //对自然循环处理
+            addPreBBToLoop(natureLoops);//将前置节点添加到父循环中
+            // 对自然循环处理
             for(auto &loop : natureLoops)
             {
                 //计算循环的基本块集合
@@ -413,11 +442,12 @@ void OptimizeLoop(RawProgramme *&IR){
                 cal_loopValues(loop);
                 //计算所有出口节点
                 cal_exitNodes(loop);
-                //计算不变量
-                cal_inVar(loop);
-                //移动不变量
-                move_inVar(loop,actValIn,actValOut);
             }
+            ReachDef(func);
+                //计算不变量
+                // cal_inVar(loop);
+                //移动不变量
+                // move_inVar(loop,actValIn,actValOut);
         }
     }
 }
