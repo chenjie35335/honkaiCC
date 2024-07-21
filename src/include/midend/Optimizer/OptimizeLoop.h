@@ -39,9 +39,9 @@ void cal_exitNodes(Loop * loop);
 //计算活跃性集合
 void cal_actVal(RawFunction*func,map<RawBasicBlock*,unordered_set<RawValue*>>&actValIn,map<RawBasicBlock*,unordered_set<RawValue*>>&actValOut);
 //判断是否是循环不变量(常数)
-bool isInVar(RawValue * value);
+bool isInVar(RawBasicBlock* bb,RawValue * value,Loop * loop,unordered_map<RawValue *,bool> v_values,map<RawBasicBlock *,set<RawValue *>> in);
 //计算循环不变量
-void cal_inVar(Loop * &loop);
+void cal_inVar(Loop * &loop,map<RawBasicBlock *,set<RawValue *>> in);
 //判断A是否支配B,或者B的必经结点是否是A
 bool AisdomB(RawBasicBlock * A, RawBasicBlock * B);
 //判断是否满足外提条件
@@ -55,7 +55,7 @@ void addLoopPreNode(RawBasicBlock * &bb,RawFunction* &func,Loop * &loop);
 //将子循环的前置结点添加到父循环中
 void addPreBBToLoop(vector<Loop *> natureLoops);
 //定值到达分析
-void ReachDef(RawFunction* func);
+void ReachDef(RawFunction* func,map<RawBasicBlock *,set<RawValue *>> &in,map<RawBasicBlock *,set<RawValue *>> &out);
 //循环优化
 void OptimizeLoop(RawProgramme *IR);
 #endif

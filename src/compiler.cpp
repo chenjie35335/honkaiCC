@@ -43,8 +43,8 @@ int main(int argc, const char *argv[]) {
       //OptimizeFuncInline(irGraph);
       GeneratorDT(irGraph,0);
       //  循环优化需要基于支配树
-     // OptimizeLoop(irGraph);
-      OptimizeMem2Reg(irGraph);
+     OptimizeLoop(irGraph);
+      // OptimizeMem2Reg(irGraph);
       //GeneratorIRTxt(irGraph,true);
       //mem2regTop(irGraph);
       //GeneratorIRTxt(irGraph,true);
@@ -54,13 +54,13 @@ int main(int argc, const char *argv[]) {
       //GeneratorIRTxt(irGraph,true);
       //ConstCombine(irGraph);
       // DCE(irGraph);
-      OptimizeSCCP(irGraph);
+      // OptimizeSCCP(irGraph);
       //GeneratorIRTxt(irGraph,true);
-      GeneratorDT(irGraph,0);
-      OptimizeGCSE(irGraph);
-      OptimizeLCSE(irGraph);
+      // GeneratorDT(irGraph,0);
+      // OptimizeGCSE(irGraph);
+      // OptimizeLCSE(irGraph);
       //GeneratorIRTxt(irGraph,true);
-      exitSSA(irGraph);
+      // exitSSA(irGraph);
   // }
   if(strcmp(mode,"-riscv") == 0 || strcmp(mode,"-S") == 0) {
     // OptimizeFuncInline(irGraph);
