@@ -1119,12 +1119,15 @@ const char *RegisterManager::regs[32] = {
 };
 
 const char *RegisterManager::fregs[32] = {
-    "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7",
-    "f8", "f9", "f10", "f11", "f12", "f13", "f14", "f15",
-    "f16", "f17", "f18", "f19", "f20", "f21", "f22", "f23",
-    "f24", "f25", "f26", "f27", "f28", "f29", "f30", "f31"
+    "ft0", "ft1", "ft2", "ft3", "ft4", "ft5", "ft6", "ft7", //temporary variables
+    "fs0", "fs1",  //saved variables
+    "fa0", "fa1",  //function arguments / return values
+    "fa2", "fa3", "fa4", "fa5", "fa6", "fa7", //function arguments
+    "fs2", "fs3", "fs4", "fs5", "fs6", "fs7", "fs8", "fs9", "fs10", "fs11", //saved variables
+    "ft8", "ft9", "ft10", "ft11"  //temporary variables
+    //之前写的是寄存器序号，不是寄存器名字，难崩
+    //这样写是按寄存器的序号排列的
 };
-//64位往后貌似不用
 
 const int RegisterManager::callerSave[7] = {
     5, 6, 7, 28, 29, 30, 31};
