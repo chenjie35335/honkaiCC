@@ -180,7 +180,6 @@ void cal_actVal(RawFunction*func,map<RawBasicBlock*,unordered_set<RawValue*>>&ac
         TactValIn[bb].clear();
         TactValOut[bb].clear();
     }
-    cout<<"活性分析初始化完成"<<endl;
     while(1){
         //遍历每个基本块
         for(auto bb:func->basicblock){
@@ -234,20 +233,51 @@ bool AisdomB(RawBasicBlock * A, RawBasicBlock * B){
 }
 //判断是否满足外提条件
 bool judgeCondition(RawValue * value,Loop * loop,map<RawBasicBlock*,unordered_set<RawValue*>> actValIn,map<RawBasicBlock*,unordered_set<RawValue*>> actValOut){
-    //Phi函数不外提
-    if(value->value.tag==RVT_PHI)return false;
+    //ALLOC类型默认外提
+    if(value->value.tag==RVT_ALLOC)return true;
 
+    // if(value->value.tag==RVT_LOAD){
+    //         cout<<"LOAD "<<value->value.load.src->name<<endl;
+    //         cout<<loop->loopValues[value]->name<<endl;
+    //     }
     //所在基本块是所有出口节点的必经节点
     for(auto exitbb:loop->exitNode){
         if(!AisdomB(loop->loopValues[value],exitbb)){
             return false;
         }
-        if(!actValOut[exitbb].count(value)){//在出口结点是出口活跃的
+        if(actValOut[exitbb].find(value)!=actValOut[exitbb].end()){//在出口结点是出口活跃的
             return false;
         }
     }
-    //在循环中没有其他定值语句(SSA中为单赋值---不需要考虑该条件(非phi函数时都只定值一次))
+
+    // if(value->value.tag==RVT_LOAD){
+    //         cout<<"LOAD "<<value->value.load.src->name<<endl;
+    //     }
+
+    //在循环中没有其他定值语句---除了store其他的都只定值一次
+    if(value->value.tag==RVT_STORE){
+        for(auto val_bb:loop->loopValues){
+            RawValue * val = val_bb.first;
+            if(val->value.tag==RVT_STORE){
+                if((val->value.store.dest==value->value.store.dest)&&(val!=value)){
+                    return false;//存在多个定值
+                }
+            }
+        }
+    }
     //不属于循环前置节点的出口活跃集合
+    if(value->value.tag==RVT_STORE){
+        if(actValOut[loop->outloopNode].find((RawValue*)value->value.store.dest)
+            !=actValOut[loop->outloopNode].end()){
+            return false;
+        }
+    }
+    else{
+        if(actValOut[loop->outloopNode].find(value)!=actValOut[loop->outloopNode].end()){
+            return false;
+        }
+    }
+
     return true;
 }
 //不变量外提
@@ -256,14 +286,16 @@ void move_inVar(Loop * &loop,map<RawBasicBlock*,unordered_set<RawValue*>> actVal
     RawBasicBlock * outloopNode = loop->outloopNode;
     for(auto value:loop->inVar)
     {
-        RawBasicBlock * oldBlock = loop->loopValues[value];
-        outloopNode->inst.insert(--outloopNode->inst.end(),value);//添加到前置节点中
-        oldBlock->inst.remove(value);//从原节点删除
-        // if(judgeCondition(value,loop,actValIn,actValOut)){
-        //     RawBasicBlock * oldBlock = loop->loopValues[value];
-        //     outloopNode->inst.push_back(value);//添加到前置节点中
-        //     oldBlock->inst.remove(value);//从原节点删除
-        // }
+        // 默认都可以外提
+        // RawBasicBlock * oldBlock = loop->loopValues[value];
+        // outloopNode->inst.insert(--outloopNode->inst.end(),value);//添加到前置节点中
+        // oldBlock->inst.remove(value);//从原节点删除
+
+        if(judgeCondition(value,loop,actValIn,actValOut)){
+            RawBasicBlock * oldBlock = loop->loopValues[value];
+            outloopNode->inst.insert(--outloopNode->inst.end(),value);//添加到前置节点中
+            oldBlock->inst.remove(value);//从原节点删除
+        }
     }
 }
 //查找所有回边 
@@ -454,8 +486,21 @@ void OptimizeLoop(RawProgramme *IR){
                 //计算不变量
                 cal_inVar(loop,in);
                 //移动不变量
-                // move_inVar(loop,actValIn,actValOut);
+                move_inVar(loop,actValIn,actValOut);
             }
+            // for(auto loop:natureLoops)
+            // {
+            //     cout<<"循环头"<<loop->head->name<<endl;
+            //     for(auto bb:loop->body){
+            //         cout<<bb->name<<",";
+            //     }
+            //     cout<<endl;
+            //     cout<<"出口节点:";
+            //     for(auto exit:loop->exitNode){
+            //         cout<<exit->name<<",";
+            //     }
+            //     cout<<endl;
+            // }
         }
     }
 }
