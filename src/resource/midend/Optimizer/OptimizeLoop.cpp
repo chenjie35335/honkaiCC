@@ -134,119 +134,41 @@ void cal_inVar(Loop * &loop,map<RawBasicBlock *,set<RawValue *>> in){
         for(auto value:v_values){
             if(value.second==false){//剩余value
             RawValue* val =value.first;
-                switch (value.first->value.tag){
+                switch (val->value.tag){
                     case RVT_STORE:{
-                        cout<<value.first->value.store.value->value.integer.value<<endl;
-                        cout<<"asdasda"<<endl;
-                        if(isInVar(loop->loopValues[val],(RawValue*)val->value.store.value,loop,v_values,in)){
+                        if(v_values[(RawValue*)val->value.store.value]){
                             loop->inVar.push_back(val);
-                            v_values[val] = true;//标记为不变量
+                            v_values[val] = true;
                             numNotInVar--;
                         }
-                    break;
+                        break;
                     }
+                    case RVT_LOAD:{
+                        // cout<<value.first->value.store.value->value.integer.value<<endl;
+                        // cout<<"asdasda"<<endl;
+                        if(isInVar(loop->loopValues[val],(RawValue*)val->value.load.src,loop,v_values,in)){
+                            loop->inVar.push_back(val);
+                            v_values[val] = true;
+                            numNotInVar--;
+                        }
+                        break;
+                    }
+                    case RVT_BINARY:{
+                        RawValue * lhs = (RawValue *)val->value.binary.lhs;
+                        RawValue * rhs = (RawValue *)val->value.binary.rhs;
+                        if(v_values[lhs]&&v_values[rhs]){
+                            loop->inVar.push_back(val);
+                            v_values[val] = true;
+                            numNotInVar--;
+                        }
+                        break;
+                    }
+                    default:
+                        break;
                 }
             }
         }
     }
-        // if(val->value.tag==RVT_INTEGER||val->value.tag==RVT_FLOAT){//常数
-        //     loop->inVar.push_back(val);
-        //     v_values[val] = true;//标记为不变量
-        //     numNotInVar--;
-        // }else if(val->value.tag==RVT_ALLOC){
-        //     loop->inVar.push_back(val);
-        //     v_values[val] = true;
-        //     numNotInVar--;
-        // }else if(val->value.tag==RVT_STORE){
-        //     int setValNum = 0;//到达定值个数
-        //     int setValOutNum = 0;//到达定值在循化外的个数
-        //     for(auto setVal:in[value.second]){
-        //         if(setVal->value.store.dest==val->value.store.dest){//所有定值
-        //             setValNum++;
-        //             if(loop->loopValues.find(setVal)==loop->loopValues.end()){//定值在循环外
-        //                 setValOutNum++;
-        //             }
-        //         }
-        //     }
-        //     if(setValNum==setValOutNum){//所有到达定值在循环外
-        //         loop->inVar.push_back(val);
-        //         v_values[val] = true;
-        //         numNotInVar--;
-        //     }
-        // }
-        // if(isInVar(value.first)){//常数
-        //     loop->inVar.push_back(value.first);
-        //     v_values[value.first] = true;//标记为不变量
-        //     numNotInVar--;
-        // }
-        // else
-        //     v_values[value.first] = false;
-    
-
-    // while(1){
-    //     //判断不变量集合是否有变化
-    //     if(last_numNotInVar == numNotInVar)
-    //         break;
-    //     else
-    //         last_numNotInVar = numNotInVar;
-    //     //判断剩余的
-    //     for(auto value:v_values)
-    //     {
-    //         if(value.second==false)//所有未标记的value
-    //         {
-    //             switch (value.first->value.tag)
-    //             {
-    //             case RVT_LOAD:{
-    //                 if(v_values[(RawValue *)value.first->value.load.src]){
-    //                     v_values[value.first]=true;
-    //                 }
-    //                 break;
-    //             }
-    //             case RVT_STORE:{
-    //                 if(v_values[(RawValue *)value.first->value.store.value]){
-    //                    v_values[value.first]=true;
-    //                 }
-    //                 break;
-    //             }
-    //             case RVT_BINARY:{
-    //                 RawValue * lhs = (RawValue *)value.first->value.binary.lhs;
-    //                 RawValue * rhs = (RawValue *)value.first->value.binary.rhs;
-    //                 if(v_values[lhs]&&v_values[rhs]){
-    //                     v_values[value.first]=true;
-    //                 }
-    //                 break;
-    //             }
-    //             case RVT_ALLOC:{
-    //                 v_values[value.first]=true;
-    //                 break;
-    //             }
-    //             case RVT_PHI:{
-    //                 int numDefIsInLoop = 0;
-    //                 for(auto defpoint:value.first->value.phi.phi){//判断所有定值点都在循环中的个数
-    //                     if(loop->loopValues.count(defpoint.second)!=0)
-    //                         numDefIsInLoop++;
-    //                 }
-    //                 if(numDefIsInLoop==0){//所有定值点在循环外
-    //                     v_values[value.first]=true;
-    //                 }
-    //                 else if((value.first->value.phi.phi.size()==1)
-    //                       &&(v_values[value.first->value.phi.phi.front().second])){
-    //                     //只有一个定值点到达且是不变量
-    //                     v_values[value.first]=true;
-    //                 }
-    //                 break;
-    //             }
-    //             default:
-    //                 break;
-    //             }
-    //             //被标记
-    //             if(v_values[value.first]){
-    //                 numNotInVar--;
-    //                 loop->inVar.push_back(value.first);
-    //             }
-    //         }
-    //     }
-    // }
 }
 //计算活跃性集合
 void cal_actVal(RawFunction*func,map<RawBasicBlock*,unordered_set<RawValue*>>&actValIn,map<RawBasicBlock*,unordered_set<RawValue*>>&actValOut)
