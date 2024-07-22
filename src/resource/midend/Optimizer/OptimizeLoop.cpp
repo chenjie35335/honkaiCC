@@ -175,30 +175,38 @@ void cal_actVal(RawFunction*func,map<RawBasicBlock*,unordered_set<RawValue*>>&ac
 {
     map<RawBasicBlock*,unordered_set<RawValue*>>TactValIn,TactValOut;
     for(auto bb:func->basicblock){//初始化为空
-        actValIn[bb];
-        actValOut[bb];
-        TactValIn[bb];
-        TactValOut[bb];
+        actValIn[bb].clear();
+        actValOut[bb].clear();
+        TactValIn[bb].clear();
+        TactValOut[bb].clear();
     }
+    cout<<"活性分析初始化完成"<<endl;
     while(1){
         //遍历每个基本块
         for(auto bb:func->basicblock){
             // _in[n]=in[n]; _out[n]=out[n];
             TactValIn[bb]=actValIn[bb];
             TactValOut[bb]=actValOut[bb];
-            //out[n]-def[n]
-            unordered_set<RawValue*> difference_set,union_set;
-            set_difference(actValOut[bb].begin(), actValOut[bb].end(), bb->defs.begin(), bb->defs.end(),std::inserter(difference_set, difference_set.end()));
+            //in[n]=use[n]
+            actValIn[bb].clear();
+            actValIn[bb] = bb->uses;
             //in[n]=use[n]U(out[n]-def[n])
-            set_union(difference_set.begin(), difference_set.end(), bb->uses.begin(), bb->uses.end(),std::inserter(union_set, union_set.end()));
-            actValIn[bb] = union_set;
-            //out[n] = U_in[s] 所有后继的入口活跃集合的并集
-            union_set.clear();
-            for(auto fbb:bb->fbbs){
-                union_set.merge(actValIn[fbb]);
+            for(auto val:actValOut[bb]){
+                if(bb->defs.find(val)==bb->defs.end()){//差集
+                    actValIn[bb].insert(val);
+                }
             }
-            actValOut[bb] = union_set;
+            
+            //out[n] = U_in[s] 所有后继的入口活跃集合的并集
+            actValOut[bb].clear();
+            for(auto fbb:bb->fbbs){
+                for(auto val:actValIn[fbb]){
+                    actValOut[bb].insert(val);
+                }
+            }
         }
+        
+        //当迭代不变时退出计算
         int count = 0;
         for(auto bb:func->basicblock){
             if(actValOut[bb]==TactValOut[bb]){
@@ -423,10 +431,8 @@ void OptimizeLoop(RawProgramme *IR){
         if(bbs.size()>0){//非空函数
             vector<Loop *>natureLoops;//当前函数的循环集合
             map<RawBasicBlock *,set<RawValue *>> in,out;
-                map<RawBasicBlock*,unordered_set<RawValue*>> actValIn,actValOut;//对每个函数进行活跃性分析
-                // cout<<"111111111111111"<<endl;
-                // cal_actVal(func,actValIn,actValOut);
-                //  cout<<"222222222222222222"<<endl;
+            map<RawBasicBlock*,unordered_set<RawValue*>> actValIn,actValOut;//对每个函数进行活跃性分析
+            cal_actVal(func,actValIn,actValOut);
             findBackEdges(func,natureLoops);//计算回边
             for(auto &loop:natureLoops)//每个自然循环添加前置节点
             {
@@ -434,19 +440,6 @@ void OptimizeLoop(RawProgramme *IR){
             }
             addPreBBToLoop(natureLoops);//将前置节点添加到父循环中
             ReachDef(func,in,out);//到达定值分析
-            // for(auto bb:func->basicblock){
-            //     cout<<"基本块："<<bb->name<<endl;
-            //     cout<<"IN定值到达集合:"<<endl;
-            //     for(auto val:in[bb]){
-            //         cout<<"STROE"<<val->value.store.value->value.integer.value<<","
-            //         <<val->value.store.dest->name<<endl;
-            //     }
-            //     cout<<"OUT定值到达集合:"<<endl;
-            //     for(auto val:out[bb]){
-            //         cout<<"STROE"<<val->value.store.value->value.integer.value<<","
-            //         <<val->value.store.dest->name<<endl;
-            //     }
-            // }
             // 对自然循环处理
             for(auto &loop : natureLoops)
             {
@@ -461,7 +454,7 @@ void OptimizeLoop(RawProgramme *IR){
                 //计算不变量
                 cal_inVar(loop,in);
                 //移动不变量
-                move_inVar(loop,actValIn,actValOut);
+                // move_inVar(loop,actValIn,actValOut);
             }
         }
     }
