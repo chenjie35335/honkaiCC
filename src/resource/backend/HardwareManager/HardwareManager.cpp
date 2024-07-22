@@ -146,6 +146,9 @@ void check(RawValueP y,map<RawValueP,int>&vdef){
                 if(vdef[y]) return;
                 uint32_t e=(y->ty->tag);
                 if(e==RTT_INT32||e==RTT_POINTER){
+                    if(y->value.tag==RVT_ALLOC){
+                        return;
+                    }
                     vdef[y]=1;
                     midl.push_back(y);
                   }
@@ -363,6 +366,7 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
         def[cnt].push_back(it);
     }
     // cout<<"!!!"<<endl;
+    // int res=0;
     for(auto bb:bbbuffer){
         auto &insts=bb->inst;
         for(auto it=insts.begin();it!=insts.end();it++){
@@ -371,9 +375,11 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
             }
             mp[*it]=cnt;
             // if((*it)->value.tag==RVT_GET_ELEMENT){
-            //     cout<<mp[*(it)]<<"!"<<endl;
-            //     cout<<mp[(*it)->value.getelement.index]<<" "<<mp[(*it)->value.getelement.src]<<endl;
-            //     cout<<(*it)->value.getelement.src->value.tag<<"?"<<endl;
+            //     res++;
+            //     if(cnt==423)
+            //     cout<<res<<"!"<<endl;
+            //     // cout<<mp[(*it)->value.getelement.index]<<" "<<mp[(*it)->value.getelement.src]<<endl;
+            //     // cout<<(*it)->value.getelement.src->value.tag<<"?"<<endl;
             // }
             def[cnt].clear();use[cnt].clear();
             cnt++;
@@ -725,8 +731,15 @@ void chg(RawValueP &y,RawValueP &xx,RawValue* &u){
                                 return;
                             }
                             case RVT_GET_ELEMENT:{
-                                auto qq=(y->value.getelement.src);
-                                auto qqq=(y->value.getelement.index);
+                                auto &qq=(yy->value.getelement.src);
+                                auto &qqq=(yy->value.getelement.index);
+                                chg(qq,xx,u);
+                                chg(qqq,xx,u);
+                                return;
+                            }
+                            case RVT_GET_PTR:{
+                                auto &qq=(yy->value.getptr.src);
+                                auto &qqq=(yy->value.getptr.index);
                                 chg(qq,xx,u);
                                 chg(qqq,xx,u);
                                 return;
@@ -765,6 +778,11 @@ void HardwareManager::spill(vector<RawBasicBlockP> &bbbuffer,int id,vector<RawVa
     //找到所有修改值所在位置，如果是左值则在后加store，右值则在前加load，然后将指令修改为新值
     //checkuse找到其是左值1还是右值2，不存在即0
     RawValueP pvue=registerManager.rvp[id][pos];
+    // cout<<mx<<endl;
+    // cout<<pvue->value.tag<<endl;
+    // cout<<pvue->ty->tag<<endl;
+    // if(pvue->value.tag==RVT_GET_ELEMENT)
+    // cout<<mp[pvue]<<endl;
     // for(auto it:registerManager.g[pos]){
     //     for(auto i=registerManager.g[it].begin();i!=registerManager.g[it].end();i++){
     //         if(*i==pos){
@@ -860,6 +878,9 @@ void HardwareManager::spill(vector<RawBasicBlockP> &bbbuffer,int id,vector<RawVa
             auto &insts = it->inst;
             RawValue * load = new RawValue();
             RawType *tyy = new RawType();
+            // if(pvue->ty->tag==RTT_POINTER)
+            // tyy->tag=RTT_POINTER;
+            // else
             tyy->tag = RTT_INT32;
             load->ty = (RawTypeP) tyy;
             load->name = "WWW";
