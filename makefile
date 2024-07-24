@@ -35,7 +35,7 @@ FLEX := flex
 BISON := bison
 
 # Directories
-TOP_DIR := $(shell pwd)
+TOP_DIR := .
 TARGET_EXEC := compiler
 SRC_DIR := $(TOP_DIR)/src
 BUILD_DIR ?= $(TOP_DIR)/build
