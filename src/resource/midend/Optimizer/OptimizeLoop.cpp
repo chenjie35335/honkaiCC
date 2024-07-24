@@ -134,51 +134,129 @@ void cal_inVar(Loop * &loop,map<RawBasicBlock *,set<RawValue *>> in){
         for(auto value:v_values){
             if(value.second==false){//剩余value
             RawValue* val =value.first;
-                switch (val->value.tag){
+                switch (value.first->value.tag){
                     case RVT_STORE:{
-                        if(v_values[(RawValue*)val->value.store.value]){
+                        cout<<value.first->value.store.value->value.integer.value<<endl;
+                        cout<<"asdasda"<<endl;
+                        if(isInVar(loop->loopValues[val],(RawValue*)val->value.store.value,loop,v_values,in)){
                             loop->inVar.push_back(val);
-                            v_values[val] = true;
+                            v_values[val] = true;//标记为不变量
                             numNotInVar--;
                         }
-                        break;
+                    break;
                     }
-                    case RVT_LOAD:{
-                        // cout<<value.first->value.store.value->value.integer.value<<endl;
-                        // cout<<"asdasda"<<endl;
-                        if(isInVar(loop->loopValues[val],(RawValue*)val->value.load.src,loop,v_values,in)){
-                            loop->inVar.push_back(val);
-                            v_values[val] = true;
-                            numNotInVar--;
-                        }
-                        break;
-                    }
-                    case RVT_BINARY:{
-                        RawValue * lhs = (RawValue *)val->value.binary.lhs;
-                        RawValue * rhs = (RawValue *)val->value.binary.rhs;
-                        if(v_values[lhs]&&v_values[rhs]){
-                            loop->inVar.push_back(val);
-                            v_values[val] = true;
-                            numNotInVar--;
-                        }
-                        break;
-                    }
-                    default:
-                        break;
                 }
             }
         }
     }
+        // if(val->value.tag==RVT_INTEGER||val->value.tag==RVT_FLOAT){//常数
+        //     loop->inVar.push_back(val);
+        //     v_values[val] = true;//标记为不变量
+        //     numNotInVar--;
+        // }else if(val->value.tag==RVT_ALLOC){
+        //     loop->inVar.push_back(val);
+        //     v_values[val] = true;
+        //     numNotInVar--;
+        // }else if(val->value.tag==RVT_STORE){
+        //     int setValNum = 0;//到达定值个数
+        //     int setValOutNum = 0;//到达定值在循化外的个数
+        //     for(auto setVal:in[value.second]){
+        //         if(setVal->value.store.dest==val->value.store.dest){//所有定值
+        //             setValNum++;
+        //             if(loop->loopValues.find(setVal)==loop->loopValues.end()){//定值在循环外
+        //                 setValOutNum++;
+        //             }
+        //         }
+        //     }
+        //     if(setValNum==setValOutNum){//所有到达定值在循环外
+        //         loop->inVar.push_back(val);
+        //         v_values[val] = true;
+        //         numNotInVar--;
+        //     }
+        // }
+        // if(isInVar(value.first)){//常数
+        //     loop->inVar.push_back(value.first);
+        //     v_values[value.first] = true;//标记为不变量
+        //     numNotInVar--;
+        // }
+        // else
+        //     v_values[value.first] = false;
+    
+
+    // while(1){
+    //     //判断不变量集合是否有变化
+    //     if(last_numNotInVar == numNotInVar)
+    //         break;
+    //     else
+    //         last_numNotInVar = numNotInVar;
+    //     //判断剩余的
+    //     for(auto value:v_values)
+    //     {
+    //         if(value.second==false)//所有未标记的value
+    //         {
+    //             switch (value.first->value.tag)
+    //             {
+    //             case RVT_LOAD:{
+    //                 if(v_values[(RawValue *)value.first->value.load.src]){
+    //                     v_values[value.first]=true;
+    //                 }
+    //                 break;
+    //             }
+    //             case RVT_STORE:{
+    //                 if(v_values[(RawValue *)value.first->value.store.value]){
+    //                    v_values[value.first]=true;
+    //                 }
+    //                 break;
+    //             }
+    //             case RVT_BINARY:{
+    //                 RawValue * lhs = (RawValue *)value.first->value.binary.lhs;
+    //                 RawValue * rhs = (RawValue *)value.first->value.binary.rhs;
+    //                 if(v_values[lhs]&&v_values[rhs]){
+    //                     v_values[value.first]=true;
+    //                 }
+    //                 break;
+    //             }
+    //             case RVT_ALLOC:{
+    //                 v_values[value.first]=true;
+    //                 break;
+    //             }
+    //             case RVT_PHI:{
+    //                 int numDefIsInLoop = 0;
+    //                 for(auto defpoint:value.first->value.phi.phi){//判断所有定值点都在循环中的个数
+    //                     if(loop->loopValues.count(defpoint.second)!=0)
+    //                         numDefIsInLoop++;
+    //                 }
+    //                 if(numDefIsInLoop==0){//所有定值点在循环外
+    //                     v_values[value.first]=true;
+    //                 }
+    //                 else if((value.first->value.phi.phi.size()==1)
+    //                       &&(v_values[value.first->value.phi.phi.front().second])){
+    //                     //只有一个定值点到达且是不变量
+    //                     v_values[value.first]=true;
+    //                 }
+    //                 break;
+    //             }
+    //             default:
+    //                 break;
+    //             }
+    //             //被标记
+    //             if(v_values[value.first]){
+    //                 numNotInVar--;
+    //                 loop->inVar.push_back(value.first);
+    //             }
+    //         }
+    //     }
+    // }
 }
 //计算活跃性集合
 void cal_actVal(RawFunction*func,map<RawBasicBlock*,unordered_set<RawValue*>>&actValIn,map<RawBasicBlock*,unordered_set<RawValue*>>&actValOut)
 {
     map<RawBasicBlock*,unordered_set<RawValue*>>TactValIn,TactValOut;
     for(auto bb:func->basicblock){//初始化为空
-        actValIn[bb].clear();
-        actValOut[bb].clear();
-        TactValIn[bb].clear();
-        TactValOut[bb].clear();
+        actValIn[bb];
+        actValOut[bb];
+        TactValIn[bb];
+        TactValOut[bb];
     }
     while(1){
         //遍历每个基本块
@@ -186,26 +264,19 @@ void cal_actVal(RawFunction*func,map<RawBasicBlock*,unordered_set<RawValue*>>&ac
             // _in[n]=in[n]; _out[n]=out[n];
             TactValIn[bb]=actValIn[bb];
             TactValOut[bb]=actValOut[bb];
-            //in[n]=use[n]
-            actValIn[bb].clear();
-            actValIn[bb] = bb->uses;
+            //out[n]-def[n]
+            unordered_set<RawValue*> difference_set,union_set;
+            set_difference(actValOut[bb].begin(), actValOut[bb].end(), bb->defs.begin(), bb->defs.end(),std::inserter(difference_set, difference_set.end()));
             //in[n]=use[n]U(out[n]-def[n])
-            for(auto val:actValOut[bb]){
-                if(bb->defs.find(val)==bb->defs.end()){//差集
-                    actValIn[bb].insert(val);
-                }
-            }
-            
+            set_union(difference_set.begin(), difference_set.end(), bb->uses.begin(), bb->uses.end(),std::inserter(union_set, union_set.end()));
+            actValIn[bb] = union_set;
             //out[n] = U_in[s] 所有后继的入口活跃集合的并集
-            actValOut[bb].clear();
+            union_set.clear();
             for(auto fbb:bb->fbbs){
-                for(auto val:actValIn[fbb]){
-                    actValOut[bb].insert(val);
-                }
+                union_set.merge(actValIn[fbb]);
             }
+            actValOut[bb] = union_set;
         }
-        
-        //当迭代不变时退出计算
         int count = 0;
         for(auto bb:func->basicblock){
             if(actValOut[bb]==TactValOut[bb]){
@@ -233,51 +304,20 @@ bool AisdomB(RawBasicBlock * A, RawBasicBlock * B){
 }
 //判断是否满足外提条件
 bool judgeCondition(RawValue * value,Loop * loop,map<RawBasicBlock*,unordered_set<RawValue*>> actValIn,map<RawBasicBlock*,unordered_set<RawValue*>> actValOut){
-    //ALLOC类型默认外提
-    if(value->value.tag==RVT_ALLOC)return true;
+    //Phi函数不外提
+    if(value->value.tag==RVT_PHI)return false;
 
-    // if(value->value.tag==RVT_LOAD){
-    //         cout<<"LOAD "<<value->value.load.src->name<<endl;
-    //         cout<<loop->loopValues[value]->name<<endl;
-    //     }
     //所在基本块是所有出口节点的必经节点
     for(auto exitbb:loop->exitNode){
         if(!AisdomB(loop->loopValues[value],exitbb)){
             return false;
         }
-        if(actValOut[exitbb].find(value)!=actValOut[exitbb].end()){//在出口结点是出口活跃的
+        if(!actValOut[exitbb].count(value)){//在出口结点是出口活跃的
             return false;
         }
     }
-
-    // if(value->value.tag==RVT_LOAD){
-    //         cout<<"LOAD "<<value->value.load.src->name<<endl;
-    //     }
-
-    //在循环中没有其他定值语句---除了store其他的都只定值一次
-    if(value->value.tag==RVT_STORE){
-        for(auto val_bb:loop->loopValues){
-            RawValue * val = val_bb.first;
-            if(val->value.tag==RVT_STORE){
-                if((val->value.store.dest==value->value.store.dest)&&(val!=value)){
-                    return false;//存在多个定值
-                }
-            }
-        }
-    }
+    //在循环中没有其他定值语句(SSA中为单赋值---不需要考虑该条件(非phi函数时都只定值一次))
     //不属于循环前置节点的出口活跃集合
-    if(value->value.tag==RVT_STORE){
-        if(actValOut[loop->outloopNode].find((RawValue*)value->value.store.dest)
-            !=actValOut[loop->outloopNode].end()){
-            return false;
-        }
-    }
-    else{
-        if(actValOut[loop->outloopNode].find(value)!=actValOut[loop->outloopNode].end()){
-            return false;
-        }
-    }
-
     return true;
 }
 //不变量外提
@@ -286,16 +326,14 @@ void move_inVar(Loop * &loop,map<RawBasicBlock*,unordered_set<RawValue*>> actVal
     RawBasicBlock * outloopNode = loop->outloopNode;
     for(auto value:loop->inVar)
     {
-        // 默认都可以外提
-        // RawBasicBlock * oldBlock = loop->loopValues[value];
-        // outloopNode->inst.insert(--outloopNode->inst.end(),value);//添加到前置节点中
-        // oldBlock->inst.remove(value);//从原节点删除
-
-        if(judgeCondition(value,loop,actValIn,actValOut)){
-            RawBasicBlock * oldBlock = loop->loopValues[value];
-            outloopNode->inst.insert(--outloopNode->inst.end(),value);//添加到前置节点中
-            oldBlock->inst.remove(value);//从原节点删除
-        }
+        RawBasicBlock * oldBlock = loop->loopValues[value];
+        outloopNode->inst.insert(--outloopNode->inst.end(),value);//添加到前置节点中
+        oldBlock->inst.remove(value);//从原节点删除
+        // if(judgeCondition(value,loop,actValIn,actValOut)){
+        //     RawBasicBlock * oldBlock = loop->loopValues[value];
+        //     outloopNode->inst.push_back(value);//添加到前置节点中
+        //     oldBlock->inst.remove(value);//从原节点删除
+        // }
     }
 }
 //查找所有回边 
@@ -463,8 +501,10 @@ void OptimizeLoop(RawProgramme *IR){
         if(bbs.size()>0){//非空函数
             vector<Loop *>natureLoops;//当前函数的循环集合
             map<RawBasicBlock *,set<RawValue *>> in,out;
-            map<RawBasicBlock*,unordered_set<RawValue*>> actValIn,actValOut;//对每个函数进行活跃性分析
-            cal_actVal(func,actValIn,actValOut);
+                map<RawBasicBlock*,unordered_set<RawValue*>> actValIn,actValOut;//对每个函数进行活跃性分析
+                // cout<<"111111111111111"<<endl;
+                // cal_actVal(func,actValIn,actValOut);
+                //  cout<<"222222222222222222"<<endl;
             findBackEdges(func,natureLoops);//计算回边
             for(auto &loop:natureLoops)//每个自然循环添加前置节点
             {
@@ -472,6 +512,19 @@ void OptimizeLoop(RawProgramme *IR){
             }
             addPreBBToLoop(natureLoops);//将前置节点添加到父循环中
             ReachDef(func,in,out);//到达定值分析
+            // for(auto bb:func->basicblock){
+            //     cout<<"基本块："<<bb->name<<endl;
+            //     cout<<"IN定值到达集合:"<<endl;
+            //     for(auto val:in[bb]){
+            //         cout<<"STROE"<<val->value.store.value->value.integer.value<<","
+            //         <<val->value.store.dest->name<<endl;
+            //     }
+            //     cout<<"OUT定值到达集合:"<<endl;
+            //     for(auto val:out[bb]){
+            //         cout<<"STROE"<<val->value.store.value->value.integer.value<<","
+            //         <<val->value.store.dest->name<<endl;
+            //     }
+            // }
             // 对自然循环处理
             for(auto &loop : natureLoops)
             {
@@ -488,19 +541,6 @@ void OptimizeLoop(RawProgramme *IR){
                 //移动不变量
                 move_inVar(loop,actValIn,actValOut);
             }
-            // for(auto loop:natureLoops)
-            // {
-            //     cout<<"循环头"<<loop->head->name<<endl;
-            //     for(auto bb:loop->body){
-            //         cout<<bb->name<<",";
-            //     }
-            //     cout<<endl;
-            //     cout<<"出口节点:";
-            //     for(auto exit:loop->exitNode){
-            //         cout<<exit->name<<",";
-            //     }
-            //     cout<<endl;
-            // }
         }
     }
 }

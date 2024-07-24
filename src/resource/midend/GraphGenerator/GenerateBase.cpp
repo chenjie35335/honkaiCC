@@ -31,10 +31,10 @@ void MultCompUnitAST::generateGraph() const{
     GenerateGetInt();
     GeneratePutArray();
     GenerateGetArray();
-    //GeneratePutFloat();
-    //GenerateGetFloat();
-    //GenerateGetFArray();
-    //GeneratePutFArray();
+    GeneratePutFloat();
+    GenerateGetFloat();
+    GenerateGetFArray();
+    GeneratePutFArray();
     for(auto &sinComp : sinCompUnit) {
         sinComp->generateGraph();
     }

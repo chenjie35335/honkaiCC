@@ -1,9 +1,12 @@
 #ifndef FUTUROW_LOOP_OPT
 #define FUTUROW_LOOP_OPT
+#include <iostream>
+#include <map>
 #include <unordered_set>
+#include <set>
 #include "../IR/Programme.h"
 #include "../IR/BasicBlock.h"
-
+using namespace std;
 class Loop{
     public:
     RawBasicBlock * outloopNode;//循环前置节点

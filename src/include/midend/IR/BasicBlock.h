@@ -47,6 +47,7 @@ class RawBasicBlock{
         this->isDeleted = false;
         this->isExec = false;
         this->isVisited = false;
+        fbbs.clear();
     }
     RawBasicBlock(const char * name,int idx){
         this->isDeleted = false;
@@ -55,6 +56,7 @@ class RawBasicBlock{
         size_t bufSize = strlen(name) + 12;
         this->name = new char[bufSize];
         snprintf((char *)this->name, bufSize, "%s_%d", name, idx);
+        fbbs.clear();
         
     }
     RawBasicBlock(const char * funcname,const char * bbname,int idx){
@@ -64,6 +66,7 @@ class RawBasicBlock{
         size_t bufSize = strlen(funcname)+strlen(bbname) + 13;
         this->name = new char[bufSize];
         snprintf((char *)this->name, bufSize, "%s_%s_%d", funcname,bbname, idx);
+        fbbs.clear();
         
     }
 

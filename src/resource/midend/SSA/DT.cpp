@@ -164,7 +164,8 @@ void init_bbs(const RawFunctionP &func)
         //添加所有的基本块，初始化为未标记
         auto &preDomainNode = pbb->preDomainNode;
         auto &domains = pbb->domains;
-        domains.clear();
+        if(!domains.empty()) 
+            domains.clear();
         preDomainNode = nullptr;//初始化节点前驱为零
         visit_bbs[pbb]=false;
     }
