@@ -6,30 +6,8 @@
 #include <cassert>
 #include <cstring>
 #include <iostream>
-#define EXP  0.00000001
-static int LC_Number[100];
-static int current_LC = 0;
-//解决那个问题最方便的方法就是规定一个寄存器专门用来存放地址，但是这个的数量是1个还是多个？
-//写的时候再决定
-//visit const LC
-void Visit(int number)
-{
-    LC_Number[current_LC] = number;
-    current_LC++;
-}
-
-void Print_LC()
-{
-    for(int i = 0; i < current_LC ;i++){
-        cout<<".LC:"<<i;
-        cout<<": "<<endl;
-        cout<<"   .word  "<<LC_Number[i]<<endl;
-    }
-}
-
 int32_t convert(float number)
 {
-    //联合体的神奇功能
     union {
         float f;
         int i;
@@ -45,13 +23,7 @@ void Visit(const RawLoad &data, const RawValueP &value) {
     if(src->value.tag == RVT_GLOBAL) {
         hardware.AllocRegister(value);
         const char *TargetReg = hardware.GetRegister(value);
-        cout << "  la  " << TargetReg << ", " << src->name << endl;
-        if(value->value.tag == RVT_FLOAT){
-            cout << "  flw  " << TargetReg << ", " << 0 << '(' << TargetReg << ')' << endl;
-        } else {
-            cout << "  lw  " << TargetReg << ", " << 0 << '(' << TargetReg << ')' << endl;
-        }
-        
+        cout << "  lw  " << TargetReg << ", " << src->name << endl;
     } else if(src->value.tag == RVT_ALLOC){
         hardware.AllocRegister(value);
         const char *TargetReg = hardware.GetRegister(value);
@@ -81,43 +53,6 @@ void Visit(const RawLoad &data, const RawValueP &value) {
     } else assert(0);
 }
 
-//处理aggregate类型//首先是先计算地址然后store？//这个一般不会出现了
-// void Visit(const RawAggregate &aggregate,const char *src,const char *dest,int &index) {
-    // auto &elements = aggregate.elements;
-    // for(auto element : elements) {
-        // auto elementTag = element->value.tag;
-        // if(elementTag == RVT_AGGREGATE) {
-            // Visit(element->value.aggregate,src,dest,index);
-        // } 
-        // else if(elementTag == RVT_INTEGER) {
-        //    auto value = element->value.integer.value;
-           //int offset = index *4;
-        //    cout << "  li  " << src << ", " << value << endl;
-        //    cout << "  sw  " << src << ", " << 0 << '(' << dest << ')' << endl;
-        //    cout << "  addi " << dest <<  ", " << dest << ", " << 4 << endl;
-        //    index++;
-        // } //add float
-        // else if(elementTag == RVT_FLOAT) {
-        //    auto value = element->value.floatNumber.value;
-        //    int offset = index *4;
-        //    貌似要用到HI-LO寄存器
-        //    int32_t str = convert(value);
-        //    Visit(str);
-        //    cout<<"  lui "<< src <<", "<< "%hi(.LC"<< current_LC << ")" <<endl;
-        //    cout<<"  flw  "<< "f" << src <<", %lo(.LC"<< current_LC << ")" <<endl;  //浮点寄存器
-        //    cout<<"  fsw  "<< "f" << src << ", " << "-" << index*4 << "(" << dest << ")" <<endl;
-        //    index++;
-        // } else {
-            // Visit(element);
-            // const char *elemReg = hardware.GetRegister(element);
-            // cout << "  mv  " << src << ", " << elemReg << endl;
-            // cout << "  sw  " << src << ", " << 0 << '(' << dest << ')' << endl;
-            // cout << "  addi " << dest <<  ", " << dest << ", " << 4 << endl;
-        // }
-    // }
-    // cout << endl;
-// }
-
 //全局处理aggregate类型
 void Visit(const RawAggregate &aggregate) {
     auto &elements = aggregate.elements;
@@ -141,10 +76,7 @@ void Visit(const RawAggregate &aggregate) {
     //cout << endl;
 }
 
-//那里还是存在bug
-//处理store运算
-//store这个地方就是一个巨大的隐患：我们给这个分配了寄存器
-void Visit(const RawStore &data, const RawValueP &value) {//store这个地方的加锁问题一直很大
+void Visit(const RawStore &data, const RawValueP &value) {
     //cout << endl;
     const auto &src = data.value;
     const auto &dest= data.dest;
@@ -155,9 +87,7 @@ void Visit(const RawStore &data, const RawValueP &value) {//store这个地方的
         hardware.LeaseLockRegister(src);
         const char *SrcReg = hardware.GetRegister(src);
         const char * DestReg = hardware.GetRegister(dest);
-        cout << "  la  " << DestReg << ", " << dest->name << endl;
-        cout << "  sw  " << SrcReg << ", " << 0 << '(' << DestReg << ')' << endl;
-        //首先全局变量会被当成寄存器使用吗？
+        cout << "  sw  " << SrcReg << ", " << dest->name << ", "<< DestReg << endl;
     } else if(dest->value.tag == RVT_ALLOC){
         Visit(src);
         const char *SrcReg = hardware.GetRegister(src);
@@ -193,18 +123,12 @@ void Visit(const RawBinary &data,const RawValueP &value) {
     const auto &rhs = data.rhs;
     const auto &op  = data.op;
     Visit(lhs);
-    if(lhs->value.tag == RVT_FLOAT)
     hardware.addLockRegister(lhs);
-    else hardware.addLockRegister(lhs);
 
     Visit(rhs);
-    if(rhs->value.tag == RVT_FLOAT)
     hardware.addLockRegister(rhs);
-    else hardware.addLockRegister(rhs);
 
-    if(value->value.tag == RVT_FLOAT)
     hardware.AllocRegister(value);
-    else hardware.AllocRegister(value);
 
     //release
     hardware.LeaseLockRegister(lhs);
@@ -270,8 +194,6 @@ void Visit(const RawBinary &data,const RawValueP &value) {
         case RBO_AND:
             cout << "  and  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
             break;
-        //float
-        //浮点寄存器的选择策略需要改
         case RBO_FADD:
             cout << "  fadd.s  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
             break;
@@ -284,7 +206,6 @@ void Visit(const RawBinary &data,const RawValueP &value) {
         case RBO_FDIV:
             cout << "  fdiv.s  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
             break;
-        //s表示单精度，我们只用实现float
         case RBO_FGE://no
             cout << "  fge.s  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
             break;
@@ -331,12 +252,10 @@ void Visit(const RawCall &data,const RawValueP &value) {
         Visit(ptr);
         if(i < 8) {
             const char *reg = hardware.GetRegister(ptr);
-            hardware.StoreReg(10+i);
+            hardware.StoreReg(10+i,RTT_INT32);
             const char* paramReg = RegisterManager::regs[10+i];
-            // cout << "!!!" << endl;
             cout << "  mv  " << paramReg << ", " << reg << endl;
         } else {
-            // cout << "!!!!" << endl; 
             const char *reg = hardware.GetRegister(ptr);
             int offset = (i-8)*8;
             if(offset > 2047) {
@@ -348,7 +267,7 @@ void Visit(const RawCall &data,const RawValueP &value) {
         }
     }
      for(int i = 0;i < 7;i++) {
-         hardware.StoreReg(RegisterManager::callerSave[i]);
+         hardware.StoreReg(RegisterManager::callerSave[i],RTT_INT32);
      }
     cout<<"  call "<<data.callee->name<<endl;
     if(value->ty->tag == RTT_INT32){
@@ -357,8 +276,7 @@ void Visit(const RawCall &data,const RawValueP &value) {
         const char *retReg = hardware.GetRegister(value);
         cout << "  mv  " << retReg << ", a0" << endl;
     } else if ( value->ty->tag == RTT_FLOAT){
-        //应该分配给浮点寄存器
-        hardware.AssignFRegister(value,10);
+
     }
 }
 //这里不需要分配寄存器，直接默认在a的几个寄存器中，读出来后直接分配栈空间
@@ -497,12 +415,9 @@ void Visit(const RawConvert * data)
 //现在可能需要做一个约定：凡是遇到全局变量或者函数参数
 void Visit(const RawValueP &value) {    
     const auto& kind = value->value;
-    //cout <<"Visit kind" << kind.tag << endl;
     if(hardware.IsRegister(value)) {
-        // cout << "register" << endl;
         return;
     }  else if(hardware.IsMemory(value)) {
-        // cout << "memory" << endl;
         hardware.LoadFromMemory(value);
         return;
     }
@@ -544,7 +459,7 @@ void Visit(const RawValueP &value) {
         break;
     }
     case RVT_FLOAT:{
-        // const auto& floatNumber = kind.floatNumber.value;
+        const auto& floatNumber = kind.floatNumber.value;
         // if(floatNumber >= 0 && floatNumber <= 0) { //判断浮点数为0，看起来很蠢
             // hardware.AssignRegister(value,0);
         // } else {
@@ -564,7 +479,6 @@ void Visit(const RawValueP &value) {
         break;
     }
     case RVT_ALLOC: {
-        //cout << "alloc" << endl;
         hardware.StackAlloc(value); 
         break;
     }
@@ -607,7 +521,6 @@ void Visit(const RawValueP &value) {
         break;
     }
     case RVT_AGGREGATE: {//这个貌似没有单独出现，都是依附于alloc之类的存在的
-        //cout << "aggregate handler" << endl;
         break;
     }
     case RVT_GET_PTR: {
@@ -688,11 +601,10 @@ void generateASM(RawProgramme *& programme) {
     auto &values = programme->values;
     auto &funcs = programme->funcs;
     for(auto value : values)
-    Visit(value);
+        Visit(value);
     cout << "  .text" << endl;
     for(auto func : funcs)
-    Visit(func);
-    Print_LC();
+        Visit(func);
 }
 
 

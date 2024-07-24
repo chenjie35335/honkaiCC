@@ -64,7 +64,15 @@ void generateRawValue(string &name, RawValueP lhs, RawValueP rhs, uint32_t op)
     RawType *ty = new RawType();
     //我们尽量按照浮点的要求去处理，后面可以转化为整形
     if(lhs->ty->tag == RTT_FLOAT || rhs->ty->tag == RTT_FLOAT){
-        ty->tag = RTT_FLOAT;
+        if( op == RBO_FEQ       || 
+            op == RBO_NOT_FEQ   || 
+            op == RBO_FGE       || 
+            op == RBO_FGT       ||
+            op == RBO_FLE       || 
+            op == RBO_FLT
+            )
+            ty->tag = RTT_INT32;
+        else ty->tag = RTT_FLOAT;
     } else {
         ty->tag = RTT_INT32;
     }

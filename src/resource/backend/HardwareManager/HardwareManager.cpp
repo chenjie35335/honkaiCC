@@ -61,7 +61,7 @@ void calculateSize(int &ArgsLen, int &LocalLen, int &ReserveLen, const RawFuncti
 {
     bool has_call;
     auto &params = function->params; // 给所有的参数分配空间
-    LocalLen += 8*50;//这50个是固定给全局变量分配的空间
+    //LocalLen += 8*50;//这50个是固定给全局变量分配的空间
     for (auto bb : function->basicblock)
     {
         for (auto value : bb->inst)
@@ -80,11 +80,17 @@ void calculateSize(int &ArgsLen, int &LocalLen, int &ReserveLen, const RawFuncti
             if (value->value.tag == RVT_CALL)
             {
                 has_call = true;
+                // cout << "call's size" << value->value.call.args.size() << endl;
                 ArgsLen = max(ArgsLen, int(value->value.call.args.size() - 8)) * 8;
+            }
+            else if(value->value.tag == RVT_STORE) 
+            {
+                auto storeValue = value->value.store.dest;
+                if(storeValue->value.tag == RVT_GLOBAL) LocalLen += 8;//这个是给全局变量分配的
             }
         }
     }
-    ReserveLen = 14 * 8; // 无论有没有，这个我们都保存一下返回地址
+    ReserveLen = 26 * 8; // 无论有没有，这个我们都保存一下返回地址
     // cout << "Args=" <<  ArgsLen << ",Local=" << LocalLen << ",Reserve=" << ReserveLen << endl;
 }
 
@@ -139,86 +145,96 @@ void HardwareManager::LoadFromMemory(const RawValueP &value)
     const char *reg = GetRegister(value);
     int TargetOffset = getTargetOffset(value);
     if(value->value.tag == RVT_FLOAT){
-        cout << "  flw  " << reg << ", " << TargetOffset << "(sp)" << endl;
+        if(TargetOffset > 2047) {
+            cout << "  li   " << "t0, " << TargetOffset << endl;
+            cout << "  add  " << "t0, sp, t0" << endl;
+            cout << "  fld  " <<  reg << ", " << 0 << "(t0)" << endl; 
+        } else 
+            cout << "  fld   " << reg << ", " << TargetOffset << "(sp)" << endl;
     } else {
-    if(TargetOffset > 2047) {
-        cout << "  li   " << "t0, " << TargetOffset << endl;
-        cout << "  add  " << "t0, sp, t0" << endl;
-        cout << "  ld  " <<  reg << ", " << 0 << "(t0)" << endl; 
-    } else 
-        cout << "  ld   " << reg << ", " << TargetOffset << "(sp)" << endl;
+        if(TargetOffset > 2047) {
+            cout << "  li   " << "t0, " << TargetOffset << endl;
+            cout << "  add  " << "t0, sp, t0" << endl;
+            cout << "  ld  " <<  reg << ", " << 0 << "(t0)" << endl; 
+        } else 
+            cout << "  ld   " << reg << ", " << TargetOffset << "(sp)" << endl;
     }
     
+}
+
+bool HardwareManager::IsRegisterNotAval(int reg,int tag) {
+    if(tag == RTT_FLOAT)
+        return ((reg >= 10 && reg <= 17) || registerManager.RegisterLock[reg]) && reg < 32;
+    else
+        return ((reg >= 10 && reg <= 17) || registerManager.FRegisterLock[reg]) && reg < 32;
 }
 
 void HardwareManager::AllocRegister(const RawValueP &value)
 {
     // cout << "alloc register for " << value->value.tag << endl;
-    if(registerManager.registerLook.find(value) != registerManager.registerLook.end())  return;
-    // for(auto pair : registerManager.registerLook) {
-        // cout << "before register " << pair.second << " in look" << endl;
-    // }
-    // cout << "before registerlook size:" << registerManager.registerLook.size() << endl;
-    if (registerManager.RegisterFull)
-    {
+    auto ValueTy = value->ty->tag;
+    // cout << "value type: " << ValueTy << endl;
+    auto &look = (ValueTy == RTT_FLOAT) ? registerManager.FregisterLook : registerManager.registerLook;
+    auto &full = (ValueTy == RTT_FLOAT) ? registerManager.FRegisterFull : registerManager.RegisterFull;
+    auto &tempRegister = (ValueTy == RTT_FLOAT) ? registerManager.tempFRegister : registerManager.tempRegister;
+    if(look.find(value) != look.end())  return;
+    if (full) {
         int RandSelected;
-        auto it = registerManager.registerLook.begin();
+        auto it = look.begin();
         do{
             RandSelected = it->second;
             it++;
-        }while(!isValid(RandSelected) && it != registerManager.registerLook.end());
-        StoreReg(RandSelected);
-        //registerManager.registerLook.insert(pair<RawValueP, int>(value, RandSelected));
-        registerManager.registerLook[value] = RandSelected;
-        // cout << "alloc register :" << RandSelected<<" " << RegisterManager::regs[RandSelected] << endl;
-    }
-    else
-    {
-        uint32_t &RegLoc = registerManager.tempRegister;
-        registerManager.registerLook[value] = RegLoc;
+        } while(!isValid(RandSelected,value->ty->tag) && it != look.end());
+        StoreReg(RandSelected,ValueTy);
+        look[value] = RandSelected;
+    } else {
+        uint32_t &RegLoc = tempRegister;
+        look[value] = RegLoc;
         // cout << "alloc register " << RegLoc << RegisterManager::regs[RegLoc] << endl;
-        do
-        {
+        do {
             RegLoc++;
-        } while (((RegLoc >= 10 && RegLoc <= 17) || registerManager.RegisterLock[RegLoc]) && RegLoc < 32);
+        } while (IsRegisterNotAval(RegLoc,value->ty->tag));
         if (RegLoc == 32)
-            registerManager.RegisterFull = true;
+            full = true;
     }
-    // for(auto pair : registerManager.registerLook) {
-        // cout << "after register " << pair.second << " in look" << endl;
-    // }
-    // cout << "after registerlook size:" << registerManager.registerLook.size() << endl;
 }
 
 
-void HardwareManager::StoreReg(int RandSelected)
+void HardwareManager::StoreReg(int RandSelected,int type)
 {
     //cout << "spill reg" << RandSelected << endl;
+    auto &look = (type == RTT_FLOAT) ? registerManager.FregisterLook : registerManager.registerLook;
     const char *TargetReg;
     int TargetOffset;
-    auto pair = registerManager.registerLook.begin();
-    for (;pair != registerManager.registerLook.end();pair++)
+    auto pair = look.begin();
+    for (;pair != look.end();pair++)
         if (pair->second == RandSelected)
             break;
-    if(pair == registerManager.registerLook.end()) return;
+    if(pair == look.end()) return;
     auto value = pair->first;
-    TargetReg = RegisterManager::regs[RandSelected];
     if (IsMemory(value))
         TargetOffset = getTargetOffset(value);
     else
         TargetOffset = StackAlloc(value);
-    registerManager.registerLook.erase(value);
-    // for(auto look : registerManager.registerLook) {
-        // cout << "erase register " << look.second << " in look" << endl;
-    // }
-    // cout << "erase registerlook size:" << registerManager.registerLook.size() << endl;
+    look.erase(value);
     if(value->value.tag == RVT_ALLOC || value->value.tag == RVT_GLOBAL) return;
-    if(TargetOffset > 2047) {
-        cout << "  li   " << "t0, " << TargetOffset << endl;
-        cout << "  add  " << "t0, sp, t0" << endl;
-        cout << "  sd  " <<  TargetReg << ", " << 0 << "(t0)" << endl; 
-    } else
-        cout << "  sd   " << TargetReg << ", " << TargetOffset << "(sp)" << endl;
+    if(type == RTT_FLOAT) {
+        TargetReg = RegisterManager::fregs[RandSelected];
+        if(TargetOffset > 2047) {
+            cout << "  li   " << "t0, " << TargetOffset << endl;
+            cout << "  add  " << "t0, sp, t0" << endl;
+            cout << "  fsd  " <<  TargetReg << ", " << 0 << "(t0)" << endl; 
+        } else
+            cout << "  fsd   " << TargetReg << ", " << TargetOffset << "(sp)" << endl;
+    } else {
+        TargetReg = RegisterManager::regs[RandSelected];
+        if(TargetOffset > 2047) {
+            cout << "  li   " << "t0, " << TargetOffset << endl;
+            cout << "  add  " << "t0, sp, t0" << endl;
+            cout << "  sd  " <<  TargetReg << ", " << 0 << "(t0)" << endl; 
+        } else
+            cout << "  sd   " << TargetReg << ", " << TargetOffset << "(sp)" << endl;
+    }
 }
 
 
@@ -241,44 +257,46 @@ const char *RegisterManager::fregs[32] = {
 };
 
 const int RegisterManager::callerSave[7] = {
-    5, 6, 7, 28, 29, 30, 31};
+    5, 6, 7, 28, 29, 30, 31
+};
 
 const int RegisterManager::calleeSave[12] = {
-    8, 9, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27};
+    8, 9, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27
+};
+
+const int RegisterManager::callerFSave[12] = {
+    0, 1, 2, 3, 4, 5, 6, 7, 28, 29, 30, 31
+};
+
+const int RegisterManager::calleeFSave[12] = {
+    8, 9, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27
+};
 
 void RegisterArea::LoadRegister(int reg)
 {
     assert(StackManager.find(reg) != StackManager.end());
     int offset = StackManager.at(reg);
-    if (offset <= 2047)
-    {
+    if (offset <= 2047) {
         cout << "  ld  " << RegisterManager::regs[reg] << ", " << offset << "(sp)" << endl;
-    }
-    else
-    {
+    } else {
         cout << "  li  t0," << offset << endl;
         cout << "  add t0, sp, t0" << endl;
         cout << "  ld  " << RegisterManager::regs[reg] << ", " << 0 << "(t0)" << endl;
     }
 }
 
-//fregs
 void RegisterArea::LoadFRegister(int reg)
 {
     assert(StackManager.find(reg) != StackManager.end());
     int offset = StackManager.at(reg);
-    if (offset <= 2047)
-    {
-        cout << "  flw  " << RegisterManager::fregs[reg] << ", " << offset << "(sp)" << endl;
-    }
-    else
-    {
+    if (offset <= 2047) {
+        cout << "  fld  " << RegisterManager::regs[reg] << ", " << offset << "(sp)" << endl;
+    } else {
         cout << "  li  t0," << offset << endl;
         cout << "  add t0, sp, t0" << endl;
-        cout << "  flw  " << RegisterManager::fregs[reg] << ", " << 0 << "(t0)" << endl;
+        cout << "  fld  " << RegisterManager::regs[reg] << ", " << 0 << "(t0)" << endl;
     }
 }
-
 
 void RegisterArea::SaveRegister(int reg)
 {
@@ -296,23 +314,21 @@ void RegisterArea::SaveRegister(int reg)
     tempOffset -= 8;
 }
 
-//fregs
 void RegisterArea::SaveFRegister(int reg)
 {
     if (tempOffset <= 2047)
     {
-        cout << "  fsw  " << RegisterManager::fregs[reg] << ", " << tempOffset << "(sp)" << endl;
+        cout << "  fsd  " << RegisterManager::fregs[reg] << ", " << tempOffset << "(sp)" << endl;
     }
     else
     {
         cout << "  li  t0," << tempOffset << endl;
         cout << "  add t0, sp, t0" << endl;
-        cout << "  fsw  " << RegisterManager::fregs[reg] << ", " << 0 << "(t0)" << endl;
+        cout << "  fsd  " << RegisterManager::fregs[reg] << ", " << 0 << "(t0)" << endl;
     } // 这个方法虽然蠢但是是正确的
     StackManager.insert(pair<int, int>(reg, tempOffset));
-    tempOffset -= 4;
+    tempOffset -= 8;
 }
-
 // init要做的事：
 /*
 1、 给被调用者保存寄存器分配内存空间(这个由于在最上层最后弄)
