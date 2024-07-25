@@ -59,7 +59,7 @@ void Visit(const RawLoad &data, const RawValueP &value,int id) {
         // if(hardware.registerManager.sadd[value]){
         //         cout << "  add " << TargetReg<< ", sp ," << TargetReg << endl;
         //     }
-    } 
+    }
     else if(src->value.tag == RVT_GET_ELEMENT || src->value.tag == RVT_GET_PTR){
 //        hardware.addLockRegister(src);
         hardware.AllocRegister(value,id);
@@ -69,6 +69,7 @@ void Visit(const RawLoad &data, const RawValueP &value,int id) {
         // hardware.LeaseLockRegister(src);
     } else{
         cout<<src->value.tag<<"!!!"<<endl;
+        cout<<src->value.integer.value<<endl;
         exit(0);
     }
 }

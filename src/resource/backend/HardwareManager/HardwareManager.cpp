@@ -249,7 +249,7 @@ void check(RawValueP y,map<RawValueP,int>&vdef){
                   }
             }
 
-const int M=10000,N=26;
+const int M=10000,N=25;
 vector<RawValueP> def[M],use[M];
     map<RawValueP,int> mp;
 void make_def_use(vector<RawBasicBlockP> bbbuffer){
@@ -277,10 +277,13 @@ void make_def_use(vector<RawBasicBlockP> bbbuffer){
                             case RVT_STORE:{
                                 auto qq=(y->value.store.value);    
                                 auto qqq=(y->value.store.dest);
-                                if(qq->ty!=NULL)
-                                if(qq->ty->tag==0||qq->ty->tag==4) use[mp[it]].push_back(qq);
+                                if(qq->ty!=NULL){
+                                    if(qq->ty->tag==0||qq->ty->tag==4) use[mp[it]].push_back(qq);
+                                    if(!mp[qq]) def[mp[it]].push_back(qq);
+                                }
                                 if(qqq->ty!=NULL)
                                 if(qqq->ty->tag==0||qqq->ty->tag==4) use[mp[it]].push_back(qqq);
+                                 if(!mp[qqq]) def[mp[it]].push_back(qqq);
                                 break;
                             }
                             case RVT_RETURN:{
@@ -759,7 +762,7 @@ void chg(RawValueP &y,RawValueP &xx,RawValue* &u){
 extern SignTable signTable;
 int pos=1,mx=0;
 void HardwareManager::spill(vector<RawBasicBlockP> &bbbuffer,int id,vector<RawValue*> &cuf){
-    const int N=26;
+    const int N=5;
     //  registerManager.Ccolor=registerManager.n;
     // if(registerManager.Ccolor<=N) return;
     pos=1,mx=0;
@@ -794,7 +797,6 @@ void HardwareManager::spill(vector<RawBasicBlockP> &bbbuffer,int id,vector<RawVa
     // registerManager.g[pos].clear();
     //  registerManager.n--;
          RawValue* aloc;
-
          int okk=1;
     // if(pvue->value.tag==RVT_FUNC_ARGS){
     //     int id= pvue->value.funcArgs.index;
@@ -834,7 +836,7 @@ void HardwareManager::spill(vector<RawBasicBlockP> &bbbuffer,int id,vector<RawVa
     for(auto itt:bbbuffer){
         RawBasicBlock* it =(RawBasicBlock*)itt;
         for(auto j=(it->inst).begin();j!=(it->inst).end();j++){
-            CNT++;
+            
         //     if(!okk){
         //     okk=1;continue;
         // }
@@ -842,6 +844,7 @@ void HardwareManager::spill(vector<RawBasicBlockP> &bbbuffer,int id,vector<RawVa
             auto p=j;
             p++;
             if(checkuse(x,pvue,1)==1){
+                CNT++;
                 //l store
             //造alloc作为dest
             auto &insts = it->inst;
@@ -883,7 +886,7 @@ void HardwareManager::spill(vector<RawBasicBlockP> &bbbuffer,int id,vector<RawVa
             // else
             tyy->tag = RTT_INT32;
             load->ty = (RawTypeP) tyy;
-            load->name = "WWW";
+            load->name = "WWw";
             load->value.tag = RVT_LOAD;
             load->value.load.src =aloc;
             it->inst.insert(j,load);
