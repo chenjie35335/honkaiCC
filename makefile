@@ -148,9 +148,9 @@ koopa-test:
 riscv-test:
 	./build/compiler -S -o hello.S hello.c 
 	clang hello.S -c -o hello.o -target riscv64-unknown-linux-elf -march=rv64imafdc -mabi=lp64d -mno-relax
-	ld.lld hello.o -L $$CDE_LIBRARY_PATH/riscv64 -lsysy -o hello
+	ld.lld hello.o -L . -lsysy -o hello
 	riscv64-linux-gnu-objdump -d hello > hello.obj
-	qemu-riscv64-static hello 
+	qemu-riscv64-static hello < hello.in
 
 gdb:
 	gdb --args ./build/compiler -riscv -o hello.S  hello.c

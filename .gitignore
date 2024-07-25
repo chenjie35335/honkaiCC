@@ -63,3 +63,4 @@ test/
 *.zip
 *.tar
 *.ll
+*.in

@@ -141,10 +141,11 @@ void MemoryManager::initLocalArea(int min, int max)
 
 void HardwareManager::LoadFromMemory(const RawValueP &value)
 {
+    // cout << "load from memory" << endl;
     AllocRegister(value);
     const char *reg = GetRegister(value);
     int TargetOffset = getTargetOffset(value);
-    if(value->value.tag == RVT_FLOAT){
+    if(value->ty->tag == RTT_FLOAT){
         if(TargetOffset > 2047) {
             cout << "  li   " << "t0, " << TargetOffset << endl;
             cout << "  add  " << "t0, sp, t0" << endl;

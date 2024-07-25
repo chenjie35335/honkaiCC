@@ -43,10 +43,11 @@ void LOrExpAST::generateGraph(string &sign) const
     string name = "aaaaaaa" + to_string(++alloc_now);
     generateRawValue(name,RTT_INT32);
     RawValueP MidValueData = signTable.getVarL(name);
-    RawValueP zero,one;
+    RawValueP zero,one,zeroFloat;
     string ZeroSign = to_string(0);
     string OneSign = to_string(1);
     generateRawValue(0);
+    generateRawValue((float)0.0);
     getMidVarValue(zero, ZeroSign);
     generateRawValue(zero,MidValueData);
     string ThenSign = "scthen" + to_string(IfNum);
@@ -59,6 +60,12 @@ void LOrExpAST::generateGraph(string &sign) const
     generateRawBasicBlock(Endbb,EndSign.c_str());
     LOrExp->generateGraph(sign1);
     RawValueP cond1 = signTable.getMidVar(sign1);
+    if(cond1->ty->tag == RTT_FLOAT) {
+      string FloatZero = to_string(0.0);
+      getMidVarValue(zeroFloat,FloatZero);
+      generateRawValue(sign, cond1, zeroFloat, RBO_NOT_FEQ);
+      cond1 = signTable.getMidVar(sign);
+    }
     generateRawValue(cond1, Thenbb, Elsebb);
     PushFollowBasieBlock(Thenbb,Elsebb);
     setTempBasicBlock(Thenbb);
@@ -74,6 +81,12 @@ void LOrExpAST::generateGraph(string &sign) const
     setFinished(false);
     LAndExp->generateGraph(sign2);
     RawValueP cond2 = signTable.getMidVar(sign2);
+    if(cond2->ty->tag == RTT_FLOAT) {
+      string FloatZero = to_string(0.0);
+      getMidVarValue(zeroFloat,FloatZero);
+      generateRawValue(sign, cond2, zeroFloat, RBO_NOT_FEQ);
+      cond2 = signTable.getMidVar(sign);
+    }
     generateRawValue(cond2, Thenbb, Endbb);
     PushFollowBasieBlock(Thenbb,Endbb);
     setTempBasicBlock(Endbb);
@@ -119,9 +132,16 @@ void LAndExpAST::generateGraph(string &sign) const
     LAndExp->generateGraph(s1);
     RawValueP lhs = signTable.getMidVar(s1);
     s1 = "@" + to_string(++alloc_now);
-    generateRawValue(0);
-    getMidVarValue(zero, ZeroSign);
-    generateRawValue(s1,zero,lhs,RBO_EQ);
+    if(lhs->ty->tag == RTT_FLOAT) {
+      generateRawValue((float)0.0);
+      string ZeroFloat = to_string(0.0);
+      getMidVarValue(zero, ZeroFloat);
+      generateRawValue(s1,zero,lhs,RBO_FEQ);
+    } else{
+      generateRawValue(0);
+      getMidVarValue(zero, ZeroSign);
+      generateRawValue(s1,zero,lhs,RBO_EQ);
+    }
     RawValueP cond1 = signTable.getMidVar(s1);
     generateRawValue(cond1, Thenbb, Elsebb);
     PushFollowBasieBlock(Thenbb,Elsebb);
@@ -139,9 +159,16 @@ void LAndExpAST::generateGraph(string &sign) const
     EqExp->generateGraph(s2);
     RawValueP rhs = signTable.getMidVar(s2);
     s2 = "@" + to_string(++alloc_now);
-    generateRawValue(0);
-    getMidVarValue(zero, ZeroSign);
-    generateRawValue(s2,zero,rhs,RBO_EQ);
+    if(rhs->ty->tag == RTT_FLOAT) {
+      generateRawValue((float)0.0);
+      string ZeroFloat = to_string(0.0);
+      getMidVarValue(zero, ZeroSign);
+      generateRawValue(s2,zero,rhs,RBO_FEQ);
+    } else {
+      generateRawValue(0);
+      getMidVarValue(zero, ZeroSign);
+      generateRawValue(s2,zero,rhs,RBO_EQ);
+    }
     RawValueP cond2 = signTable.getMidVar(s2);
     generateRawValue(cond2, Thenbb, Endbb);
     PushFollowBasieBlock(Thenbb,Endbb);

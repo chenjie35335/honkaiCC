@@ -331,6 +331,12 @@ void generateRawValue(string &name, RawValueP &src)
 /// @param Truebb 
 /// @param Falsebb 
 void generateRawValue(RawValueP &cond, RawBasicBlock* &Truebb, RawBasicBlock* &Falsebb){
+    RawValueP condValue = cond;
+    if(cond->ty->tag == RTT_FLOAT) {
+        string Convert;
+        generateConvert(cond,Convert);
+        condValue = signTable.getMidVar(Convert);
+    }
     auto bb = getTempBasicBlock();
     auto &insts = bb->inst;
     RawValue *br = new RawValue();
@@ -339,7 +345,7 @@ void generateRawValue(RawValueP &cond, RawBasicBlock* &Truebb, RawBasicBlock* &F
     br->ty = (RawTypeP) ty;
     br->name = nullptr;
     br->value.tag = RVT_BRANCH;
-    br->value.branch.cond = cond;
+    br->value.branch.cond = condValue;
     br->value.branch.true_bb = (RawBasicBlockP)Truebb;
     br->value.branch.false_bb = (RawBasicBlockP)Falsebb;
     insts.push_back(br);

@@ -244,7 +244,8 @@ void Visit(const RawBinary &data,const RawValueP &value) {
             cout << "  flt.s  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
             break;
         case RBO_NOT_FEQ: //no
-            cout << "  fneq.s  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
+            cout << "  feq.s  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
+            cout << "  neg  " << ValueRegister << ", " << ValueRegister << endl;
             break;
         case RBO_FEQ:
             cout << "  feq.s  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
@@ -278,11 +279,10 @@ void Visit(const RawCall &data,const RawValueP &value) {
         if(i < 8) {
             const char *reg = hardware.GetRegister(ptr);
             hardware.StoreReg(10+i,ptr->ty->tag);
-            const char* paramReg = RegisterManager::regs[10+i];
             if(ptr->ty->tag == RTT_FLOAT)
-                cout << "  fmv.s  " << paramReg << ", " << reg << endl;
+                cout << "  fmv.s  " << RegisterManager::fregs[10+i] << ", " << reg << endl;
             else 
-                cout << "  mv  " << paramReg << ", " << reg << endl;
+                cout << "  mv  " << RegisterManager::regs[10+i] << ", " << reg << endl;
         } else {
             const char *reg = hardware.GetRegister(ptr);
             int offset = (i-8)*8;
@@ -311,7 +311,10 @@ void Visit(const RawCall &data,const RawValueP &value) {
     hardware.AllocRegister(value);
     hardware.StackAlloc(value);
     const char *retReg = hardware.GetRegister(value);
-    cout << "  mv  " << retReg << ", a0" << endl;
+    if(value->ty->tag == RTT_FLOAT)
+        cout << "  fmv.s  " << retReg << ", fa0" << endl;
+    else
+        cout << "  mv  " << retReg << ", a0" << endl;
 }
 //这里不需要分配寄存器，直接默认在a的几个寄存器中，读出来后直接分配栈空间
 void Visit(const RawFuncArgs &data,const RawValueP &value) {
@@ -320,6 +323,7 @@ void Visit(const RawFuncArgs &data,const RawValueP &value) {
     if(index < 8) 
         hardware.AssignRegister(value,10+index);//这里直接分配a寄存器
     else {
+        // cout << "funcargs" << endl;
         hardware.AllocRegister(value);
         const char *reg = hardware.GetRegister(value);
         int StackSize = hardware.getStackSize();
@@ -448,14 +452,20 @@ void Visit(const RawConvert &data, const RawValueP &value)
     auto SrcType = data.src->ty->tag;
     if(SrcType == RTT_INT32){
         const char *srcReg;
+        Visit(data.src);
         srcReg = hardware.GetRegister(data.src);
+        hardware.addLockRegister(data.src);
         hardware.AllocRegister(value);
+        hardware.LeaseLockRegister(data.src);
         const char *TReg = hardware.GetRegister(value);
         cout<<"  fcvt.s.w " << TReg << ", " << srcReg << ", " << "rtz" << endl;
     } else if(SrcType == RTT_FLOAT) {
         const char*srcReg;
+        Visit(data.src);
         srcReg = hardware.GetRegister(data.src);
+        hardware.addLockRegister(data.src);
         hardware.AllocRegister(value);
+        hardware.LeaseLockRegister(data.src);
         const char *TReg = hardware.GetRegister(value);
         cout<< "  fcvt.w.s " << TReg << ", "<< srcReg << ", " << "rtz" << endl;
     }

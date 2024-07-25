@@ -41,14 +41,9 @@ public:
     case LOREXPAST_LOR:
     {
       int value1 = LOrExp->calc();
-      if(value1 == 1) {
-        value = 1;
-        break;
-      } else {
-        int value2 = LAndExp->calc();
-        value = value1 || value2;
-        break;
-      }
+      int value2 = LAndExp->calc();
+      value = value1 || value2;
+      break;
     }
     }
     return value;
@@ -64,14 +59,10 @@ public:
     case LOREXPAST_LOR:
     {
       int value1 = LOrExp->calc();
-      if(value1 == 1) {
-        value = 1;
-        break;
-      } else {
-        int value2 = LAndExp->calc();
-        value = value1 || value2;
-        break;
-      }
+      int value2 = LAndExp->calc();
+      value = value1 || value2;
+      break;
+      
     }
     }
     return value;
@@ -96,14 +87,9 @@ public:
     case LANDEXPAST_LAN:
     {
       int value1 = EqExp->calc();
-      if(value1 == 0) {
-        value = 0;
-        break;
-      } else {
-        int value2 = LAndExp->calc();
-        value = value1 && value2;
-        break;
-      }
+      int value2 = LAndExp->calc();
+      value = value1 && value2;
+      break;
     }
     }
     return value;
@@ -119,8 +105,8 @@ public:
     //impossible 
     case LANDEXPAST_LAN:
     {
-      int value1 = EqExp->calc();
-      int value2 = LAndExp->calc();
+      float value1 = EqExp->fcalc();
+      float value2 = LAndExp->fcalc();
       value = value1 && value2;
       break;
     }
@@ -436,7 +422,7 @@ public:
         break;
       case '%':
         cout<<"error in % of float";
-        assert(-1);
+        assert(0);
         //break;
       default:
         assert(0);
@@ -583,37 +569,37 @@ public:
   /*如果遍历结果为常数，直接返回，如果不是，继续遍历*/
   [[nodiscard]] int calc() const override
   {
-    int value;
-    switch (kind)
-    {
-    case UNARYEXP:
-      value = Exp->calc();
-      break;
-    case LVAL:
-      value = Lval->calc();
-      break;
-    case NUMBER:
-      value = number;
-      break;
-    }
-    return value;
+          int value;
+          switch (kind)
+          {
+              case UNARYEXP:
+                value = Exp->calc();
+                break;
+              case LVAL:
+                value = Lval->calc();
+                break;
+              case NUMBER:
+                value = number;
+                break;
+          }
+          return value;
   }
   [[nodiscard]] float fcalc() const override
   {
-    float value;
-    switch (kind)
-    {
-    case UNARYEXP:
-      value = Exp->fcalc();
-      break;
-    case LVAL:
-      value = Lval->fcalc();
-      break;
-    case FLOAT_NUMBER:
-      value = floatNumber;
-      break;
-    }
-    return value;
+          float value;
+          switch (kind)
+          {
+          case UNARYEXP:
+            value = Exp->fcalc();
+            break;
+          case LVAL:
+            value = Lval->fcalc();
+            break;
+          case FLOAT_NUMBER:
+            value = floatNumber;
+            break;
+          }
+          return value;
   }
   void generateGraph(string &sign) const override;
 };

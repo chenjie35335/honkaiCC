@@ -24,6 +24,7 @@ class IdentTableNode {
         int level;
     //常量变量表
         unordered_map<string,int> ConstTable;
+    //浮点常量表
         unordered_map<string,float>ConstFTable;
     //常量数组表
         unordered_map<string,RawValue *> ConstArrTable;//这个分开存的方针肯定是对的但是要解决一些问题
@@ -60,6 +61,7 @@ class IdentTableNode {
         void insertVar(const string &name, RawValue *&value){VarTable.insert(pair<string,RawValue *>(name,value));}
     //插入常量
         void insertValue(const string &name, int value){ConstTable.insert(pair<string,int>(name,value));}
+    //插入浮点常量
         void insertFvalue(const string &name, float value){ConstFTable.insert(pair<string,float>(name,value));}
     //插入常量数组
         void insertArr(const string &name,RawValue *&value) {ConstArrTable.insert(pair<string,RawValue *>(name,value));}
@@ -107,6 +109,7 @@ class SignTable {
         void insertVar(const string &name, RawValue *&value);
         //插入常数值
         void insertNumber(int number,RawValue *&value);
+        //插入浮点常数值
         void insertFnumber(float number,RawValue *&value);
         //判断常量是否重复定义
         void constMulDef(const string &ident);
@@ -114,6 +117,7 @@ class SignTable {
         void varMultDef(const string &ident);
         //插入常量
         void insertConst(const string &ident,int value);
+        //插入浮点常量
         void insertFconst(const string &ident,float value);
         //插入常量数组
         void insertConstArr(const string &ident,RawValue *&value);
