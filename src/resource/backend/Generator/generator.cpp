@@ -19,37 +19,50 @@ int32_t convert(float number)
 HardwareManager hardware;
 //处理load运算，由于我们在类型那里处理的调整，这里可能需要多加一个分类讨论
 void Visit(const RawLoad &data, const RawValueP &value) {
+    
     const auto &src = data.src;
+    auto srcPointerTy = src->ty->pointer.base;
     if(src->value.tag == RVT_GLOBAL) {
         hardware.AllocRegister(value);
         const char *TargetReg = hardware.GetRegister(value);
-        cout << "  lw  " << TargetReg << ", " << src->name << endl;
+        if(srcPointerTy->tag == RTT_INT32)
+            cout << "  lw  " << TargetReg << ", " << src->name << endl;
+        else {
+            cout << "  flw  " << TargetReg << ", " << src->name << ", t0" << endl;
+        }
     } else if(src->value.tag == RVT_ALLOC){
         hardware.AllocRegister(value);
         const char *TargetReg = hardware.GetRegister(value);
-        auto srcPointerTy = src->ty->pointer.base;
         int srcAddress = hardware.getTargetOffset(src); //这里有点好，直接跳过了visit过程
         if(srcAddress > 2047) {
             cout << "  li   " << "t0, " << srcAddress << endl;
             cout << "  add  " << "t0, sp, t0" << endl;
             if(srcPointerTy->tag == RTT_INT32)
-                cout << "  lw  " <<  TargetReg << ", " << 0 << "(t0)" << endl; 
+                cout << "  lw  " <<  TargetReg << ", " << 0 << "(t0)" << endl;
+            else if(srcPointerTy->tag == RTT_FLOAT) 
+                cout << "  flw  " <<  TargetReg << ", " << 0 << "(t0)" << endl;
             else 
                 cout << "  ld  " <<  TargetReg << ", " << 0 << "(t0)" << endl; 
         } else {
             if(srcPointerTy->tag == RTT_INT32)
                 cout << "  lw   " << TargetReg << ", " << srcAddress << "(sp)" << endl;
+            else if(srcPointerTy->tag == RTT_FLOAT) 
+                cout << "  flw  " <<  TargetReg << ", " << srcAddress << "(sp)" << endl;
             else 
                 cout << "  ld  " <<  TargetReg << ", " << srcAddress << "(sp)" << endl; 
             }
         } else if(src->value.tag == RVT_GET_ELEMENT || src->value.tag == RVT_GET_PTR){
-        Visit(src);
-        hardware.addLockRegister(src);
-        hardware.AllocRegister(value);
-        const char *TargetReg = hardware.GetRegister(value);
-        const char *ElementReg = hardware.GetRegister(src);
-        cout << "  lw  " << TargetReg << ", " << 0 << '(' << ElementReg << ')' << endl;
-        hardware.LeaseLockRegister(src);
+            Visit(src);
+            hardware.addLockRegister(src);
+            hardware.AllocRegister(value);
+            const char *TargetReg = hardware.GetRegister(value);
+            const char *ElementReg = hardware.GetRegister(src);
+            auto ValueTag = value->ty->tag;
+            if(ValueTag == RTT_FLOAT)
+                cout << "  flw  " << TargetReg << ", " << 0 << '(' << ElementReg << ')' << endl;
+            else  
+                cout << "  lw  " << TargetReg << ", " << 0 << '(' << ElementReg << ')' << endl;
+            hardware.LeaseLockRegister(src);
     } else assert(0);
 }
 
@@ -63,8 +76,7 @@ void Visit(const RawAggregate &aggregate) {
         } else if(elementTag == RVT_INTEGER) {
             auto value = element->value.integer.value;
             cout << "  .word " << value << endl;
-        } //add float 
-        else if(elementTag == RVT_FLOAT){
+        } else if(elementTag == RVT_FLOAT){
             auto value = element->value.floatNumber.value;
             int str = convert(value);
             cout << "  .word " << str << endl;
@@ -77,6 +89,7 @@ void Visit(const RawAggregate &aggregate) {
 }
 
 void Visit(const RawStore &data, const RawValueP &value) {
+    // cout << "handle store" << endl;
     //cout << endl;
     const auto &src = data.value;
     const auto &dest= data.dest;
@@ -97,12 +110,18 @@ void Visit(const RawStore &data, const RawValueP &value) {
             cout << "  li   " << "t0, " << srcAddress << endl;
             cout << "  add  " << "t0, sp, t0" << endl;
             if(destPointerTy->tag == RTT_INT32)
-                cout << "  sw  " <<  SrcReg << ", " << 0 << "(t0)" << endl; 
+                cout << "  sw  " <<  SrcReg << ", " << 0 << "(t0)" << endl;
+            else if(destPointerTy->tag == RTT_FLOAT){
+                cout << "  fsw  " <<  SrcReg << ", " << 0 << "(t0)" << endl;
+            } 
             else 
                 cout << "  sd  " <<  SrcReg << ", " << 0 << "(t0)" << endl; 
         } else {
             if(destPointerTy->tag == RTT_INT32)
                 cout << "  sw   " << SrcReg << ", " << srcAddress << "(sp)" << endl;
+            else if(destPointerTy->tag == RTT_FLOAT){
+                cout << "  fsw  " <<  SrcReg << ", " << srcAddress << "(sp)" << endl;
+            } 
             else 
                 cout << "  sd  " <<  SrcReg << ", " << srcAddress << "(sp)" << endl; 
             }
@@ -112,7 +131,11 @@ void Visit(const RawStore &data, const RawValueP &value) {
         hardware.LeaseLockRegister(dest);
         const char *SrcReg = hardware.GetRegister(src);
         const char *ElementReg = hardware.GetRegister(dest);
-        cout << "  sw  " << SrcReg << ", " << 0 << '(' << ElementReg << ')' << endl;
+        auto srcTag = src->ty->tag;
+        if(srcTag == RTT_FLOAT)
+            cout << "  fsw  " << SrcReg << ", " << 0 << '(' << ElementReg << ')' << endl;
+        else  // int
+            cout << "  sw  " << SrcReg << ", " << 0 << '(' << ElementReg << ')' << endl;
     } else assert(0);
 }
 
@@ -315,12 +338,8 @@ void Visit(const RawGlobal &data,const RawValueP &value) {
         }
     }  else if(tag == RVT_FLOAT){
         float Init = data.Init->value.floatNumber.value;
-        if(Init >= 0.0 && Init <= 0.0) {
-            cout << "  .zero 4" << endl;
-        } else {
-            int32_t str = convert(Init);
-            cout << "  .word " << str << endl; 
-        }
+        int32_t str = convert(Init);
+        cout << "  .word " << str << endl; 
     } else if(tag == RVT_ZEROINIT) {
        int len =  calBaseLen(value);
        cout << "  .zero " << len << endl;
@@ -402,8 +421,9 @@ void Visit(const RawGetElement &data,const RawValueP &value) {
 
 
 /// visit convert
-void Visit(const RawConvert * data)
+void Visit(const RawConvert &data,const RawValueP &value)
 {
+    cout << "convert" << endl;
     return;
 }
 
@@ -460,6 +480,7 @@ void Visit(const RawValueP &value) {
     }
     case RVT_FLOAT:{
         const auto& floatNumber = kind.floatNumber.value;
+        int32_t str = convert(floatNumber);
         // if(floatNumber >= 0 && floatNumber <= 0) { //判断浮点数为0，看起来很蠢
             // hardware.AssignRegister(value,0);
         // } else {
@@ -532,6 +553,9 @@ void Visit(const RawValueP &value) {
     //貌似对于多维数组来说，基地址已经存进寄存器中了，其他的只需要调用就行
         const auto &getElement = kind.getelement;
         Visit(getElement,value);
+        break;
+    }
+    case RVT_CONVERT: {
         break;
     }
     default:{

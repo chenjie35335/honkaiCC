@@ -199,6 +199,10 @@ void StmtAST::generateGraph() const {
             RawValueP src,dest;
             getMidVarValue(src,ExpSign);
             getVarValueL(dest,IdentSign);
+            if(dest->ty->pointer.base->tag != src->ty->tag) {
+                generateConvert(src, ExpSign);
+                src = signTable.getMidVar(ExpSign);
+            }
             generateRawValue(src,dest);
             break;
           }
@@ -254,6 +258,10 @@ void StmtAST::generateGraph() const {
             } else {
                 cerr << "unknown type:" << DestType << endl;
                 assert(0);
+            }
+            if(DestBaseTag != src->ty->tag) {
+                generateConvert(src, ElementSign);
+                src = signTable.getMidVar(ElementSign);
             }
             generateRawValue(src,dest);
             break;
