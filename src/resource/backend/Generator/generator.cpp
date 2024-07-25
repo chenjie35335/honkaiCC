@@ -421,10 +421,28 @@ void Visit(const RawGetElement &data,const RawValueP &value) {
 
 
 /// visit convert
-void Visit(const RawConvert &data,const RawValueP &value)
+void Visit(const RawConvert &data, const RawValueP &value)
 {
-    cout << "convert" << endl;
-    return;
+    //最近舍入模式“四舍五入” rne
+    //向0舍入 rtz
+    // fcvt.w.s  word to single
+    // fcvt.s.w  single to word
+    // convert dest, src, mode
+    auto SrcType = data.src->ty->tag;
+    if(SrcType == RTT_INT32){
+        const char *srcReg;
+        srcReg = hardware.GetRegister(data.src);
+        hardware.AllocRegister(value);
+        const char *TReg = hardware.GetRegister(value);
+        cout<<"  fcvt.s.w " << TReg << ", " << srcReg << ", " << "rtz" << endl;
+    } else if(SrcType == RTT_FLOAT) {
+        const char*srcReg;
+        srcReg = hardware.GetRegister(data.src);
+        hardware.AllocRegister(value);
+        const char *TReg = hardware.GetRegister(value);
+        cout<< "  fcvt.w.s " << TReg << ", "<< srcReg << ", " << "rtz" << endl;
+    }
+    
 }
 
 
@@ -556,6 +574,8 @@ void Visit(const RawValueP &value) {
         break;
     }
     case RVT_CONVERT: {
+        const auto &convert = kind.Convert;
+        Visit(convert,value);
         break;
     }
     default:{
