@@ -100,7 +100,10 @@ void Visit(const RawStore &data, const RawValueP &value) {
         hardware.LeaseLockRegister(src);
         const char *SrcReg = hardware.GetRegister(src);
         const char * DestReg = hardware.GetRegister(dest);
-        cout << "  sw  " << SrcReg << ", " << dest->name << ", "<< DestReg << endl;
+        if(src->ty->tag == RTT_FLOAT) 
+            cout << "  fsw  " << SrcReg << ", " << dest->name << ", "<< DestReg << endl;
+        else
+            cout << "  sw  " << SrcReg << ", " << dest->name << ", "<< DestReg << endl;
     } else if(dest->value.tag == RVT_ALLOC){
         Visit(src);
         const char *SrcReg = hardware.GetRegister(src);
@@ -140,7 +143,6 @@ void Visit(const RawStore &data, const RawValueP &value) {
 }
 
 //处理二进制运算
-//添加浮点寄存器，貌似是最简单的
 void Visit(const RawBinary &data,const RawValueP &value) {
     const auto &lhs = data.lhs;
     const auto &rhs = data.rhs;
@@ -275,32 +277,41 @@ void Visit(const RawCall &data,const RawValueP &value) {
         Visit(ptr);
         if(i < 8) {
             const char *reg = hardware.GetRegister(ptr);
-            hardware.StoreReg(10+i,RTT_INT32);
+            hardware.StoreReg(10+i,ptr->ty->tag);
             const char* paramReg = RegisterManager::regs[10+i];
-            cout << "  mv  " << paramReg << ", " << reg << endl;
+            if(ptr->ty->tag == RTT_FLOAT)
+                cout << "  fmv.s  " << paramReg << ", " << reg << endl;
+            else 
+                cout << "  mv  " << paramReg << ", " << reg << endl;
         } else {
             const char *reg = hardware.GetRegister(ptr);
             int offset = (i-8)*8;
             if(offset > 2047) {
                 cout << "  li  t0, " << offset << endl;
                 cout << "  add  t0, t0, sp" << endl;
-                cout << "  sd  " << reg << ", " << 0 << "(t0)" << endl;
-            } else
-                cout << "  sd  " << reg << ", " << offset << "(sp)" << endl;
+                if(ptr->ty->tag == RTT_FLOAT)
+                    cout << "  fsd  " << reg << ", " << 0 << "(t0)" << endl;
+                else 
+                    cout << "  sd  " << reg << ", " << 0 << "(t0)" << endl;
+            } else{
+                if(ptr->ty->tag == RTT_FLOAT)
+                    cout << "  fsd  " << reg << ", " << offset << "(sp)" << endl;
+                else 
+                    cout << "  sd  " << reg << ", " << offset << "(sp)" << endl;
+            }
         }
     }
      for(int i = 0;i < 7;i++) {
          hardware.StoreReg(RegisterManager::callerSave[i],RTT_INT32);
      }
+     for(int i = 0;i < 12;i++) {
+         hardware.StoreReg(RegisterManager::callerFSave[i],RTT_FLOAT);
+     }
     cout<<"  call "<<data.callee->name<<endl;
-    if(value->ty->tag == RTT_INT32){
-        hardware.AllocRegister(value);
-        hardware.StackAlloc(value);
-        const char *retReg = hardware.GetRegister(value);
-        cout << "  mv  " << retReg << ", a0" << endl;
-    } else if ( value->ty->tag == RTT_FLOAT){
-
-    }
+    hardware.AllocRegister(value);
+    hardware.StackAlloc(value);
+    const char *retReg = hardware.GetRegister(value);
+    cout << "  mv  " << retReg << ", a0" << endl;
 }
 //这里不需要分配寄存器，直接默认在a的几个寄存器中，读出来后直接分配栈空间
 void Visit(const RawFuncArgs &data,const RawValueP &value) {
@@ -316,9 +327,15 @@ void Visit(const RawFuncArgs &data,const RawValueP &value) {
         if(offset > 2047) {
             cout << "  li  t0, " << offset << endl;
             cout << "  add t0, t0, sp" << endl;
-            cout << "  ld  " << reg << ", " << 0 << "(t0)" << endl;
+            if(value->ty->tag == RTT_FLOAT)
+                cout << "  fld  " << reg << ", " << 0 << "(t0)" << endl;
+            else 
+                cout << "  ld  " << reg << ", " << 0 << "(t0)" << endl;
         } else {
-            cout << "  ld  " << reg << ", " << offset << "(sp)" << endl;
+            if(value->ty->tag == RTT_FLOAT)
+                cout << "  fld  " << reg << ", " << offset << "(sp)" << endl;
+            else
+                cout << "  ld  " << reg << ", " << offset << "(sp)" << endl;
         }
     }
 }
@@ -466,13 +483,19 @@ void Visit(const RawValueP &value) {
         if(ret != nullptr) {
         Visit(ret);
         const char *RetRegister = hardware.GetRegister(ret);
-        if(strcmp(RetRegister,"a0")) {
+        if(ret->ty->tag != RTT_FLOAT && strcmp(RetRegister,"a0")) {
             cout << "  mv   a0, "<< RetRegister << endl;
+        }
+        if(ret->ty->tag == RTT_FLOAT && strcmp(RetRegister,"fa0")) {
+            cout << "  fmv.s   fa0, "<< RetRegister << endl;
         }
         }
         hardware.LoadRegister(1);
         for(int i = 0; i < 12;i++) {
             hardware.LoadRegister(RegisterManager::calleeSave[i]);
+        }
+        for(int i = 0; i < 12;i++) {
+            hardware.LoadFRegister(RegisterManager::calleeFSave[i]);
         }
         int StackSize = hardware.getStackSize();
         if(StackSize <= 2047) {
@@ -498,7 +521,11 @@ void Visit(const RawValueP &value) {
     }
     case RVT_FLOAT:{
         const auto& floatNumber = kind.floatNumber.value;
+        hardware.AllocRegister(value);
+        const char *reg = hardware.GetRegister(value);
         int32_t str = convert(floatNumber);
+        cout << "  li  " << "t0 " << ", " << str << endl;
+        cout << "  fmv.w.x " <<  reg << ", " << "t0" << endl;
         // if(floatNumber >= 0 && floatNumber <= 0) { //判断浮点数为0，看起来很蠢
             // hardware.AssignRegister(value,0);
         // } else {
@@ -629,7 +656,10 @@ void Visit(const RawFunctionP &func)
          hardware.SaveRegister(1);
          for(int i =0 ; i < 12;i++) {
             hardware.SaveRegister(RegisterManager::calleeSave[i]);
-         }//这个地方还是很好处理的，毕竟t0在这里不怎么用
+         }
+         for(int i = 0; i < 12;i++) {
+            hardware.SaveFRegister(RegisterManager::calleeFSave[i]);
+         }
         for(auto param : params)
          Visit(param);
         auto entryBB = *bbs.begin();

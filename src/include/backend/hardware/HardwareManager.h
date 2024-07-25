@@ -134,8 +134,16 @@ public:
         reserveArea.LoadRegister(reg);
     }
 
+    void LoadFRegister(int reg) {
+        reserveArea.LoadFRegister(reg);
+    }
+
     void SaveRegister(int reg) {
         reserveArea.SaveRegister(reg);
+    }
+
+    void SaveFRegister(int reg) {
+        reserveArea.SaveFRegister(reg);
     }
 
     void SaveLen(const RawValueP value,int len) { localArea.SaveLen(value,len);}
@@ -342,7 +350,11 @@ class HardwareManager {
 
     void LoadRegister(int reg) { memoryManager.LoadRegister(reg);}
 
+    void LoadFRegister(int reg) { memoryManager.LoadFRegister(reg);}
+
     void SaveRegister(int reg) { memoryManager.SaveRegister(reg);}
+
+    void SaveFRegister(int reg) { memoryManager.SaveFRegister(reg);}
 
     void SaveLen(const RawValueP value,int len) { memoryManager.SaveLen(value,len);}
 

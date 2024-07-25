@@ -290,11 +290,11 @@ void RegisterArea::LoadFRegister(int reg)
     assert(StackManager.find(reg) != StackManager.end());
     int offset = StackManager.at(reg);
     if (offset <= 2047) {
-        cout << "  fld  " << RegisterManager::regs[reg] << ", " << offset << "(sp)" << endl;
+        cout << "  fld  " << RegisterManager::fregs[reg] << ", " << offset << "(sp)" << endl;
     } else {
         cout << "  li  t0," << offset << endl;
         cout << "  add t0, sp, t0" << endl;
-        cout << "  fld  " << RegisterManager::regs[reg] << ", " << 0 << "(t0)" << endl;
+        cout << "  fld  " << RegisterManager::fregs[reg] << ", " << 0 << "(t0)" << endl;
     }
 }
 
