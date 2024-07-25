@@ -312,7 +312,7 @@ void ConstCombine()
 }
 }
 
-void OptimizeConstCombine(RawProgramme *&programme) {
+void ConstCombine(RawProgramme *&programme) {
     auto &values = programme->values;
     auto &funcs = programme->funcs;
     for(auto value : values)

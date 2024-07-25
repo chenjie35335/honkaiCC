@@ -115,6 +115,8 @@ class BaseAST {
   virtual int calc() const { return 0; }
   virtual float fcalc() const {return 0.0;}
   virtual int UnaryExpType() const {return -1;}
+  virtual vector<int> vcalc() const {return vector<int>();}
+  virtual vector<float> fvcalc() const {return vector<float>();}
 };
 
 class CompUnitAST : public BaseAST {

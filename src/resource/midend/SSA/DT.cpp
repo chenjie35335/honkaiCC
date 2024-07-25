@@ -159,13 +159,11 @@ void init_bbs(const RawFunctionP &func)
     auto &bbs = func->basicblock;
     node_nodes.clear();//清除所有节点的支配节点集合
     visit_bbs.clear();//清除
-    for (auto pbb : bbs)
+    for (RawBasicBlockP pbb : bbs)
     {
         //添加所有的基本块，初始化为未标记
-        auto &preDomainNode = pbb->preDomainNode;
-        auto &domains = pbb->domains;
-        domains.clear();
-        preDomainNode = nullptr;//初始化节点前驱为零
+        RawBasicBlockP * preDomainNode = (RawBasicBlockP *)&(pbb->preDomainNode);
+        *preDomainNode = NULL;//初始化节点前驱为零
         visit_bbs[pbb]=false;
     }
     

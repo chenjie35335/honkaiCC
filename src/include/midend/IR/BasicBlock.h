@@ -6,7 +6,6 @@
 #include <list>
 #include <cstring>
 #include <unordered_set>
-class AsmInst;
 using namespace std;
 class RawBasicBlock{
     public:
@@ -16,8 +15,6 @@ class RawBasicBlock{
     const char * name;
 /// instruction list
     list<RawValue *> inst;
-/// asm instruction list
-    list<AsmInst *> asmInstList;
 /// cfg pre basic blocks
     list<RawBasicBlock *> pbbs;
 /// cfg following basic blocks
@@ -65,10 +62,6 @@ class RawBasicBlock{
         this->name = new char[bufSize];
         snprintf((char *)this->name, bufSize, "%s_%s_%d", funcname,bbname, idx);
         
-    }
-
-    void AddAsmInst(AsmInst *inst) {
-        this->asmInstList.push_back(inst);
     }
 };  
 typedef const RawBasicBlock * RawBasicBlockP;

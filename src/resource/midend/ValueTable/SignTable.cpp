@@ -79,7 +79,8 @@ RawValue * IdentTableNode::SearchVarR(const string &name){
      else if(findVariable(name)) {
         return this->VarTable.at(name);
     } else if(findConstArr(name)){
-        return this->ConstArrTable.at(name);
+        //return this->ConstArrTable.at(name);
+        return this->ArrayTable.at(name)->position;
     } else if(this->father == nullptr){
         cerr << "Error: " << '"' << name << '"' << " is not defined" << endl;
         assert(0);

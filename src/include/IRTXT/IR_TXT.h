@@ -8,9 +8,6 @@ void GeneratorIRTxt(RawProgramme * &programme,bool isSSAmode);
 void Visit_Fun(const RawFunctionP &func);
 void Visit_BBS(const RawBasicBlockP &bb);
 void Visit_Value(const RawValueP &value);
-void Name_Fun(const RawFunctionP &func);
-void Name_BBS(const RawBasicBlockP &bb);
-void Name_Value(const RawValueP &value);
 
 void Visit_Return(const RawValueP &value);
 void Visit_Integer(const RawValueP &value);

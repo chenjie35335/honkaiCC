@@ -31,6 +31,9 @@ class LValRAST : public BaseAST {
           assert(0);
         }
       } else if(type == ARRAY){
+        //未实现map[i][j]
+        RawValueP arrayIdent = signTable.getVarR(ident);
+        
         return 0;
       } else return 0;
     }

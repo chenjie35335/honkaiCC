@@ -64,11 +64,11 @@ public:
     case LOREXPAST_LOR:
     {
       int value1 = LOrExp->calc();
-      if(value1 == 1) {
+      if(value1 != 1) {
         value = 1;
         break;
       } else {
-        int value2 = LAndExp->calc();
+        float value2 = LAndExp->calc();
         value = value1 || value2;
         break;
       }
@@ -119,8 +119,8 @@ public:
     //impossible 
     case LANDEXPAST_LAN:
     {
-      int value1 = EqExp->calc();
-      int value2 = LAndExp->calc();
+      float value1 = EqExp->calc();
+      float value2 = LAndExp->calc();
       value = value1 && value2;
       break;
     }
@@ -172,6 +172,7 @@ public:
   {
     //这里不能直接调fcalc()
     //必须先对数据类型进行判断
+    //直接转译
     float value = 0.0;
     switch (type)
     {
@@ -180,8 +181,8 @@ public:
       break;
     case EQEXPAST_EQE:
     {
-      int value1 = EqExp->calc();
-      int value2 = RelExp->calc();
+      float value1 = EqExp->calc();
+      float value2 = RelExp->calc();
       int OpType = EqOp->calc();
       switch (OpType)
       {
@@ -547,12 +548,21 @@ public:
   void generateGraph(string &sign) const override;
 };
 
+#define REVISE 0x114514
 class FuncExpAST : public BaseAST
 {
 public:
   string ident;
   unique_ptr<BaseAST> para;
   void generateGraph(string &sign) const override;
+  [[nodiscard]] int calc() {
+    // if return 0 ===> return 0;
+    // else retrun REVISE;
+    return 0;
+  };
+  [[nodiscard]] float fcalc() {
+    return 0.0;
+  };
 };
 
 class ParamsAST : public BaseAST
@@ -560,8 +570,52 @@ class ParamsAST : public BaseAST
 public:
   vector<unique_ptr<BaseAST>> sinParams;
   void generateGraph(vector<RawValueP> &params) const override;
+  [[nodiscard]] vector<int> vcalc() {
+    vector<int> temp;
+    for(auto &param : sinParams){
+        temp.push_back(param->calc());
+    }
+    return temp;
+  };
+  [[nodiscard]] vector<float> fvcalc() {
+    vector<float> temp;
+    for(auto &param : sinParams){
+      temp.push_back(param->fcalc());
+    }
+    return temp;
+  };
 };
 
+// 判断字符串是否为整数
+inline bool isInteger(const std::string& str) {
+    try {
+        size_t pos;
+        int value = std::stoi(str, &pos);
+        // 检查是否所有字符都被转换
+        return pos == str.size();
+    } catch (const std::invalid_argument& e) {
+        return false;
+    } catch (const std::out_of_range& e) {
+        return false;
+    }
+}
+
+// 判断字符串是否为浮点数
+inline bool isFloat(const std::string& str) {
+    try {
+        size_t pos;
+        float value = std::stof(str, &pos);
+        // 检查是否所有字符都被转换
+        return pos == str.size();
+    } catch (const std::invalid_argument& e) {
+        return false;
+    } catch (const std::out_of_range& e) {
+        return false;
+    }
+}
+
+
+#define ERROR 0xef123
 class SinParamsAST : public BaseAST
 {
 public:
@@ -570,6 +624,27 @@ public:
   int type;
   string ident;
   void generateGraph(RawValueP &params) const override;
+  //唯一情况直接知道函数的具体参数值是多少
+  [[nodiscard]] int calc(){
+    string ExpSign;
+    exp->generateGraph(ExpSign);
+    int res = 0;
+    if(isFloat(ExpSign)) {
+      string sign = ExpSign;
+      res = atoi(sign.c_str());
+      return res;
+    } else return ERROR;
+  };
+  [[nodiscard]] float fcalc() {
+    string ExpSign;
+    exp->generateGraph(ExpSign);
+    float res = 0.0;
+    if(isFloat(ExpSign)) {
+      string sign = ExpSign;
+      res = atof(sign.c_str());
+      return res;
+    } else return ERROR;
+  };
 };
 
 class PrimaryExpAST : public BaseAST
@@ -612,6 +687,9 @@ public:
     case FLOAT_NUMBER:
       value = floatNumber;
       break;
+    default:
+      cout<< "none type for primaryExp" << endl;
+      assert(-1);
     }
     return value;
   }

@@ -81,7 +81,13 @@ void SinArrayElementAST::generateGraph(string &sign, int &retType) const {
             constArrayInit->generateGraph(sign, retType);
             break;
         case ARELEM_EX:{
-            constExp->generateGraph(sign);
+            //constExp->generateGraph(sign);
+            sign = to_string(constExp->calc());
+            break;
+        }
+        case FARELEM_EX:{
+            //constExp->generateGraph(sign, retType);
+            sign = to_string(constExp->fcalc());
             break;
         }
         default:  assert(0);

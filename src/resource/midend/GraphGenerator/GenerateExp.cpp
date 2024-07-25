@@ -15,13 +15,13 @@ void SinExpAST::generateGraph(string &sign,int &RetType) const
   RetType = type;
   switch (type)
   {
-    case SINEXPAST_EXP:
-      Exp->generateGraph(sign);
-      break;
-    case SINEXPAST_NULL:
-      break;
-    default:
-      assert(0);
+  case SINEXPAST_EXP:
+    Exp->generateGraph(sign);
+    break;
+  case SINEXPAST_NULL:
+    break;
+  default:
+    assert(0);
   }
 }
 
@@ -477,10 +477,15 @@ void PrimaryExpAST::generateGraph(string &sign) const
   }
 }
 
+
+// to calc()
 void FuncExpAST::generateGraph(string &sign) const{
-  //cerr << "function name = " << ident << endl;
+  cerr << "function name = " << ident << endl;
   RawFunctionP callee= signTable.getFunction(ident);
   vector<RawValueP> paramsValue;
+  if(para->calc() != ERROR){
+    paramsValue = para->calc();
+  }
   para->generateGraph(paramsValue);
   generateRawValue(callee,paramsValue,sign);
 }
@@ -496,6 +501,7 @@ void ParamsAST::generateGraph(vector<RawValueP> &params) const {
 void SinParamsAST::generateGraph(RawValueP &params) const {
   string ExpSign;
   exp->generateGraph(ExpSign);
+  //判断分析出是否能算出来
   getMidVarValue(params,ExpSign);
 }
 //如果我最后发现没有返回值该怎么办？

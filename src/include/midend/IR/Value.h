@@ -38,8 +38,6 @@ class RawValue {
     RawTypeP ty;
     /// @brief basicblock which define the value
     vector<RawBasicBlock *> defbbs;
-    ///
-    vector<RawBasicBlock *> usebbs;
     /// value rename stack(no matter global or local)
     stack<RawValue *> tempCopy;
     /// 定值点
@@ -54,25 +52,16 @@ class RawValue {
     uint32_t status;
     /// identStatus
     uint32_t identType;
-    /// count of copy
-    uint32_t copyCount;
-
-
-    RawValue * addr;
-
-    RawValue * offset;
 
     RawValue() {
         this->isDeleted = false;
         this->status = BOT;
         this->identType = IDENT_UNIT;
-        this->copyCount = 0;
     }
     RawValue(RawValue*oldvalue){
         this->isDeleted = false;
         this->status = BOT;
         this->identType = IDENT_UNIT;
-        this->copyCount = 0;
         
         if(!!oldvalue->name){
             size_t bufSize = strlen(oldvalue->name);
@@ -84,11 +73,7 @@ class RawValue {
         this->ty = oldvalue->ty;
     }
 };
-// addr = new RawValue()
-// addr->value.tag = RVT_ALLOC
 
-// offset = new RawValue()
-// addr->value.tag = RVT_INTEGER
 typedef const RawValue * RawValueP;
 
 void generateRawValueArgs(const string &ident,int index, int32_t flag);
@@ -141,6 +126,8 @@ void generateElement(RawValueP &src,RawValueP &index,string &name);
 
 void generatePtr(RawValueP &src,RawValueP &index,string &name);
 
+void generateRawValueSinArr(const string &ident,int index);
+
 void generateRawValueSinArr(const string &ident,int index, int flag);
 
 void generateRawValueMulArr(const string &ident,int index,vector<int>dimens,int flag);
@@ -152,7 +139,5 @@ void MarkDef(RawValue *src,RawValue *target);
 void ArrInit(RawValueP src,RawValueP target);
 
 void generateConvert(RawValueP &src,string &name);
-
-void generateRawValuePointer(string &name,RawType *ty);
 
 #endif

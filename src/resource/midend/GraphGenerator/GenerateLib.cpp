@@ -8,68 +8,6 @@
 #include <unordered_map>
 extern SignTable signTable;
 
-//lib function for float
-// ALREADY: getint getch starttime stoptime putint putch putarray getarray
-// NEDDING: getfloat putfloat getfarray putfarray
-float getfloat(){
-    int a = getint();
-    char b = getch();
-    int c = getint();
-    int temp[32] = {0};
-    int i = 0;
-    while(c){
-        temp[i] = c % 10;
-        c /= 10;
-        i++;
-    }
-    float res = 0.0;
-    float exp = 0.1;
-    while(i--){
-        res += temp[i] * exp;
-        exp /= 10.0;
-    }
-    float d = a + res;
-    return d;
-}
-
-void putfloat(float f) {
-    int int_part = (int)f;
-    float frac_part = f - int_part;
-
-    putint(int_part);
-    putch('.');
-
-    int frac_digits[10];
-    int i = 0;
-    while (frac_part > 0.0 && i < 10) {
-        frac_part *= 10;
-        int digit = (int)frac_part;
-        frac_digits[i++] = digit;
-        frac_part -= digit;
-    }
-
-    for (int j = 0; j < i; j++) {
-        putint(frac_digits[j]);
-    }
-}
-
-void putfarray(int n, float a[]) {
-    for (int i = 0; i < n; i++) {
-        putfloat(a[i]);
-        if (i < n - 1) {
-            putch(' ');
-        }
-    }
-    putch('\n');
-}
-
-void getfarray(int n, float a[]) {
-    for (int i = 0; i < n; i++) {
-        a[i] = getfloat();
-    }
-}
-
-
 void GenerateGetInt() {
     RawFunction *getint;
     string name = "getint";

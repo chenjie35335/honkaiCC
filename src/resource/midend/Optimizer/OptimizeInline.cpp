@@ -5,9 +5,9 @@
 #include <deque>
 #include <unordered_map>
 #include <unordered_set>
-#include "../../../include/midend/IR/Function.h"
-#include "../../../include/midend/IR/BasicBlock.h"
-#include "../../../include/midend/IR/Value.h"
+#include "../IR/Function.h"
+#include "../IR/BasicBlock.h"
+#include "../IR/Value.h"
 #include "../../../include/midend/Optimizer/OptimizeInline.h"
 bool judgementOutFunc(string fun_name)
 {

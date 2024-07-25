@@ -12,7 +12,12 @@ using namespace std;
 class BaseAST;
 class FuncTableCall;
 
-
+class RawArrayValue {
+    public:
+        RawValue* position;
+        RawAggregate arrValue;
+    //需要一个push操作
+};
 
 class IdentTableNode {
     public:
@@ -27,6 +32,7 @@ class IdentTableNode {
         unordered_map<string,float>ConstFTable;
     //常量数组表
         unordered_map<string,RawValue *> ConstArrTable;//这个分开存的方针肯定是对的但是要解决一些问题
+        unordered_map<string, RawArrayValue *> ArrayTable;
     //变量表
         unordered_map<string,RawValue *> VarTable;
     //SSA表,存放存在单变量赋值的情况，创建一个对象，同时记录他是第几个被赋值的。
@@ -62,11 +68,18 @@ class IdentTableNode {
         void insertValue(const string &name, int value){ConstTable.insert(pair<string,int>(name,value));}
         void insertFvalue(const string &name, float value){ConstFTable.insert(pair<string,float>(name,value));}
     //插入常量数组
-        void insertArr(const string &name,RawValue *&value) {ConstArrTable.insert(pair<string,RawValue *>(name,value));}
+        //void insertArr(const string &name,RawValue *&value) {ConstArrTable.insert(pair<string,RawValue *>(name,value));}
+        void insertArr(const string &name,RawValue *&value) {
+            RawArrayValue *r1 = new RawArrayValue();
+            r1->position = value;
+            ArrayTable.insert(pair<string,RawArrayValue*>(name,r1));
+            //ArrayTable.at(name)->arrValue.elements.push_back(value);
+            }
     //插入当前SSATable
         void insertSSA(const string &name, RawValue *&value) {SSATable.insert(pair<string, RawValue *>(name, value));}
     //查找当前ARRAY表
-        bool findConstArr(const string &ident) { return ConstArrTable.find(ident) != ConstArrTable.end();}
+        //bool findConstArr(const string &ident) { return ConstArrTable.find(ident) != ConstArrTable.end();}
+        bool findConstArr(const string &ident) { return ArrayTable.find(ident) != ArrayTable.end();}
 };
 
 //SignTable定义（仅用于中端）目前来看，BasicBlock不需要添加

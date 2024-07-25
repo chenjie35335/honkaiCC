@@ -28,6 +28,7 @@ class FuncFParamsAST : public BaseAST
 public:
   vector<unique_ptr<BaseAST>> para;
   void generateGraph() const override;
+  //复合形式就是将单个形式进行拆分
 };
 
 class SinFuncFParamAST : public BaseAST
@@ -38,6 +39,12 @@ public:
   unique_ptr<BaseAST> arrayDimen;
   int type;
   void generateGraph(int &index) const override;
+  [[nodiscard]] int calc() {
+    return 0;
+  };
+  [[nodiscard]] float fcalc() {
+    return 0.0;
+  };
 };
 
 #endif

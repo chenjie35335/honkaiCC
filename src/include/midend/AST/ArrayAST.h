@@ -12,6 +12,12 @@ class ConstArrayInitAST : public BaseAST{
     int type;
     void generateGraph(string &sign, int &retType) const override;
     void generateGraphGlobal(string &sign, int &retType) const override;
+    [[nodiscard]] int calc() {
+      return 0;
+    };
+    [[nodiscard]] float fcalc() {
+      return 0.0;
+    };
 };
 
 class MultiArrayElementAST : public BaseAST{
@@ -33,6 +39,19 @@ class SinArrayElementAST : public BaseAST {
       int type;
       void generateGraph(string &sign, int &retType) const override;
       void generateGraphGlobal(string &sign, int &retType) const override;
+      [[nodiscard]]  int calc() {
+          switch(type) {
+          case ARELEM_AI: 
+              return constArrayInit->calc();
+          case ARELEM_EX:{
+              return constExp->calc();
+          }
+          default:  assert(0);
+        }
+      };
+      [[nodsicard]] float fcalc(){
+            return constExp->fcalc();
+      };
 };
 
 class ArrayDimenAST : public BaseAST {
@@ -60,6 +79,7 @@ class SinArrParaAST : public BaseAST {
   public:
     std::unique_ptr<BaseAST> exp;
     void generateGraph() const override{}
+    [[nodiscard]]int calc(){ return exp->calc();};
 };
 
 class ParaTypeAST : public BaseAST {
