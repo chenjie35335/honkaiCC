@@ -1,5 +1,5 @@
 #include "include/common.h"
-
+#include <chrono>
 using namespace std;
 
 extern FILE *yyin;
@@ -31,7 +31,12 @@ int main(int argc, const char *argv[]) {
   assert(!ret);
   freopen(output,"w",stdout);
   RawProgramme *irGraph;
+  auto start_time = std::chrono::high_resolution_clock::now();
+  cerr << "start" << endl;
   ast->generateGraph(irGraph);
+  auto end_time = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
+  std::cerr << "程序运行时间: " << duration.count() << " 微秒" << std::endl;
   //if(optMode != nullptr && strcmp(optMode,"-O1") == 0) {
       //GeneratorIRTxt(irGraph,false);
       //OptimizeFuncInline(irGraph);
@@ -52,8 +57,13 @@ int main(int argc, const char *argv[]) {
       //  CondCCP(irGraph);
       // exitSSA(irGraph);
   //}
+  start_time = std::chrono::high_resolution_clock::now();
+  cerr << "start" << endl;
   if(strcmp(mode,"-riscv") == 0 || strcmp(mode,"-S") == 0) {
     GeneratorDT(irGraph,0);
+    auto end_time = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
+    std::cerr << "程序运行时间: " << duration.count() << " 微秒" << std::endl;
     backend(irGraph);
   } 
   else if(strcmp(mode,"-koopa") == 0) {

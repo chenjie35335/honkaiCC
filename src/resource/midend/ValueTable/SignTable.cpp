@@ -75,8 +75,7 @@ RawValue * IdentTableNode::SearchVarR(const string &name){
         string svalue = to_string(value);
         generateRawValue(value);
         return signTable.getMidVar(svalue);
-    }
-     else if(findVariable(name)) {
+    } else if(findVariable(name)) {
         return this->VarTable.at(name);
     } else if(findConstArr(name)){
         return this->ConstArrTable.at(name);

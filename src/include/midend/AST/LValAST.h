@@ -1,5 +1,6 @@
 #include "BaseAST.h"
 #include "../ValueTable/SignTable.h"
+#include <new>
 #ifndef LVALAST_STORMY
 #define LVALAST_STORMY
 extern SignTable signTable;
@@ -17,39 +18,19 @@ class LValRAST : public BaseAST {
     string ident;
     unique_ptr<BaseAST> array;
     int type;
-    int calc() const override {
+    ExpResult *Calculate() const override {
       if(type == IDENT) {
         RawValueP IdentSrc = signTable.getVarR(ident);
         auto &tag = IdentSrc->value.tag;
-        if(tag == RVT_INTEGER) {
-          return IdentSrc->value.integer.value;
-        } 
-        else if(tag == RVT_GLOBAL){
-          return IdentSrc->value.global.Init->value.integer.value;
-        } else {
-          cout << "non-const variable can't be assigned to a const variable" << endl;
-          assert(0);
-        }
-      } else if(type == ARRAY){
-        return 0;
-      } else return 0;
-    }
-     float fcalc() const override {
-      if(type == IDENT) {
-        //这里符号表记得也给浮点数升级一下
-        RawValueP IdentSrc = signTable.getVarR(ident);
-        auto &tag = IdentSrc->value.tag;
-        if(tag == RVT_FLOAT) {
-          return IdentSrc->value.floatNumber.value;
-        } else if(tag == RVT_GLOBAL){
-          return IdentSrc->value.global.Init->value.floatNumber.value;
-        } else {
-          cout << "non-const variable can't be assigned to a const variable" << endl;
-          assert(0);
-        }
-      } else if(type == ARRAY){
-        return 0;
-      } else return 0;
+        if(tag == RVT_INTEGER) return new ExpResult(IdentSrc->value.integer.value);
+        else if(tag == RVT_FLOAT) return new ExpResult(IdentSrc->value.floatNumber.value);
+        else if(tag == RVT_GLOBAL) {
+          auto &init = IdentSrc->value.global.Init;
+          if(tag == RVT_INTEGER) return new ExpResult(init->value.integer.value);
+          else if(tag == RVT_FLOAT) return new ExpResult(init->value.floatNumber.value);
+          else return new ExpResult(0);
+        } else return new ExpResult(0);
+      } else return new ExpResult(0);
     }
     void generateGraph(string &sign) const override;
 };

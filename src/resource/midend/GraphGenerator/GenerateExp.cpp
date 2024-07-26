@@ -197,7 +197,7 @@ void EqExpAST::generateGraph(string &sign) const
   }
   case EQEXPAST_EQE:
   {
-    int OpType = EqOp->calc();
+    int OpType = EqOp->getType();
     EqExp->generateGraph(s1);
     RelExp->generateGraph(s2);
     RawValueP signL, signR;
@@ -256,7 +256,7 @@ void RelExpAST::generateGraph(string &sign) const
   {
     RelExp->generateGraph(s1);
     AddExp->generateGraph(s2);
-    int OpRel = RelOp->calc();
+    int OpRel = RelOp->getType();
     RawValueP signL, signR;
     getMidVarValue(signL, s1);
     getMidVarValue(signR, s2);
@@ -323,7 +323,7 @@ void AddExpAST::generateGraph(string &sign) const
   {
     AddExp->generateGraph(s1);
     MulExp->generateGraph(s2);
-    int OpAdd = AddOp->calc();
+    int OpAdd = AddOp->getType();
     RawValueP signL, signR;
     getMidVarValue(signL, s1);
     getMidVarValue(signR, s2);
@@ -377,7 +377,7 @@ void MulExpAST::generateGraph(string &sign) const
   {
     MulExp->generateGraph(s1);
     UnaryExp->generateGraph(s2);
-    int OpMul = MulOp->calc();
+    int OpMul = MulOp->getType();
     RawValueP signL, signR;
     getMidVarValue(signL, s1);
     getMidVarValue(signR, s2);

@@ -63,7 +63,7 @@ HexFloatNumber   (0x|0X)([0-9a-fA-F]*\.?[0-9a-fA-F]+|[0-9a-fA-F]+\.)((p|P)[-+]?[
 {Octal}         { yylval.int_val = strtol(yytext, nullptr, 0); return INT_CONST; }
 {Hexadecimal}   { yylval.int_val = strtol(yytext, nullptr, 0); return INT_CONST; }
 {FloatNumber}   { yylval.float_val = strtof(yytext, nullptr);return FLOAT_CONST; }
-{HexFloatNumber}   { yylval.float_val = strtof(yytext, nullptr);return FLOAT_CONST; }
+{HexFloatNumber}   { yylval.float_val = strtof(yytext, nullptr); return FLOAT_CONST; }
 
 
 {Identifier}    { yylval.str_val = new string(yytext); return IDENT; }

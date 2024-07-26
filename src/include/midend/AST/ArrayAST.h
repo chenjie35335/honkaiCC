@@ -46,27 +46,14 @@ class SinArrayDimenAST : public BaseAST {
   public:
     std::unique_ptr<BaseAST> exp;
     void generateGraph(string &name) const override;
-    int calc() const override { return exp->calc();}
-};
-
-//arra para
-class ArrParaAST : public BaseAST {
-  public:
-    vector<unique_ptr<BaseAST>> sinArrPara;
-    void generateGraph() const override{}
-};
-
-class SinArrParaAST : public BaseAST {
-  public:
-    std::unique_ptr<BaseAST> exp;
-    void generateGraph() const override{}
+    ExpResult *Calculate() const override { return exp->Calculate();}
 };
 
 class ParaTypeAST : public BaseAST {
   public:
     int type;
     void generateGraph() const override {}
-    int calc() const override { return type;}
+    int getType() const override { return type;}
 };
 
 

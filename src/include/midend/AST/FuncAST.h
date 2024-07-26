@@ -14,10 +14,7 @@ class FuncTypeAST : public BaseAST
 {
 public:
   int type;
-  [[nodiscard]] int calc() const override
-  {
-    return type;
-  }
+  int getType() const override { return type;}
   void generateGraph(int &retType) const override;
 };
 

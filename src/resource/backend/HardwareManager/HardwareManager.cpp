@@ -127,6 +127,7 @@ void MemoryManager::initReserveArea(int min, int max)
     ReserveArea.maxAddress = max;
     ReserveArea.tempOffset = max;
     ReserveArea.StackManager.clear();
+    ReserveArea.FStackManager.clear();
 }
 
 void MemoryManager::initLocalArea(int min, int max)
@@ -288,8 +289,8 @@ void RegisterArea::LoadRegister(int reg)
 
 void RegisterArea::LoadFRegister(int reg)
 {
-    assert(StackManager.find(reg) != StackManager.end());
-    int offset = StackManager.at(reg);
+    assert(FStackManager.find(reg) != FStackManager.end());
+    int offset = FStackManager.at(reg);
     if (offset <= 2047) {
         cout << "  fld  " << RegisterManager::fregs[reg] << ", " << offset << "(sp)" << endl;
     } else {
@@ -327,7 +328,7 @@ void RegisterArea::SaveFRegister(int reg)
         cout << "  add t0, sp, t0" << endl;
         cout << "  fsd  " << RegisterManager::fregs[reg] << ", " << 0 << "(t0)" << endl;
     } // 这个方法虽然蠢但是是正确的
-    StackManager.insert(pair<int, int>(reg, tempOffset));
+    FStackManager.insert(pair<int, int>(reg, tempOffset));
     tempOffset -= 8;
 }
 // init要做的事：

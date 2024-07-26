@@ -53,7 +53,7 @@ void SinCompUnitAST::generateGraph() const{
             break;
         case COMP_VAR:{
             //需要添加类型
-            int tempType = funcType->calc();
+            int tempType = funcType->getType();
             int retType;
             if(tempType == FUNCTYPE_FLOAT){
                 retType = RTT_FLOAT;
@@ -108,7 +108,7 @@ void FuncFParamsAST::generateGraph() const{
 }
 //单个参数访问
 void SinFuncFParamAST::generateGraph(int &index) const{
-    int para = paraType->calc();
+    int para = paraType->getType();
     int RetFlag;
     RawValueP TempArg,Arg;
     string ArgName = ident+"_"+to_string(signTable.IdentTable->level);

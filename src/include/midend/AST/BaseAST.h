@@ -94,10 +94,49 @@ enum{
   IFSTMT_MUL,
   BTYPE_INT,
   BTYPE_FLOAT,
-}Kind;
+};
 extern int alloc_now;
 class BaseAST {
  public:
+  class ExpResult{
+    public:
+      /// @brief int型结果
+      int IntResult;
+      /// @brief float型结果
+      float FloatResult;
+      /// @brief 结果类型
+      int type;
+      /// @brief 类型定义
+      enum {
+        INT,
+        FLOAT
+      };
+    //int型构造函数
+    ExpResult(int result) {
+      type = INT;
+      IntResult = result;
+    }
+    //float型构造函数
+    ExpResult(float result) {
+      type = FLOAT;
+      FloatResult = result;
+    }
+    //强制类型转换
+    void Convert() {//一般来说都是从int转向float
+    if(type == INT) {
+        type = FLOAT;
+        FloatResult = static_cast<float>(IntResult);
+    }
+    }
+
+    ExpResult * neg() {
+      if(this->type == INT) {
+        return new ExpResult(-this->IntResult);
+      } else {
+        return new ExpResult(-this->FloatResult);
+      }
+    } 
+  };
   virtual ~BaseAST() = default;
   virtual void generateGraph(RawProgramme *&IR) const{}
   virtual void generateGraph() const{}
@@ -112,8 +151,8 @@ class BaseAST {
   virtual void generateGraphGlobal(int &retType) const{}
   virtual void generateGraph(vector<int> &dimen) const {}
   virtual void generateGraphGlobal(string &sign, int &retType) const{}
-  virtual int calc() const { return 0; }
-  virtual float fcalc() const {return 0.0;}
+  virtual int getType() const { return 0;}
+  virtual ExpResult * Calculate() const {return new ExpResult(0);}
   virtual int UnaryExpType() const {return -1;}
 };
 

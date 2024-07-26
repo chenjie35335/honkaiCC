@@ -57,7 +57,7 @@ using namespace std;
 %type <ast_val> FuncFParams ParaType SinFuncFParam 
 %type <ast_val> FuncExp Params SinParams SinCompUnit MultCompUnit
 %type <ast_val> ArrayDimen SinArrayDimen ConstArrayInit
-%type <ast_val> MultiArrayElement SinArrayElement ArrPara SinArrPara
+%type <ast_val> MultiArrayElement SinArrayElement 
 %type <int_val> Number 
 %type <float_val> FloatNumber 
 
@@ -248,25 +248,6 @@ SinArrayDimen
   }
   ;
 
-ArrPara 
-  : SinArrPara {
-    auto ast = new ArrParaAST();
-    ast->sinArrPara.push_back(unique_ptr<BaseAST>($1));
-    $$ = ast;
-  } | ArrPara SinArrPara  {
-    auto ast = (ArrParaAST *) ($1);
-    ast->sinArrPara.push_back(unique_ptr<BaseAST>($2));
-    $$ = ast;
-  }
-  ;
-
-SinArrPara 
-  : '[' Exp ']' {
-    auto ast = new SinArrParaAST();
-    ast->exp = unique_ptr<BaseAST>($2);
-    $$ = ast;
-  }
-  ;
 //这里有一个明显的移进规约冲突
 ConstArrayInit
   : '{' MultiArrayElement '}' {

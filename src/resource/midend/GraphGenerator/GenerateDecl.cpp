@@ -19,7 +19,7 @@ void DeclAST::generateGraph() const
         ConstDecl->generateGraph();
         break;
     case DECLAST_VAR:{
-        int32_t BTYPE = btype->calc();
+        int32_t BTYPE = btype->getType();
         VarDecl->generateGraph(BTYPE);
         break;
     }
@@ -62,12 +62,17 @@ void SinVarDefAST::generateGraphGlobal(int &retType) const {
     }
     case SINVARDEFAST_INI: {
         //这里确实进行计算，但是和之前一样，如果不是常量就未定义
+        auto value = InitVal->Calculate();
         if(retType == RTT_FLOAT){
-            float fvalue = InitVal->fcalc();
-            generateRawValueGlobal(DestSign.c_str(),fvalue);
+            if(value->type == ExpResult::INT) 
+                generateRawValueGlobal(DestSign.c_str(),value->IntResult);
+            else
+                generateRawValueGlobal(DestSign.c_str(),(int)value->FloatResult);
         } else {
-            int value = InitVal->calc();
-            generateRawValueGlobal(DestSign.c_str(),value);
+            if(value->type == ExpResult::INT) 
+                generateRawValueGlobal(DestSign.c_str(),(float)value->IntResult);
+            else
+                generateRawValueGlobal(DestSign.c_str(),value->FloatResult);
         }
         break;
     }
@@ -154,21 +159,31 @@ void InitValAST::generateGraph(string &sign) const{
 }
 
 void ConstDeclAST::generateGraph() const {
-   int retType = Btype->calc();
+   int retType = Btype->getType();
    MulConstDef->generateGraph(retType);
 }
 
 void SinConstDefAST::generateGraph(int &retType) const{
+    // cout << ident;
     signTable.constMulDef(ident);
     switch(type) {
         case SINCONST_VAR: {
-            if(retType == RTT_FLOAT){
-                float fvalue = constExp->fcalc();
-                signTable.insertFconst(ident,fvalue);//这个地方即使不做全局貌似也没事
-            } else {
-                int value = constExp->calc();
-                signTable.insertConst(ident,value);
-            }         
+            auto value = constExp->Calculate();
+        if(retType == RTT_FLOAT){
+            if(value->type == ExpResult::INT) {
+                // cout << "value: " << value->IntResult << endl;
+                signTable.insertFconst(ident,value->IntResult);
+            }
+            else{
+                // cout << "value: " << value->FloatResult << endl;
+                signTable.insertFconst(ident,value->FloatResult);
+            }
+        } else {
+            if(value->type == ExpResult::INT) 
+                signTable.insertConst(ident,value->IntResult);
+            else
+                signTable.insertFconst(ident,value->FloatResult);
+        }
             break;
         }
         case SINCONST_ARRAY: {//这里有个非常恶心的地方是该如何存的问题
@@ -192,7 +207,7 @@ void SinConstDefAST::generateGraph(int &retType) const{
 }
 
 void ConstDeclAST::generateGraphGlobal() const {
-    int retType = Btype->calc();
+    int retType = Btype->getType();
     MulConstDef->generateGraphGlobal(retType);
 }
  
@@ -203,18 +218,28 @@ void MulConstDefAST::generateGraphGlobal(int &retType) const {
 }
 
 void SinConstDefAST::generateGraphGlobal(int &retType) const {
+    // cout << ident;
+    // cout << "const def global" << endl;
     string DestSign = ident;
     signTable.constMulDef(ident);
     switch(type) {
         case SINCONST_VAR: { 
-            if(retType == RTT_FLOAT){
-                float fvalue = constExp->fcalc();
-                signTable.insertFconst(ident,fvalue);
-            } else {
-                int value = constExp->calc();
-                signTable.insertConst(ident,value);//这个地方即使不做全局貌似也没事
+        auto value = constExp->Calculate();
+        if(retType == RTT_FLOAT){
+            if(value->type == ExpResult::INT) {
+                // cout << " value: " << value->IntResult << endl;
+                signTable.insertFconst(ident,value->IntResult);
             }
-
+            else{
+                // cout << " Fvalue: " << value->FloatResult << endl;
+                signTable.insertFconst(ident,value->FloatResult);
+            }
+        } else {
+            if(value->type == ExpResult::INT) 
+                signTable.insertConst(ident,value->IntResult);
+            else
+                signTable.insertConst(ident,value->FloatResult);
+        }
             break;
         }
         case SINCONST_ARRAY: {//这里有个非常恶心的地方是该如何存的问题

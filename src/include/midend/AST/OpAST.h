@@ -5,7 +5,7 @@
 class RelOpAST : public BaseAST {
   public:
     uint32_t type;
-    int calc() const override {
+    int getType() const override {
       return type;
     }
 } 
@@ -14,22 +14,20 @@ class RelOpAST : public BaseAST {
 class UnaryOpAST : public BaseAST {
   public:
     char op;
-    [[nodiscard]] int calc() const override{
-        return op;
-    }
+    int getType() const override{ return op; }
     void generateGraph(string &sign) const override;
 };
 //加减运算符
 class AddOpAST : public BaseAST {
   public:
     char op;
-    [[nodiscard]] int calc() const override{return (int)op;}
+    int getType() const override{ return (int)op;}
 };
 //乘除运算符
 class MulOpAST : public BaseAST {
   public:
     char op;
-    [[nodiscard]] int calc() const override{return op;}
+    int getType() const override{return op;}
 };
 
 class EqOpAST : public BaseAST {
@@ -37,7 +35,7 @@ class EqOpAST : public BaseAST {
     uint32_t type;
     mutable unique_ptr<BaseAST> op;
     //void generateGraph(string &sign) const override;
-    [[nodiscard]] int calc() const override{return (int)type;}
+    int getType() const override { return (int)type;}
 } 
 ;
 

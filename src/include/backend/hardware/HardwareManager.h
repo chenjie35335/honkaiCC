@@ -82,6 +82,8 @@ class RegisterArea : public Area
 public:
     /// @brief Register和栈空间的对应关系
     unordered_map<int, int> StackManager;
+    /// @brief 浮点寄存器和栈空间对应关系
+    unordered_map<int,int> FStackManager;
 
     /// @brief load普通寄存器
     /// @param reg 
