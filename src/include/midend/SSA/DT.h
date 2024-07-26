@@ -1,5 +1,6 @@
 #ifndef STORMY_DT
 #define STORMY_DT
+#include <list>
 #include <unordered_set>
 #include "../IR/common.h"
 // typedef struct DTnode{
@@ -17,11 +18,6 @@ typedef std::unordered_set<RawBasicBlockP> nodeSet;
 
 void GeneratorDT(RawProgramme *&programme,int genDot);
 void init_bbs(const RawFunctionP &func);
-void clearBbsFlag();
-bool check_bb_inOther(const RawBasicBlockP &bb);
-void func_domain_nodes(const RawFunctionP &func);
-void find_domain_nodes(const RawBasicBlockP &s_bbs,const RawBasicBlockP &delete_bbs);
-void direct_domain_nodes();
 // 生成CFG的文本描述(dot语言)
 void traversalCFG(const RawFunctionP &func);
 // 生成支配树的文本描述(dot语言)
@@ -36,4 +32,6 @@ void computeDF(RawBasicBlock * & n);
 bool BackEdge(const RawBasicBlockP &start,const RawBasicBlockP &end);
 //计算循环集合
 void cal_cfgloop(const RawBasicBlockP &start,const RawBasicBlockP &end);
+//计算逆后序遍历顺序
+void cal_RPO(RawBasicBlock* nowbb,list<RawBasicBlock*> &RPO);
 #endif
