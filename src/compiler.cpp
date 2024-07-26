@@ -73,7 +73,8 @@ int main(int argc, const char *argv[]) {
   }
   else if(strcmp(mode,"-cfg") == 0){
     // OptimizeFuncInline(irGraph);
-    GeneratorDT(irGraph,3);
+    // GeneratorDT(irGraph,3);控制流图
+    GeneratorDT(irGraph,2);//支配树
   }
   else if(strcmp(mode,"-astT") == 0){
     Generator_ast(ast,1);

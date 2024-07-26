@@ -2,6 +2,7 @@
 #define STORMY_DT
 #include <list>
 #include <unordered_set>
+#include <unordered_map>
 #include "../IR/common.h"
 // typedef struct DTnode{
 //     DTnode * pre;
@@ -32,6 +33,12 @@ void computeDF(RawBasicBlock * & n);
 bool BackEdge(const RawBasicBlockP &start,const RawBasicBlockP &end);
 //计算循环集合
 void cal_cfgloop(const RawBasicBlockP &start,const RawBasicBlockP &end);
+//计算根据idom支配树
+void cal_DT(RawFunction* func,unordered_map<RawBasicBlock*,RawBasicBlock*>idom);
 //计算逆后序遍历顺序
 void cal_RPO(RawBasicBlock* nowbb,list<RawBasicBlock*> &RPO);
+//计算idom集合
+void cal_IDOM(list<RawBasicBlock*> RPO,unordered_map<RawBasicBlock*,RawBasicBlock*>&idom);
+//计算公共祖先
+RawBasicBlock* intersect(RawBasicBlock*b1,RawBasicBlock*b2,unordered_map<RawBasicBlock*,RawBasicBlock*>DOMS,unordered_map<RawBasicBlock*,int>idx);
 #endif

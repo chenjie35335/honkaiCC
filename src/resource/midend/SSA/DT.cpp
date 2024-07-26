@@ -2,13 +2,13 @@
 #include "../../../include/midend/IR/BasicBlock.h"
 #include "../../../include/midend/IR/Programme.h"
 #include "../../../include/midend/SSA/DT.h"
+#include <set>
 #include <assert.h>
 #include <stack>
 #include <vector>
 #include <iostream>
 #include <algorithm>
 #include <unordered_set>
-#include <unordered_map>
 using namespace std;
 unordered_set<RawBasicBlockP> cfgloop;
 unordered_set<RawBasicBlock*>visitbb;
@@ -140,9 +140,15 @@ void GeneratorDT(RawProgramme *&programme,int genDot)
         init_bbs(func);
         auto &bbs = func->basicblock;
         if(bbs.size()>0){
-            list<RawBasicBlock*> RPO;//逆后序遍历
+            list<RawBasicBlock*> RPO;//逆后序遍历顺序
             visitbb.clear();//清除访问
-            cal_RPO((*bbs.begin()),RPO);
+            cal_RPO((*bbs.begin()),RPO);//计算逆后序遍历
+            unordered_map<RawBasicBlock*,RawBasicBlock*>idom;//计算idom
+            cal_IDOM(RPO,idom);
+            // for(auto item:idom){
+            //     cout<<item.first->name<<"的直接必经节点是"<<item.second->name<<endl;
+            // }
+            cal_DT((RawFunction*)func,idom);
             RawBasicBlock * s_bb = *bbs.begin();
             computeDF(s_bb);
             if(genDot==1)
@@ -167,6 +173,23 @@ void init_bbs(const RawFunctionP &func)
     }
     
 }
+//计算根据idom支配树
+void cal_DT(RawFunction* func,unordered_map<RawBasicBlock*,RawBasicBlock*>idom){
+    auto it = ++func->basicblock.begin();
+    for(;it!=func->basicblock.end();it++){
+        RawBasicBlock* bb = (*it);
+        bb->preDomainNode = idom[bb];
+        idom[bb]->domains.push_back(bb);
+    }
+    // for(auto item:idom){
+    //     RawBasicBlock* father = item.second;
+    //     RawBasicBlock* child = item.first;
+    //     cout<<"123132"<<endl;
+    //     cout<<father->name<<endl;
+    //     f
+    //     // father->domains.push_back(child);
+    // }
+}
 //计算逆后序遍历顺序
 void cal_RPO(RawBasicBlock* nowbb,list<RawBasicBlock*> &RPO){
     visitbb.insert(nowbb);
@@ -175,8 +198,51 @@ void cal_RPO(RawBasicBlock* nowbb,list<RawBasicBlock*> &RPO){
             cal_RPO(neighbor,RPO);
         }
     }
-    cout<<nowbb->name<<endl;
     RPO.push_front(nowbb);
+}
+//计算idom集合
+void cal_IDOM(list<RawBasicBlock*> RPO,unordered_map<RawBasicBlock*,RawBasicBlock*>&DOMS){
+    // unordered_map<RawBasicBlock*,RawBasicBlock*>DOMS;
+    unordered_map<RawBasicBlock*,int>idx;
+    int index =0;
+    for(auto bb:RPO){
+        DOMS[bb]=nullptr;
+        idx[bb]= index++;
+    }
+    DOMS[RPO.front()]=RPO.front();
+    bool Changed = true;
+    while (Changed)
+    {
+        Changed = false;
+        auto b = ++RPO.begin();
+        for (; b != RPO.end(); ++b) {
+            RawBasicBlock * newIDOM = (*b)->pbbs.front();
+            auto p = ++(*b)->pbbs.begin();
+            for(;p!=(*b)->pbbs.end();p++){
+                if(DOMS[(*p)]!=nullptr){
+                    newIDOM = intersect((*p),newIDOM,DOMS,idx);
+                }
+            }
+            if(DOMS[(*b)]!=newIDOM){
+                DOMS[(*b)]=newIDOM;
+                Changed = true;
+            }
+        }
+    }
+}
+//计算公共祖先
+RawBasicBlock* intersect(RawBasicBlock*b1,RawBasicBlock*b2,unordered_map<RawBasicBlock*,RawBasicBlock*>DOMS,unordered_map<RawBasicBlock*,int>idx){
+    while(b1!=b2){
+        while (idx[b1]>idx[b2])
+        {
+            b1 = DOMS[b1];
+        }
+        while (idx[b2]>idx[b1])
+        {
+            b2 = DOMS[b2];
+        }
+    }
+    return b1;
 }
 //判断A是否支配B,或者B的必经结点是否是A
 bool AisdomB(const RawBasicBlockP A, const RawBasicBlockP B)
