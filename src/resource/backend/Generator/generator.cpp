@@ -245,7 +245,7 @@ void Visit(const RawBinary &data,const RawValueP &value) {
             break;
         case RBO_NOT_FEQ: //no
             cout << "  feq.s  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
-            cout << "  neg  " << ValueRegister << ", " << ValueRegister << endl;
+            cout << "  not  " << ValueRegister << ", " << ValueRegister << endl;
             break;
         case RBO_FEQ:
             cout << "  feq.s  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
