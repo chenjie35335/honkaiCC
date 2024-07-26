@@ -55,7 +55,13 @@ void Visit(const RawLoad &data, const RawValueP &value,int id) {
         hardware.AllocRegister(value,id);
         string TargetReg = hardware.GetRegister(value,id);
         int srcAddress = hardware.getTargetOffset(src); //这里有点好，直接跳过了visit过程
-        cout << "  lw  " << TargetReg << ", " << srcAddress << "(sp)" << endl;
+        if(srcAddress > 2047) {
+            cout << "  li   " << "t0, " << srcAddress << endl;
+            cout << "  add  " << "t0, sp, t0" << endl;
+            cout << "  lw  " <<  TargetReg << ", " << 0 << "(t0)" << endl;
+        } else {
+                cout << "  lw   " << TargetReg << ", " << srcAddress << "(sp)" << endl;
+            }
         // if(hardware.registerManager.sadd[value]){
         //         cout << "  add " << TargetReg<< ", sp ," << TargetReg << endl;
         //     }
@@ -174,6 +180,13 @@ void Visit(const RawStore &data, const RawValueP &value,int id) {//store这个�
 
         string SrcReg = hardware.GetRegister(src,id);
         int srcAddress = hardware.getTargetOffset(dest);
+
+        if(srcAddress > 2047) {
+            cout << "  li   " << "t0, " << srcAddress << endl;
+            cout << "  add  " << "t0, sp, t0" << endl;
+            cout << "  sw  " <<  SrcReg << ", " << 0 << "(t0)" << endl;
+        } 
+        else
         cout << "  sw  " << SrcReg << ", " << srcAddress << "(sp)" << endl;
     } else if(dest->value.tag == RVT_GET_ELEMENT || dest->value.tag == RVT_GET_PTR) {
  //      hardware.addLockRegister(dest);
@@ -184,19 +197,29 @@ void Visit(const RawStore &data, const RawValueP &value,int id) {//store这个�
         cout << "  sw  " << SrcReg << ", " << 0 << '(' << ElementReg << ')' << endl;
     } else assert(0);
     } else if(src->value.tag == RVT_AGGREGATE && dest->ty->tag == RTT_ARRAY){//这里貌似还是没有什么好办法
-        hardware.AllocRegister(src,id);
- //       hardware.addLockRegister(src);
-        hardware.AllocRegister(dest,id);
-        // hardware.LeaseLockRegister(src);
+//         hardware.AllocRegister(src,id);
+//  //       hardware.addLockRegister(src);
+//         hardware.AllocRegister(dest,id);
+//         // hardware.LeaseLockRegister(src);
+//         string SrcReg = hardware.GetRegister(src,id);
+//         string DestReg = hardware.GetRegister(dest,id);//可以考虑把这个DestReg分配给中间变量
+//         int srcAddress = hardware.getTargetOffset(dest);
+//         if(srcAddress >= 2048) {
+//              cout << "  li   " << "t0, " << srcAddress << endl;
+//             cout << "  add  " << "t0, sp, t0" << endl;
+//             cout << "  sw  " <<  SrcReg << ", " << 0 << "(t0)" << endl;
+//         } else { 
+//             cout << "  addi  " << DestReg << ", " << "sp" << ", " << srcAddress << endl;
+//         }
+//         int index = 0;
+//         Visit(src->value.aggregate,SrcReg,DestReg,index,id);
+
+        Visit(src,id);
+        hardware.LeaseLockRegister(dest);
         string SrcReg = hardware.GetRegister(src,id);
-        string DestReg = hardware.GetRegister(dest,id);//可以考虑把这个DestReg分配给中间变量
-        int srcAddress = hardware.getTargetOffset(dest);
-        if(srcAddress >= 2048) {
-        } else { 
-            cout << "  addi  " << DestReg << ", " << "sp" << ", " << srcAddress << endl;
-        }
-        int index = 0;
-        Visit(src->value.aggregate,SrcReg,DestReg,index,id);
+        string ElementReg = hardware.GetRegister(dest,id);
+        auto srcTag = src->ty->tag;
+            cout << "  sw  " << SrcReg << ", " << 0 << '(' << ElementReg << ')' << endl;
     } else {
         cerr << "src tag:" << src->value.tag << ", dest tag: " << dest->value.tag << endl;
         cerr << "an aggregate value can't be assigned to a non-aggregate value" << endl;
@@ -339,6 +362,12 @@ void Visit(const RawCall &data,const RawValueP &value,int id) {
             // cout<<r<<" "<<zz<<"!!!"<<endl;
         if(r==zz){
             hardware.StoreReg(zz);
+
+            if(l > 2047) {
+                        cout << "  li   " << "t0, " << l << endl;
+                        cout << "  add  " << "t0, sp, t0" << endl;
+                        cout << "  lw  " <<  hardware.registerManager.regs[zz] << ", " << 0 << "(t0)" << endl; 
+                    } else
             cout << "  lw   " << hardware.registerManager.regs[zz] << ", " << l << "(sp)" << endl;
         hardware.registerManager.registerLook.insert(pair<RawValueP, int>(params[i],zz));
             hardware.registerManager.LX[pos]={-1,-1};
@@ -355,7 +384,12 @@ void Visit(const RawCall &data,const RawValueP &value,int id) {
             auto val = hardware.registerManager.LY[pos];
             // cout<<r<<" "<<zz<<"!!!"<<endl;
         if(r==zz){
-            cout << "  lw   " << hardware.registerManager.regs[zz] << ", " << l << "(sp)" << endl;
+            if(l > 2047) {
+                        cout << "  li   " << "t0, " << l << endl;
+                        cout << "  add  " << "t0, sp, t0" << endl;
+                        cout << "  lw  " <<  hardware.registerManager.regs[zz] << ", " << 0 << "(t0)" << endl; 
+                    } else
+                     cout << "  lw   " << hardware.registerManager.regs[zz] << ", " << l << "(sp)" << endl;
         hardware.registerManager.registerLook.insert(pair<RawValueP, int>(params[i],zz));
             hardware.registerManager.LX[pos]={-1,-1};
             }
@@ -365,12 +399,14 @@ void Visit(const RawCall &data,const RawValueP &value,int id) {
             string reg = hardware.GetRegister(params[i],id);
             int offset = (i-8)*4;
             FF[i]=offset;
-            //是不是也要处理？
-        //     if(offset>=2048){
-                 
-        //     cout << "  sw  " << reg << ", " << 0 << '(' << DestReg << ')' << endl;
-        //     }
-            cout << "  sw " << reg << ", " << offset << "(sp)" << endl;
+
+            if(offset > 2047) {
+                cout << "  li  t0, " << offset << endl;
+                cout << "  add  t0, t0, sp" << endl;
+                cout << "  sw  " << reg << ", " << 0 << "(t0)" << endl;
+            } else{
+                cout << "  sw  " << reg << ", " << offset << "(sp)" << endl;
+            }
             hardware.registerManager.registerLook.erase(params[i]);
             hardware.StackAlloc(params[i]);
          }
@@ -395,7 +431,13 @@ void Visit(const RawCall &data,const RawValueP &value,int id) {
             auto val=hardware.registerManager.LY[pos];
         if(r!=RegisterManager::callerSave[i]) continue;
         hardware.registerManager.LX[pos]={-1,-1};
-        cout << "  lw   " << hardware.registerManager.regs[RegisterManager::callerSave[i]] << ", " << l << "(sp)" << endl;
+
+        if(l > 2047) {
+                        cout << "  li   " << "t0, " << l << endl;
+                        cout << "  add  " << "t0, sp, t0" << endl;
+                        cout << "  lw  " <<  hardware.registerManager.regs[RegisterManager::callerSave[i]] << ", " << 0 << "(t0)" << endl; 
+                    } else
+                    cout << "  lw   " << hardware.registerManager.regs[RegisterManager::callerSave[i]] << ", " << l << "(sp)" << endl;
         hardware.registerManager.registerLook.insert(pair<RawValueP, int>(val,RegisterManager::callerSave[i]));
         }
      }
@@ -420,6 +462,12 @@ void Visit(const RawCall &data,const RawValueP &value,int id) {
         auto val=hardware.registerManager.LY[pos];
         if(r!=i) continue;
         
+        if(l > 2047) {
+                        cout << "  li   " << "t0, " << l << endl;
+                        cout << "  add  " << "t0, sp, t0" << endl;
+                        cout << "  lw  " << hardware.registerManager.regs[i] << ", " << 0 << "(t0)" << endl; 
+                    } 
+        else
         cout << "  lw   " << hardware.registerManager.regs[i] << ", " << l << "(sp)" << endl;
         hardware.registerManager.registerLook.insert(pair<RawValueP, int>(val,i));
     }
@@ -473,7 +521,7 @@ void Visit(const RawGlobal &data,const RawValueP &value,int id) {
     }
     
      else if(tag == RVT_ZEROINIT) {
-       int len =  calPtrLen(value);
+       int len =  calBaseLen(value);
        cout << "  .zero " << len << endl;
     } else if(tag == RVT_AGGREGATE) {
         Visit(data.Init->value.aggregate,id);
@@ -491,7 +539,7 @@ void Visit(const RawGetPtr &data, const RawValueP &value,int id) {
     Visit(index,id);
  //   hardware.addLockRegister(index);
     string IndexReg = hardware.GetRegister(index,id);
-    int elementLen = calPtrLen(src);
+    int elementLen = calBaseLen(src);
     hardware.AllocRegister(value,id);
     // hardware.LeaseLockRegister(src);
     // hardware.LeaseLockRegister(index);
@@ -538,7 +586,7 @@ void Visit(const RawGetElement &data,const RawValueP &value,int id) {
      //这个地方应该乘的是单个元素的长度，这里先解决的是一维数组的问题
      //cout << "calptrlen = " << calPtrLen(src) << ", elementlen" << (src->ty->data.array.len) << endl;
      //int elementLen = calPtrLen(src);??
-     int elementLen = calPtrLen(src)/(src->ty->pointer.base->array.len);
+     int elementLen = calBaseLen(src)/(src->ty->pointer.base->array.len);
 
      hardware.AllocRegister(value,id);
      string ptrReg = hardware.GetRegister(value,id);
@@ -794,19 +842,19 @@ void Visits(const RawLoad &data, const RawValueP &value,list<RawValue*>::const_i
     if(src->value.tag == RVT_GLOBAL) {
     } else if(hardware.IsMemory(src)){
         int srcAddress = hardware.getTargetOffset(src);
-        if(srcAddress>=2048){
-            addload(srcAddress,it,(RawBasicBlock*)bb);
-            //            cout << "  li  " << DestReg << ", " << srcAddress << endl;  加load
-        }
-    } else if(src->value.tag == RVT_GET_ELEMENT || src->value.tag == RVT_GET_PTR){
-        //先不处理
-        // hardware.addLockRegister(src);
-        // hardware.AllocRegister(value);
-        // string TargetReg = hardware.GetRegister(value);
-        // string ElementReg = hardware.GetRegister(src);
-        // cout << "  lw  " << TargetReg << ", " << 0 << '(' << ElementReg << ')' << endl;
-        // hardware.LeaseLockRegister(src);
-    } else return;
+    //     if(srcAddress>=2048){
+    //         addload(srcAddress,it,(RawBasicBlock*)bb);
+    //         //            cout << "  li  " << DestReg << ", " << srcAddress << endl;  加load
+    //     }
+    // } else if(src->value.tag == RVT_GET_ELEMENT || src->value.tag == RVT_GET_PTR){
+    //     //先不处理
+    //     // hardware.addLockRegister(src);
+    //     // hardware.AllocRegister(value);
+    //     // string TargetReg = hardware.GetRegister(value);
+    //     // string ElementReg = hardware.GetRegister(src);
+    //     // cout << "  lw  " << TargetReg << ", " << 0 << '(' << ElementReg << ')' << endl;
+    //     // hardware.LeaseLockRegister(src);
+     } else return;
 }
 
 void Visits(const RawStore &data, const RawValueP &value,list<RawValue*>::const_iterator it,RawBasicBlockP bb) {//store
@@ -828,15 +876,16 @@ void Visits(const RawStore &data, const RawValueP &value,list<RawValue*>::const_
         // string SrcReg = hardware.GetRegister(src);
         // string DestReg = hardware.GetRegister(dest);//可以考虑把这个DestReg分配给中间变量
         int srcAddress = hardware.getTargetOffset(dest);
-        if(srcAddress >= 2048) {
-             addload(srcAddress,it,(RawBasicBlock*)bb);
-//            cout << "  li  " << DestReg << ", " << srcAddress << endl;  加load
-        }
-        int index = 0;
-//        Visit(src->value.aggregate,SrcReg,DestReg,index); 这是？
-    } else {
-        assert(0);
-    }
+//         if(srcAddress >= 2048) {
+//              addload(srcAddress,it,(RawBasicBlock*)bb);
+// //            cout << "  li  " << DestReg << ", " << srcAddress << endl;  加load
+//         }
+//         int index = 0;
+// //        Visit(src->value.aggregate,SrcReg,DestReg,index); 这是？
+     }
+// else {
+//         assert(0);
+//     }
 }
 
 void Visits(const RawCall &data,const RawValueP &value,list<RawValue*>::const_iterator it,RawBasicBlockP bb) {
@@ -913,11 +962,11 @@ void Visits(const RawValueP &value,list<RawValue*>::const_iterator it,RawBasicBl
         Visits(ret,it,bb);
         }
         int StackSize = hardware.getStackSize();
-        if(StackSize > 2047) {   //1   问题在t0会不会冲突？
-//        addload(StackSize,it,(RawBasicBlock*)bb);
-        // cout << "  li t0, " << StackSize << endl;
-        // cout << "  add sp, sp, t0" << endl;
-        }
+//         if(StackSize > 2047) {   //1   问题在t0会不会冲突？
+// //        addload(StackSize,it,(RawBasicBlock*)bb);
+//         // cout << "  li t0, " << StackSize << endl;
+//         // cout << "  add sp, sp, t0" << endl;
+//         }
         break;
     }
     case RVT_INTEGER: {
@@ -1084,7 +1133,7 @@ void generateASM(RawProgramme *& programme) {
         Visits(func,cnt);
         vector<RawValue*> &cuf=(func->params);
         while(1){
-            // cout<<func->name<<endl;
+           // cout<<func->name<<endl;
             int x=hardware.struct_graph(buf,cnt,cuf);
             if(x) break;
         }

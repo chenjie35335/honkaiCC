@@ -18,42 +18,43 @@ int ValueArea::getTargetOffset(const RawValueP &value) const
 /// @brief 返回
 /// @param value
 /// @return
-int calArrLen(const RawTypeP &value)
-{
+int calArrLen(const RawTypeP &value) {
     assert(value->tag == RTT_ARRAY);
     auto ElemTag = value->array.base->tag;
-    if (ElemTag == RTT_INT32)
+    if (ElemTag == RTT_INT32 || ElemTag == RTT_FLOAT)
         return value->array.len * 4;
     else if (ElemTag == RTT_ARRAY)
         return calArrLen(value->array.base) * value->array.len;
     else
         return 0;
 }
+/// @brief 这个是计算数组的一个单元的大小
+/// @param value 
+/// @return 
+int calBaseLen(const RawValueP &value){
+    auto PointerTy = value->ty->pointer.base;
+    auto PointerTyTag = PointerTy->tag;
+    if (PointerTyTag == RTT_INT32 || PointerTyTag == RTT_FLOAT)
+        return 4;
+    else if (PointerTyTag == RTT_ARRAY)
+        return calArrLen(PointerTy);
+    else assert(0);
+}
 
-/// @brief 获取指针所指位置的值
+/// @brief //这个是单纯计算alloc需要分配的空间
 /// @param value
 /// @return
-int calPtrLen(const RawValueP &value)
+int calAllocLen(const RawValueP &value)
 {
-    auto TyTag = value->ty->tag;
-    // cout << "TyTag" << TyTag << endl;
-    if (TyTag == RTT_POINTER)
-    {
-        auto PointerTy = value->ty->pointer.base;
-        auto PointerTyTag = PointerTy->tag;
-        if (PointerTyTag == RTT_INT32)
-            return 4;
-        else if (PointerTyTag == RTT_ARRAY)
-            return calArrLen(PointerTy);
-        else
-            assert(0);
-    }
-    else if (TyTag == RTT_ARRAY)
-    {
-        return calArrLen(value->ty);
-    }
-    else
-        return 0;
+    auto PointerTy = value->ty->pointer.base;
+    auto PointerTyTag = PointerTy->tag;
+    if (PointerTyTag == RTT_INT32 || PointerTyTag == RTT_FLOAT)
+        return 4;
+    else if (PointerTyTag == RTT_ARRAY)
+        return calArrLen(PointerTy);
+    else if(PointerTyTag == RTT_POINTER)
+        return 8;
+    else assert(0);
 }
 // 这里需要修改
 void calculateSize(int &ArgsLen, int &LocalLen, int &ReserveLen, const RawFunctionP &function)
@@ -67,7 +68,7 @@ void calculateSize(int &ArgsLen, int &LocalLen, int &ReserveLen, const RawFuncti
         {
             if (value->value.tag == RVT_ALLOC)
             { // alloc 指令分配的内存,大小为4字节
-                int len = calPtrLen(value);
+                int len = calAllocLen(value);
                 // cout << "save len =" << len << endl;
                 LocalLen += len + 4; // 这里给每个指针值加上一个4字节用于存储指针
                 hardware.SaveLen(value, len);
@@ -249,7 +250,7 @@ void check(RawValueP y,map<RawValueP,int>&vdef){
                   }
             }
 
-const int M=10000,N=25;
+const int M=50005,N=25;
 vector<RawValueP> def[M],use[M];
     map<RawValueP,int> mp;
 void make_def_use(vector<RawBasicBlockP> bbbuffer){
@@ -350,7 +351,7 @@ int eq(vector<RawValueP> x,vector<RawValueP> y){
 }
 int OK=0;
 int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector<RawValue*> &cuf){
-    for(int i=0;i<10000;i++){
+    for(int i=0;i<200000;i++){
         registerManager.g[i].clear();
     }
     registerManager.n=0;
@@ -389,7 +390,6 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
         }
     }
     make_def_use(bbbuffer);
-
     // for(auto i=cuf.begin();i!=cuf.end();i++){
     //     auto e=i;
     //     e++;
@@ -1065,14 +1065,26 @@ void HardwareManager::StoreReg(int RandSelected)
                 if (PointerTag == RTT_ARRAY)
                     return;
                 else{
+                        if(TargetOffset > 2047) {
+                        cout << "  li   " << "t0, " << TargetOffset << endl;
+                        cout << "  add  " << "t0, sp, t0" << endl;
+                        cout << "  sw  " <<  TargetReg << ", " << 0 << "(t0)" << endl; 
+                    } else{
                     cout << "  sw   " << TargetReg << ", " << TargetOffset << "(sp)" << endl;
+                        }
                     registerManager.LX.push_back({RandSelected, TargetOffset});
                     (registerManager.LY).push_back(value);
                 }
                     
             }
             else if(ty->tag == RTT_INT32){
-                cout << "  sw   " << TargetReg << ", " << TargetOffset << "(sp)" << endl;
+                if(TargetOffset > 2047) {
+                        cout << "  li   " << "t0, " << TargetOffset << endl;
+                        cout << "  add  " << "t0, sp, t0" << endl;
+                        cout << "  sw  " <<  TargetReg << ", " << 0 << "(t0)" << endl; 
+                } else{
+                        cout << "  sw   " << TargetReg << ", " << TargetOffset << "(sp)" << endl;
+                    }
                 registerManager.LX.push_back({RandSelected, TargetOffset});
                 registerManager.LY.push_back(value);
             }

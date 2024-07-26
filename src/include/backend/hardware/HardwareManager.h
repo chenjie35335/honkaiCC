@@ -198,9 +198,9 @@ public:
     int n;
    // map<RawValueP,int> kill;
    // int killc[1000]={0};
-    vector<int> g[10000];
-    map<RawValueP,int> vp[10000]; //value的下标映射
-    map<int,RawValueP> rvp[10000];//反映射
+    vector<int> g[200005];
+    map<RawValueP,int> vp[100005]; //value的下标映射
+    map<int,RawValueP> rvp[100005];//反映射
     map<int,string>hreg;//从虚拟到真实的的reg映射
 
     map<RawValueP,int> sadd;
@@ -336,8 +336,7 @@ class HardwareManager {
 3、 ra寄存器在调用前保存至相应位置
 */
 
-int calPtrLen(const RawValueP &value);
-
+int calBaseLen(const RawValueP &value);
 
 
 #endif
