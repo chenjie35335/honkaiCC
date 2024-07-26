@@ -75,7 +75,7 @@ void Visit(const RawLoad &data, const RawValueP &value,int id) {
         // hardware.LeaseLockRegister(src);
     } else{
         cout<<src->value.tag<<"!!!"<<endl;
-        cout<<src->value.integer.value<<endl;
+        cout<<value->value.tag<<endl;
         exit(0);
     }
 }
@@ -577,11 +577,7 @@ void Visit(const RawGetElement &data,const RawValueP &value,int id) {
      } else {
         srcAddrReg = hardware.GetRegister(src,id);
      }
- //    hardware.addLockRegister(src);
-
      Visit(index,id);
-
-//     hardware.addLockRegister(index);
      string IndexReg = hardware.GetRegister(index,id);
      //这个地方应该乘的是单个元素的长度，这里先解决的是一维数组的问题
      //cout << "calptrlen = " << calPtrLen(src) << ", elementlen" << (src->ty->data.array.len) << endl;
@@ -593,8 +589,8 @@ void Visit(const RawGetElement &data,const RawValueP &value,int id) {
      if(elementLen == 4) {
         cout << "  slli " << IndexReg << ", " << IndexReg << ", " << 2 << endl;
     } else {
-        cout << "  li  " << ptrReg << ", " << elementLen << endl;
-        cout << "  mul " << IndexReg << ", " << IndexReg << ", " << ptrReg << endl;
+        cout << "  li  " << "t0" << ", " << elementLen << endl;
+        cout << "  mul " << IndexReg << ", " << IndexReg << ", " << "t0" << endl;
     }
      cout << "  add  " << ptrReg << ", " << srcAddrReg << ", " << IndexReg << endl;
 

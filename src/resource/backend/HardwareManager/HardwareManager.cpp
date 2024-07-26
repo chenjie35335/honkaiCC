@@ -318,15 +318,15 @@ void make_def_use(vector<RawBasicBlockP> bbbuffer){
                             case RVT_GET_PTR:{
                                 auto qq=(y->value.getptr.index);
                                 auto qqq=(y->value.getptr.src);
-                                if(qq->ty->tag==0||qq->ty->tag==4) use[mp[it]].push_back(qq);
-                                if(qqq->ty->tag==0||qqq->ty->tag==4) use[mp[it]].push_back(qqq);
+                                use[mp[it]].push_back(qq);
+                                use[mp[it]].push_back(qqq);
                                 break;
                             }
                             case RVT_GET_ELEMENT:{
                                 auto qq=(y->value.getelement.src);
                                 auto qqq=(y->value.getelement.index);
-                                if(qq->ty->tag==0||qq->ty->tag==4) use[mp[it]].push_back(qq);
-                                if(qqq->ty->tag==0||qqq->ty->tag==4) use[mp[it]].push_back(qqq); 
+                                 use[mp[it]].push_back(qq);
+                                 use[mp[it]].push_back(qqq); 
                                 break;
                             }
                             case RVT_AGGREGATE:{
@@ -853,11 +853,12 @@ void HardwareManager::spill(vector<RawBasicBlockP> &bbbuffer,int id,vector<RawVa
             ty->tag = RTT_POINTER;
             RawType *pointerTy = new RawType();
             pointerTy->tag = RTT_INT32;
-            ty->pointer.base = pointerTy;
+            ty->pointer.base = pvue->ty;
             alloc->ty = (RawTypeP)ty;
             alloc->value.tag = RVT_ALLOC;
             alloc->name="qqq";
             aloc=alloc;
+            
             // signTable.insertVar(namee,alloc);//alloc要不要存？
 
             //store
@@ -870,7 +871,6 @@ void HardwareManager::spill(vector<RawBasicBlockP> &bbbuffer,int id,vector<RawVa
             store->value.tag = RVT_STORE;
             store->value.store.value = pvue;
             store->value.store.dest = alloc;
-            RawValue *DestValue = (RawValue*)alloc;
             it->inst.insert(p,store);
             store->addr=alloc;
             // chg(x,pvue,value);
@@ -885,12 +885,11 @@ void HardwareManager::spill(vector<RawBasicBlockP> &bbbuffer,int id,vector<RawVa
             // tyy->tag=RTT_POINTER;
             // else
             tyy->tag = RTT_INT32;
-            load->ty = (RawTypeP) tyy;
+            load->ty = (RawTypeP) aloc->ty->pointer.base;
             load->name = "WWw";
             load->value.tag = RVT_LOAD;
             load->value.load.src =aloc;
             it->inst.insert(j,load);
-            RawValue *SrcValue = (RawValue*) aloc;
             RawValueP X=(RawValueP)x;
             chg(X,pvue,load);
             }
