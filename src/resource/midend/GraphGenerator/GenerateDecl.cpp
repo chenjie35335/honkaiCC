@@ -20,6 +20,7 @@ void DeclAST::generateGraph() const
         break;
     case DECLAST_VAR:{
         int32_t BTYPE = btype->getType();
+        // cout << "BTYPE:" << BTYPE << endl;
         VarDecl->generateGraph(BTYPE);
         break;
     }
@@ -63,16 +64,16 @@ void SinVarDefAST::generateGraphGlobal(int &retType) const {
     case SINVARDEFAST_INI: {
         //这里确实进行计算，但是和之前一样，如果不是常量就未定义
         auto value = InitVal->Calculate();
-        if(retType == RTT_FLOAT){
-            if(value->type == ExpResult::INT) 
-                generateRawValueGlobal(DestSign.c_str(),value->IntResult);
-            else
-                generateRawValueGlobal(DestSign.c_str(),(int)value->FloatResult);
-        } else {
+         if(retType == RTT_FLOAT) {
             if(value->type == ExpResult::INT) 
                 generateRawValueGlobal(DestSign.c_str(),(float)value->IntResult);
             else
                 generateRawValueGlobal(DestSign.c_str(),value->FloatResult);
+        } else {
+            if(value->type == ExpResult::INT) 
+                generateRawValueGlobal(DestSign.c_str(),value->IntResult);
+            else
+                generateRawValueGlobal(DestSign.c_str(),(int)value->FloatResult);
         }
         break;
     }

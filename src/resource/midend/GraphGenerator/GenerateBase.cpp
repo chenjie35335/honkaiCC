@@ -57,9 +57,11 @@ void SinCompUnitAST::generateGraph() const{
             int retType;
             if(tempType == FUNCTYPE_FLOAT){
                 retType = RTT_FLOAT;
+                // cout << "retType: " << retType << endl;
                 varGlobal->generateGraphGlobal(retType);
             } else {
                 retType = RTT_INT32;
+                // cout << "retType: " << retType << endl;
                 varGlobal->generateGraphGlobal(retType);
             }
             break;

@@ -25,10 +25,10 @@ void Visit(const RawLoad &data, const RawValueP &value) {
     if(src->value.tag == RVT_GLOBAL) {
         hardware.AllocRegister(value);
         const char *TargetReg = hardware.GetRegister(value);
-        if(srcPointerTy->tag == RTT_INT32)
-            cout << "  lw  " << TargetReg << ", " << src->name << endl;
+        if(srcPointerTy->tag == RTT_FLOAT)
+            cout << "  flw  " << TargetReg << ", " << src->name << ", t0" <<  endl;
         else {
-            cout << "  flw  " << TargetReg << ", " << src->name << ", t0" << endl;
+            cout << "  lw  " << TargetReg << ", " << src->name << endl;
         }
     } else if(src->value.tag == RVT_ALLOC){
         hardware.AllocRegister(value);
