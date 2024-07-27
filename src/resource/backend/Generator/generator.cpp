@@ -173,10 +173,10 @@ void Visit(const RawBinary &data,const RawValueP &value) {
     ValueRegister = hardware.GetRegister(value);
     switch(op) {
         case RBO_ADD:
-            cout << "  add  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
+            cout << "  addw  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
             break;
         case RBO_SUB:
-            cout << "  sub  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
+            cout << "  subw  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
             break;
         case RBO_EQ:
             cout << "  xor  " << ValueRegister <<", "<< LhsRegister << ", " << RhsRegister <<endl;
@@ -187,13 +187,13 @@ void Visit(const RawBinary &data,const RawValueP &value) {
             cout << "  snez "  << ValueRegister <<", "<< ValueRegister  <<endl;
             break;
         case RBO_MUL:
-            cout << "  mul  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
+            cout << "  mulw  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
             break;
         case RBO_DIV:
-            cout << "  div  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
+            cout << "  divw  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
             break;
         case RBO_MOD:
-            cout << "  rem  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
+            cout << "  remw  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
             break;
         case RBO_LT:
             cout << "  slt  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
