@@ -482,7 +482,7 @@ void generateRawValueMulArr(string &ident,int index,vector<int>dimens,int flag) 
     params.push_back(value);
     auto &paramsTy = function->ty->function.params;
     paramsTy.push_back(ty) ;
-    signTable.insertVar(ident,value);
+    signTable.insertMidVar(ident,value);
 }
 //alloc型变量，但是指针指向的是临外的类型
 ///ty为指向的类型
