@@ -91,7 +91,7 @@ class RawValue {
 // addr->value.tag = RVT_INTEGER
 typedef const RawValue * RawValueP;
 
-void generateRawValueArgs(const string &ident,int index, int32_t flag);
+void generateRawValueArgs(string &ident,int index, int32_t flag);
 
 void getMidVarValue(RawValueP &value, string &name);
 
@@ -141,9 +141,9 @@ void generateElement(RawValueP &src,RawValueP &index,string &name);
 
 void generatePtr(RawValueP &src,RawValueP &index,string &name);
 
-void generateRawValueSinArr(const string &ident,int index, int flag);
+void generateRawValueSinArr(string &ident,int index, int flag);
 
-void generateRawValueMulArr(const string &ident,int index,vector<int>dimens,int flag);
+void generateRawValueMulArr(string &ident,int index,vector<int>dimens,int flag);
 
 void MarkUse(RawValue *src,RawValue *target);
 

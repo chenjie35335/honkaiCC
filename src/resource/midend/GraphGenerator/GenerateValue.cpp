@@ -420,7 +420,7 @@ void generateRawValue(RawFunctionP callee,vector<RawValueP> paramsValue,string &
  * @param index 
  * @param flag 
  */
-void generateRawValueArgs(const string &ident,int index, int32_t flag){
+void generateRawValueArgs(string &ident,int index, int32_t flag){
     auto function = getTempFunction();
     auto &params = function->params;
     RawValue *value = new RawValue();
@@ -433,13 +433,13 @@ void generateRawValueArgs(const string &ident,int index, int32_t flag){
     params.push_back(value);
     auto &paramsTy = function->ty->function.params;
     paramsTy.push_back(ty);
-    signTable.insertVar(ident,value);
+    signTable.insertMidVar(ident,value);
 }
 /// @brief a[]类型的参数
 /// @param ident 
 /// @param index 
 /// @param flag 
-void generateRawValueSinArr(const string &ident,int index,int flag) {
+void generateRawValueSinArr(string &ident,int index,int flag) {
     auto function = getTempFunction();
     auto &params = function->params;
     RawValue *value = new RawValue();
@@ -456,7 +456,7 @@ void generateRawValueSinArr(const string &ident,int index,int flag) {
     params.push_back(value);
     auto &paramsTy = function->ty->function.params;
     paramsTy.push_back(ty);
-    signTable.insertVar(ident,value);
+    signTable.insertMidVar(ident,value);
 }
 
 /**
@@ -464,7 +464,7 @@ void generateRawValueSinArr(const string &ident,int index,int flag) {
  * @param ident 
  * @param index 
  */
-void generateRawValueMulArr(const string &ident,int index,vector<int>dimens,int flag) {
+void generateRawValueMulArr(string &ident,int index,vector<int>dimens,int flag) {
     auto function = getTempFunction();
     auto &params = function->params;
     RawValue *value = new RawValue();

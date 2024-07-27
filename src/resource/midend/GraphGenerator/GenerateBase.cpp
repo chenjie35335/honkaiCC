@@ -98,7 +98,7 @@ void FuncDefAST::generateGraph(int &retType) const{
         generateRawValue(RetSrc);
     }
     signTable.clearMidVar();
-    PushRawFunction(p);
+    PushRawFunction(p); 
 }
 
 //访问参数
@@ -109,11 +109,13 @@ void FuncFParamsAST::generateGraph() const{
     }
 }
 //单个参数访问
+//就是访问参数的时候新建立的这个和全局变量重名
+//首先参数应该当成临时变量
 void SinFuncFParamAST::generateGraph(int &index) const{
     int para = paraType->getType();
     int RetFlag;
     RawValueP TempArg,Arg;
-    string ArgName = ident+"_"+to_string(signTable.IdentTable->level);
+    string ArgName = "p_"+to_string(index);
     string TempArgName = ident;
     if(para == TYPE_FLOAT) RetFlag = RTT_FLOAT;
     else RetFlag = RTT_INT32;
@@ -121,12 +123,12 @@ void SinFuncFParamAST::generateGraph(int &index) const{
         case PARA_VAR:{
                 generateRawValueArgs(ArgName,index,RetFlag);
                 generateRawValue(TempArgName,RetFlag);
-                Arg = signTable.getVarR(ArgName);
+                Arg = signTable.getMidVar(ArgName);
             break;
         }
         case PARA_ARR_SIN:{//这里还是要改成那种形式，就是
             generateRawValueSinArr(ArgName,index,RetFlag);
-            Arg = signTable.getVarR(ArgName);
+            Arg = signTable.getMidVar(ArgName);
             generateRawValuePointer(TempArgName,(RawType *)Arg->ty);//生成指针，用于以后的使用
             break;
         }
@@ -134,7 +136,7 @@ void SinFuncFParamAST::generateGraph(int &index) const{
             vector<int>dimens;
             arrayDimen->generateGraph(dimens);
             generateRawValueMulArr(ArgName,index,dimens,RetFlag);
-            Arg = signTable.getVarR(ArgName);
+            Arg = signTable.getMidVar(ArgName);
             generateRawValuePointer(TempArgName,(RawType *)Arg->ty);
             break;
         }
