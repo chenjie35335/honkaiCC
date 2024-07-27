@@ -6,48 +6,69 @@
 enum {
     /// Not equal to.
     RBO_NOT_EQ,
+    /// float not equal to
     RBO_NOT_FEQ,
     /// Equal to.
     RBO_EQ,
+    /// float equal to
     RBO_FEQ,
-/// Greater than.
+    /// Greater than.
     RBO_GT,
+    /// float greater than
     RBO_FGT,
-/// Less than.
+    /// Less than.
     RBO_LT,
+    /// float less than
     RBO_FLT,
-/// Greater than or equal to
+    /// Greater than or equal to
     RBO_GE,
+    /// float greater than or equal to
     RBO_FGE,
-/// Less than or equal to.
+    /// Less than or equal to.
     RBO_LE,
+    /// float less than or equal to
     RBO_FLE,
-/// Addition.
+    /// Addition.
     RBO_ADD,
+    /// float addition
     RBO_FADD,
-/// Subtraction.    
+    /// Subtraction.    
     RBO_SUB,
+    /// float subtraction
     RBO_FSUB,
-/// Multiplication.
+    /// Multiplication.
     RBO_MUL,
+    /// float multiplication
     RBO_FMUL,
-/// Division.
+    /// Division.
     RBO_DIV,
+    /// float division
     RBO_FDIV,
-/// Modulo.
+    /// Modulo.
     RBO_MOD,
-/// Bitwise AND.
+    /// Bitwise AND.
     RBO_AND,
-/// Bitwise OR.
+    /// Bitwise OR.
     RBO_OR,
-/// Bitwise XOR.
+    /// Bitwise XOR.
     RBO_XOR,
-/// Shift left logical.
+    /// Shift left logical.
     RBO_SHL,
-/// Shift right logical.
+    /// Shift right logical.
     RBO_SHR,
-/// Shift right arithmetic.
+    /// Shift right arithmetic.
     RBO_SAR,
+};
+
+enum {
+    /// float multiply add
+    RTO_FMADD,
+    /// float multiply sub
+    RTO_FMSUB,
+    /// float multiply neg add
+    RTO_FNMADD,
+    /// float multiply neg sub
+    RTO_FNMSUB
 };
 
 //the kind of value
@@ -91,7 +112,9 @@ enum {
     /// phi18
     RVT_PHI,
     /// value convert19
-    RVT_CONVERT
+    RVT_CONVERT,
+    /// triple20
+    RVT_TRIPE,
 };
 
 enum {

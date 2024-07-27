@@ -159,9 +159,6 @@ void Visit(const RawBinary &data,const RawValueP &value) {
     hardware.LeaseLockRegister(lhs);
     hardware.LeaseLockRegister(rhs);
     //这里需要根据类型判断他是在哪个寄存器里面
-    int lhsType = lhs->value.tag;
-    int rhsType = rhs->value.tag;
-    int valueType = value->value.tag;
     const char *LhsRegister;
     const char *RhsRegister;
     const char *ValueRegister;
@@ -196,16 +193,24 @@ void Visit(const RawBinary &data,const RawValueP &value) {
             cout << "  remw  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
             break;
         case RBO_LT:
+            cout << "  sext.w  " << LhsRegister << ", " << LhsRegister << endl;
+            cout << "  sext.w  " << RhsRegister << ", " << RhsRegister << endl;
             cout << "  slt  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
             break;
         case RBO_GT:
+            cout << "  sext.w  " << LhsRegister << ", " << LhsRegister << endl;
+            cout << "  sext.w  " << RhsRegister << ", " << RhsRegister << endl;
             cout << "  slt  " <<ValueRegister<<", "<< RhsRegister << ", " << LhsRegister <<endl;
             break;
         case RBO_GE:
+            cout << "  sext.w  " << LhsRegister << ", " << LhsRegister << endl;
+            cout << "  sext.w  " << RhsRegister << ", " << RhsRegister << endl;
             cout << "  slt  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
             cout << "  seqz " << ValueRegister <<", "<< ValueRegister  <<endl;
             break;
         case RBO_LE:
+            cout << "  sext.w  " << LhsRegister << ", " << LhsRegister << endl;
+            cout << "  sext.w  " << RhsRegister << ", " << RhsRegister << endl;
             cout << "  sgt  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
             cout << "  seqz " << ValueRegister <<", "<< ValueRegister  <<endl;
             break;   
@@ -440,6 +445,58 @@ void Visit(const RawGetElement &data,const RawValueP &value) {
     cout << endl;
 }
 
+void Visit(const RawTriple &data,const RawValueP &value) 
+{
+    const auto &hs1 = data.hs1;
+    const auto &hs2 = data.hs2;
+    const auto &hs3 = data.hs3;
+    const auto &op  = data.op;
+    Visit(hs1);
+    hardware.addLockRegister(hs1);
+
+    Visit(hs2);
+    hardware.addLockRegister(hs2);
+
+    Visit(hs3);
+    hardware.addLockRegister(hs3);
+
+    hardware.AllocRegister(value);
+
+    //release
+    hardware.LeaseLockRegister(hs1);
+    hardware.LeaseLockRegister(hs2);
+    hardware.LeaseLockRegister(hs3);
+    //这里需要根据类型判断他是在哪个寄存器里面
+    const char *hs1Register;
+    const char *hs2Register;
+    const char *hs3Register;
+    const char *ValueRegister;
+    //hs1
+    hs1Register = hardware.GetRegister(hs1);
+    //hs2
+    hs2Register = hardware.GetRegister(hs2);
+    //hs3
+    hs3Register = hardware.GetRegister(hs3);
+    //value
+    ValueRegister = hardware.GetRegister(value);
+    switch(op) {
+        case RTO_FMADD:{
+            cout << "  fmadd.s  " << ValueRegister << ", " << hs1Register << ", " << hs2Register << ", " << hs3Register << endl;
+            break;
+        }
+        case RTO_FMSUB:{
+            cout << "  fmsub.s  " << ValueRegister << ", " << hs1Register << ", " << hs2Register << ", " << hs3Register << endl;
+            break;
+        }
+        case RTO_FNMADD:{
+            break;
+        }
+        case RTO_FNMSUB:{
+            break;
+        }
+        default: assert(0);
+    }
+}
 
 /// visit convert
 void Visit(const RawConvert &data, const RawValueP &value)
@@ -469,7 +526,6 @@ void Visit(const RawConvert &data, const RawValueP &value)
         const char *TReg = hardware.GetRegister(value);
         cout<< "  fcvt.w.s " << TReg << ", "<< srcReg << ", " << "rtz" << endl;
     }
-    
 }
 
 
@@ -613,6 +669,11 @@ void Visit(const RawValueP &value) {
     case RVT_CONVERT: {
         const auto &convert = kind.Convert;
         Visit(convert,value);
+        break;
+    }
+    case RVT_TRIPE: {
+        const auto &triple = kind.triple;
+        Visit(triple,value);
         break;
     }
     default:{
