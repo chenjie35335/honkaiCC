@@ -76,14 +76,16 @@ void alloc_ptr_symbol(const RawValueP &value)
     Symbol_List[value] = "\%ptr"+to_string(ptr_idx++);
 }
 string GetValueType(const RawTypeP &ty)
-{
+{   
     switch(ty->tag){
         case RTT_INT32:{
             return string("i32");
         }
         case RTT_FLOAT:{
             return string("float");
-            break;
+        }
+        case RTT_UNIT:{
+            return string("");
         }
         case RTT_ARRAY:{
             string str = "["+GetValueType(ty->array.base)+", ";
