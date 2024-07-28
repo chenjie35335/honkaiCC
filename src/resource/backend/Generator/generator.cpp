@@ -567,7 +567,7 @@ void Visit(const RawGetElement &data,const RawValueP &value,int id) {
         hardware.AllocRegister(src,id);
         srcAddrReg = hardware.GetRegister(src,id);
         cout << "  la  " << srcAddrReg << ", " << src->name << endl;
-     } else if(hardware.IsMemory(src)){//这里包含了参数值的问题
+     } else if(src->value.tag ==RVT_GLOBAL){//这里包含了参数值的问题
         hardware.AllocRegister(src,id);
         srcAddrReg = hardware.GetRegister(src,id);
         int srcAddr = hardware.getTargetOffset(src);
