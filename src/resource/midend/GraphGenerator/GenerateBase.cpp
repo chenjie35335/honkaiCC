@@ -237,6 +237,11 @@ void StmtAST::generateGraph() const {
                      dest = signTable.getMidVar(ElementSign);
                      DestBaseTag = dest->ty->pointer.base->tag;
                  }
+                 //to find the position
+                 //insert to arrTable
+                 RawValue * temp;
+                 temp->value.integer.value = stoi(ExpSign);
+                 signTable.IdentTable->ArrayTable.at(ident)->arrValue.elements[DestBaseTag] = temp;
             } else if(DestType == IDENT_POINTER) {
                 auto it = dimens.begin();
                 generatePtr(dest, *it, ElementSign);

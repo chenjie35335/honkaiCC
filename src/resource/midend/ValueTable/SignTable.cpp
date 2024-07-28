@@ -131,6 +131,11 @@ void SignTable::insertConst(const string &ident,int value){
     IdentTable->insertValue(ident,value);
 }
 
+void SignTable::insertArr(const string &ident, RawValue * r1){
+    IdentTable->insertArr(ident,r1);
+}
+
+
 void SignTable::insertFconst(const string &ident,float value){
     IdentTable->insertFvalue(ident,value);
 }

@@ -73,6 +73,7 @@ void SinVarDefAST::generateGraphGlobal(int &retType) const {
     }
     case SINVARDEFAST_INI_ARR: {
         //IDENT ArrayDimen '=' ConstArrayInit
+        //store in arrTable
         string SrcSign;
         vector<int> dimens;
         dimen->generateGraph(dimens);
@@ -83,7 +84,9 @@ void SinVarDefAST::generateGraphGlobal(int &retType) const {
         fillZero(rawSrc,src,dimens);
         RawValue *init = (RawValue *) src;
         //cerr << "retType: " << retType << endl;
+        //signTable.IdentTable->ArrayTable.at(ident)->position = (RawValue *)rawSrc;
         generateRawValueArrGlobal(DestSign,dimens,init, retType);
+        signTable.IdentTable->insertArr(ident,init);
         break;
     }
     case SINVARDEFAST_UNI_ARR: {
@@ -92,6 +95,7 @@ void SinVarDefAST::generateGraphGlobal(int &retType) const {
         RawValue *zeroinit;
         generateZeroInit(zeroinit);
         generateRawValueArrGlobal(DestSign,dimens,zeroinit,retType);
+        signTable.IdentTable->insertArr(ident,zeroinit);
         break;
     }
     default:
@@ -124,6 +128,7 @@ void SinVarDefAST::generateGraph(int &retType) const
             break;
         }
         case SINVARDEFAST_INI_ARR: {
+            //ident dimen = init
             string SrcSign;
             vector<int> dimens;
             dimen->generateGraph(dimens);
@@ -136,12 +141,15 @@ void SinVarDefAST::generateGraph(int &retType) const
             getVarValueL(dest,DestSign);
             //generateRawValue(src,dest);
             ArrInit(src,dest);
+            signTable.IdentTable->insertArr(ident,(RawValue*&)src);
             break;
         }//首先常量数组不需要额外弄一个alloc节点，感觉只需要给一个
         case SINVARDEFAST_UNI_ARR: {
             vector<int> dimens;
             dimen->generateGraph(dimens);
             generateRawValueArr(DestSign,dimens,retType);
+            //暂时不处理，等后面作为左值处理
+            //signTable.IdentTable->insertArr(ident,init);
             break;
         }
         default:
@@ -186,6 +194,8 @@ void SinConstDefAST::generateGraph(int &retType) const{
         getVarValueL(dest,DestSign);
         //generateRawValue(src,dest);
         ArrInit(src,dest);
+        ///insertTable
+        signTable.insertArr(ident,(RawValue*&)src);
         break;
         }//这里const和其他的是有一定的区别的,这个存起来实在太恶心了，还是不判断了，直接也当成变量对待吧
 }   
@@ -229,6 +239,8 @@ void SinConstDefAST::generateGraphGlobal(int &retType) const {
             fillZero(rawSrc,src,dimens);
             RawValue *init = (RawValue *) src;
             generateRawValueArrGlobal(DestSign,dimens,init,retType);
+            //insert array
+            signTable.insertArr(ident,init);
             break;
         }//这里const和其他的是有一定的区别的
     }   

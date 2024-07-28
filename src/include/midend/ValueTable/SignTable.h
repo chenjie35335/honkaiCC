@@ -16,7 +16,6 @@ class RawArrayValue {
     public:
         RawValue* position;
         RawAggregate arrValue;
-    //需要一个push操作
 };
 
 class IdentTableNode {
@@ -31,7 +30,7 @@ class IdentTableNode {
         unordered_map<string,int> ConstTable;
         unordered_map<string,float>ConstFTable;
     //常量数组表
-        unordered_map<string,RawValue *> ConstArrTable;//这个分开存的方针肯定是对的但是要解决一些问题
+        //unordered_map<string,RawValue *> ConstArrTable;//这个分开存的方针肯定是对的但是要解决一些问题
         unordered_map<string, RawArrayValue *> ArrayTable;
     //变量表
         unordered_map<string,RawValue *> VarTable;
@@ -132,6 +131,7 @@ class SignTable {
         void insertConstArr(const string &ident,RawValue *&value);
         //获取函数值
         RawFunction *getFunction(const string &ident);
+        void insertArr(const string &ident, RawValue *r1);
         //清空中间变量表
         void clearMidVar() {MidVarTable.clear();}
 };

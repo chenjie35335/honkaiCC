@@ -11,6 +11,7 @@ using namespace std;
 extern IRBuilder* irBuilder;
 extern SignTable signTable;
 extern int alloc_now;
+extern SignTable signTable;
 //这里是只返回大小
 void ArrayDimenAST::generateGraph(vector<int> &dimens) const {
     for(auto &sinDimen : sinArrayDimen) {
@@ -82,12 +83,22 @@ void SinArrayElementAST::generateGraph(string &sign, int &retType) const {
             break;
         case ARELEM_EX:{
             //constExp->generateGraph(sign);
+            generateRawValueArr(constExp->calc());
             sign = to_string(constExp->calc());
+            //push to table
+            RawValue *r1 = new RawValue();
+            r1->value.integer.value = stoi(sign);
+            signTable.IdentTable->ArrayTable.at(sign)->arrValue.elements.push_back(r1);
             break;
         }
         case FARELEM_EX:{
             //constExp->generateGraph(sign, retType);
+            generateRawValueArr(constExp->fcalc());
             sign = to_string(constExp->fcalc());
+            //push to table
+            RawValue *r1 = new RawValue();
+            r1->value.floatNumber.value = stoi(sign);
+            signTable.IdentTable->ArrayTable.at(sign)->arrValue.elements.push_back(r1);
             break;
         }
         default:  assert(0);
@@ -103,12 +114,18 @@ void SinArrayElementAST::generateGraphGlobal(string &sign, int &retType) const {
             int value = constExp->calc();
             generateRawValueArr(value);
             sign = to_string(value); 
+            RawValue *r1 = new RawValue();
+            r1->value.integer.value = stoi(sign);
+            signTable.IdentTable->ArrayTable.at(sign)->arrValue.elements.push_back(r1);
             break;
         }
         case FARELEM_EX:{
             float value = constExp->fcalc();
             generateRawValueArr(value);
             sign = to_string(value); 
+            RawValue *r1 = new RawValue();
+            r1->value.floatNumber.value = stoi(sign);
+            signTable.IdentTable->ArrayTable.at(sign)->arrValue.elements.push_back(r1);
             break;
         }
         default:  assert(0);

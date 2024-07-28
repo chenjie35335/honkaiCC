@@ -484,7 +484,7 @@ void FuncExpAST::generateGraph(string &sign) const{
   RawFunctionP callee= signTable.getFunction(ident);
   vector<RawValueP> paramsValue;
   if(para->calc() != ERROR){
-    paramsValue = para->calc();
+    //paramsValue.at(stoi(sign))->value.integer.value = para->calc();
   }
   para->generateGraph(paramsValue);
   generateRawValue(callee,paramsValue,sign);

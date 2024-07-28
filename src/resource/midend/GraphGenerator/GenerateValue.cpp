@@ -145,6 +145,7 @@ void generateRawValue(float number)
 void generateRawValueArr(int32_t number) {
     RawValue * value = generateNumber(number);
     signTable.insertNumber(number,value);
+    //signTable.insertConstArr(to_string(number),value);
 }
 
 /**
@@ -154,6 +155,9 @@ void generateRawValueArr(int32_t number) {
 void generateRawValueArr(float number) {
     RawValue * value = generateFloat(number);
     signTable.insertFnumber(number,value);
+    //目前还是不知道alloc的对象的名字是什么
+    //TODO: 
+    //signTable.insertConstArr(to_string(number),value);
 }
 
 /// @brief store型value
@@ -273,6 +277,10 @@ void generateRawValueArrGlobal(string &name,vector<int> &dimen,RawValue *&init, 
         global->name = ident;
         global->identType = IDENT_ARR;
         values.push_back(global);
+        //add but error
+        signTable.IdentTable->ArrayTable.at(ident)->arrValue.elements.push_back(init);
+        signTable.IdentTable->ArrayTable.at(ident)->position = init;
+
         signTable.insertVar(name,global);
 }
 /// @brief 
@@ -839,6 +847,8 @@ void ArrInit(RawValueP src, RawValueP target) {
                 generateRawValue(ElemCov,Addr);
             } else generateRawValue(element,Addr);
         }
+        signTable.IdentTable->ArrayTable.at(sign)->arrValue.elements.push_back((RawValue*)src);
+        signTable.IdentTable->ArrayTable.at(sign)->position = (RawValue*)src;
     }
 }
 

@@ -8,6 +8,13 @@ class LValLAST : public BaseAST {
     string ident;
 };
 
+// int a = arr[i];
+// a[i][j] = {xxx,xxx,xx}; store alloc (global)
+// a[i] = {0}   initstore
+// a[1][2] = 1; tempstore
+// func(a[1][2],3,4);
+
+
 class LValRAST : public BaseAST {
   public:
     enum{
@@ -32,9 +39,23 @@ class LValRAST : public BaseAST {
         }
       } else if(type == ARRAY){
         //未实现map[i][j]
-        RawValueP arrayIdent = signTable.getVarR(ident);
-        
-        return 0;
+        //RawValueP arrayIdent = signTable.getVarR(ident);
+        vector<RawValueP> dimens;
+        array->generateGraph(dimens);
+        int position = 0;
+        for(auto * dimen: dimens){
+          position+= dimen->value.integer.value;
+        }
+        if (signTable.IdentTable->ArrayTable.find(ident) != signTable.IdentTable->ArrayTable.end()) {
+            throw std::out_of_range("Cannot find name of array in array table for integer");
+        }
+        auto arrayTableEntry = signTable.IdentTable->ArrayTable.at(ident);
+        if (position >= arrayTableEntry->arrValue.elements.size()) {
+            throw std::out_of_range("ArrayTable position index out of range for intrger");
+        }
+        RawValue* arrayIdent = arrayTableEntry->arrValue.elements.at(position);
+        int res = arrayIdent->value.integer.value;
+        return res;
       } else return 0;
     }
      float fcalc() const override {
@@ -51,7 +72,22 @@ class LValRAST : public BaseAST {
           assert(0);
         }
       } else if(type == ARRAY){
-        return 0;
+        vector<RawValueP> dimens;
+        array->generateGraph(dimens);
+        int position = 0;
+        for(auto * dimen: dimens){
+          position+= dimen->value.integer.value;
+        }
+         if (signTable.IdentTable->ArrayTable.find(ident) != signTable.IdentTable->ArrayTable.end()) {
+            throw std::out_of_range("Cannot find name of array in array table for float number");
+        }
+        auto arrayTableEntry = signTable.IdentTable->ArrayTable.at(ident);
+        if (position >= arrayTableEntry->arrValue.elements.size()) {
+            throw std::out_of_range("ArrayTable position index out of range for float number");
+        }
+        RawValue* arrayIdent = arrayTableEntry->arrValue.elements.at(position);
+        float res = arrayIdent->value.floatNumber.value;
+        return res;
       } else return 0;
     }
     void generateGraph(string &sign) const override;
