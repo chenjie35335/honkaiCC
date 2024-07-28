@@ -8,6 +8,7 @@ extern void backend(RawProgramme *& programme);
 extern void DCE(RawProgramme *&programme);
 extern void ConstCombine(RawProgramme *&prgramme);
 extern void CondCCP(RawProgramme *&programme);
+void BlockEliminate(RawProgramme *&programme);
 void InstMerge(RawProgramme *&programmer);
 
 int main(int argc, const char *argv[]) {
@@ -35,6 +36,7 @@ int main(int argc, const char *argv[]) {
   auto start_time = std::chrono::high_resolution_clock::now();
   cerr << "start" << endl;
   ast->generateGraph(irGraph);
+  BlockEliminate(irGraph);
   auto end_time = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
   std::cerr << "程序运行时间: " << duration.count() << " 微秒" << std::endl;
