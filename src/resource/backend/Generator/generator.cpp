@@ -75,7 +75,7 @@ void Visit(const RawLoad &data, const RawValueP &value,int id) {
         // hardware.LeaseLockRegister(src);
     } else{
         cout<<src->value.tag<<"!!!"<<endl;
-        cout<<value->value.tag<<endl;
+        cout<<src->value.integer.value<<endl;
         exit(0);
     }
 }
