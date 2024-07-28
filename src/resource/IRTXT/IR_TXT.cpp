@@ -210,6 +210,7 @@ void Visit_Binary(const RawValueP &value)
     string ls = Symbol_List[lhs];
     string rs = Symbol_List[rhs];
     string res = Symbol_List[value];
+    //cerr << "lhs tag: " << lhs->ty->tag << " rhs tag: " << rhs->ty->tag << endl;
     cout<<"  ";
     switch(op) {
         case RBO_ADD:
@@ -559,6 +560,17 @@ void Visit_BBS(const RawBasicBlockP &bb){
     // }
 }
 
+void Name_Triple(const RawValueP &value) {
+    const auto &data = value->value.triple;
+    const auto &hs1 = data.hs1;
+    const auto &hs2 = data.hs2;
+    const auto &hs3 = data.hs3;
+    Name_Value(hs1);
+    Name_Value(hs2);
+    Name_Value(hs3);
+    alloc_symbol(value);
+}
+
 void Name_Value(const RawValueP &value) {
     if(Symbol_List.find(value)!=Symbol_List.end()) return;
     switch(value->value.tag) {
@@ -655,6 +667,11 @@ void Name_Value(const RawValueP &value) {
         // cout<<"Value:{RVT_CONVERT}"<<endl;
         Name_Convert(value);break;
     }
+    case RVT_TRIPE:{
+        // cout<<"Value:{RVT_TRIPLE}"<<endl;
+        Name_Triple(value);
+        break;
+    }
     default:
         cerr<<"tag:{"<<value->value.tag<<'}'<<endl;
         assert(false);
@@ -699,6 +716,37 @@ void Visit_Fun(const RawFunctionP &func)
             Visit_BBS(bb);
         printf("}\n\n");
        
+}
+
+void Visit_Triple(const RawValueP &value) {
+    const auto &data = value->value.triple;
+    const auto &hs1 = data.hs1;
+    const auto &hs2 = data.hs2;
+    const auto &hs3 = data.hs3;
+    const auto &op  = data.op;
+    string s1 = Symbol_List[hs1];
+    string s2 = Symbol_List[hs2];
+    string s3 = Symbol_List[hs3];
+    string res = Symbol_List[value];
+    cout<<"  ";
+    switch(op) {
+        case RTO_FMADD:
+            cout << res<<" = fmadd "<<s1<<", "<<s2<<", " << s3 <<endl;
+            break;
+        case RTO_FMSUB:
+            cout << res<<" = fmadd "<<s1<<", "<<s2<<", " << s3 <<endl;
+            break;
+        case RTO_FNMADD:
+            cout<<res<<" = fnmadd "<<s1<<", "<<s2 <<", " << s3<<endl;
+            break;
+        case RTO_FNMSUB:
+            cout<<res<<" = fnmsub "<<s1<<", "<<s2 <<", " << s3<<endl;
+            break;
+        default: {
+            cerr << "unknown {op:} " << op << endl;
+            assert(0);
+        }
+    }
 }
 
 void Visit_Value(const RawValueP &value) {
@@ -795,6 +843,9 @@ void Visit_Value(const RawValueP &value) {
         case RVT_CONVERT: {
             //cout<<"Value:{RVT_CONVERT}"<<endl;
             Visit_Convert(value);break;
+        }
+        case RVT_TRIPE: {
+            Visit_Triple(value);break;
         }
         default:
             cerr<<"tag:{"<<kind.tag<<'}'<<endl;

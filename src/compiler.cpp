@@ -8,6 +8,7 @@ extern void backend(RawProgramme *& programme);
 extern void DCE(RawProgramme *&programme);
 extern void ConstCombine(RawProgramme *&prgramme);
 extern void CondCCP(RawProgramme *&programme);
+void InstMerge(RawProgramme *&programmer);
 
 int main(int argc, const char *argv[]) {
   // 解析命令行参数. 测试脚本/评测平台要求你的编译器能接收如下参数:
@@ -37,6 +38,7 @@ int main(int argc, const char *argv[]) {
   auto end_time = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
   std::cerr << "程序运行时间: " << duration.count() << " 微秒" << std::endl;
+  //InstMerge(irGraph);
   //if(optMode != nullptr && strcmp(optMode,"-O1") == 0) {
       //GeneratorIRTxt(irGraph,false);
       //OptimizeFuncInline(irGraph);
