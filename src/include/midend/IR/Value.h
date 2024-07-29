@@ -127,7 +127,7 @@ void generateRawValueGlobal(const char *name,float num);
 
 void generateRawValueArr(string &name,vector<int> &dimen, int32_t flag); //override RTT_FLOAT
 
-void fillZero(RawValueP &rawSrc,RawValueP &src,vector<int> &dimen);
+void fillZero(RawValueP &rawSrc,RawValueP &src,vector<int> &dimen,int flag);
 
 void generateRawValueArr(int32_t number);
 

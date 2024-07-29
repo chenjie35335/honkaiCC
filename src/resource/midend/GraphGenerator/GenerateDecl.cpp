@@ -86,7 +86,7 @@ void SinVarDefAST::generateGraphGlobal(int &retType) const {
         RawValueP rawSrc;
         getMidVarValue(rawSrc,SrcSign);
         RawValueP src;
-        fillZero(rawSrc,src,dimens);
+        fillZero(rawSrc,src,dimens,1);
         RawValue *init = (RawValue *) src;
         //cerr << "retType: " << retType << endl;
         generateRawValueArrGlobal(DestSign,dimens,init, retType);
@@ -138,7 +138,7 @@ void SinVarDefAST::generateGraph(int &retType) const
             RawValueP dest,rawSrc;
             getMidVarValue(rawSrc,SrcSign);
             RawValueP src;
-            fillZero(rawSrc,src,dimens);
+            fillZero(rawSrc,src,dimens,0);
             getVarValueL(dest,DestSign);
             //generateRawValue(src,dest);
             ArrInit(src,dest);
@@ -198,7 +198,7 @@ void SinConstDefAST::generateGraph(int &retType) const{
         RawValueP dest,rawSrc;
         getMidVarValue(rawSrc,SrcSign);
         RawValueP src;
-        fillZero(rawSrc,src,dimens);
+        fillZero(rawSrc,src,dimens,0);
         getVarValueL(dest,DestSign);
         //generateRawValue(src,dest);
         ArrInit(src,dest);
@@ -252,7 +252,7 @@ void SinConstDefAST::generateGraphGlobal(int &retType) const {
             RawValueP dest,rawSrc;
             getMidVarValue(rawSrc,SrcSign);
             RawValueP src;
-            fillZero(rawSrc,src,dimens);
+            fillZero(rawSrc,src,dimens,1);
             RawValue *init = (RawValue *) src;
             generateRawValueArrGlobal(DestSign,dimens,init,retType);
             break;

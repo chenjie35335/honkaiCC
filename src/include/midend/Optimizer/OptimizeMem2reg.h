@@ -6,5 +6,5 @@
 #include <unordered_map>
 using namespace std;
 
-void OptimizeMem2Reg(RawProgramme *programme);
+void OptimizeMem2Reg(RawProgramme *&programme);
 #endif

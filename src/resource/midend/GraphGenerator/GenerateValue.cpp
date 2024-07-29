@@ -609,7 +609,7 @@ void generateRawValueGlobal(const char *name,float init) {
 }
 
 /**
- * @brief float version
+ * @brief 创建一个初始化为0的aggregate
  * @param src 
  * @param dimen 
  * @param index 
@@ -728,11 +728,17 @@ void fillAggregate(RawValueP &raw, RawValue *target){
 }
 
 //这里直接与store绑定，无需出现在insts中
-void fillZero(RawValueP &rawSrc,RawValueP &src,vector<int> &dimen) {
+void fillZero(RawValueP &rawSrc,RawValueP &src,vector<int> &dimen,int flag) {
     RawValue *Src = new RawValue();
-    int index = 0;
-    generateRawValue(Src,dimen,index,RTT_INT32);
-    fillAggregate(rawSrc,Src);
+    auto &rawSrcAggreElem = rawSrc->value.aggregate.elements;
+    if(!rawSrcAggreElem.empty() || flag != 1) {//1表示全局，0表示局部
+        int index = 0;
+        generateRawValue(Src,dimen,index,RTT_INT32);
+        fillAggregate(rawSrc,Src);
+    }
+    else {
+        Src->value.tag = RVT_ZEROINIT;
+    }
     src = (RawValueP) Src;
 } 
 

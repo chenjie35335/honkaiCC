@@ -7,7 +7,9 @@ extern int yyparse(unique_ptr<BaseAST> &ast);
 extern void backend(RawProgramme *& programme);
 extern void DCE(RawProgramme *&programme);
 extern void ConstCombine(RawProgramme *&prgramme);
-extern void CondCCP(RawProgramme *&programme);
+extern void OptimizeMem2Reg(RawProgramme *&programme);
+void OptimizeGCSE(RawProgramme *programme);
+void OptimizeSCCP(RawProgramme *&programme);
 void BlockEliminate(RawProgramme *&programme);
 void InstMerge(RawProgramme *&programmer);
 
@@ -34,7 +36,7 @@ int main(int argc, const char *argv[]) {
   freopen(output,"w",stdout);
   RawProgramme *irGraph;
   auto start_time = std::chrono::high_resolution_clock::now();
-  cerr << "start" << endl;
+  cerr << "start parser" << endl;
   ast->generateGraph(irGraph);
   BlockEliminate(irGraph);
   auto end_time = std::chrono::high_resolution_clock::now();
@@ -60,11 +62,13 @@ int main(int argc, const char *argv[]) {
       //GeneratorIRTxt(irGraph,true);
       // ConstCombine(irGraph);
       // DCE(irGraph);
-      //  CondCCP(irGraph);
-      // exitSSA(irGraph);
+      // OptimizeGCSE(irGraph);
+      // OptimizeSCCP(irGraph);
+      
+      exitSSA(irGraph);
   //}
   start_time = std::chrono::high_resolution_clock::now();
-  cerr << "start" << endl;
+  cerr << "start domain tree" << endl;
   if(strcmp(mode,"-riscv") == 0 || strcmp(mode,"-S") == 0) {
     GeneratorDT(irGraph,0);
     auto end_time = std::chrono::high_resolution_clock::now();
