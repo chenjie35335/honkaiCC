@@ -23,9 +23,11 @@ void LValRAST::generateGraph(string &sign) const {
     switch(tag) {
         //整数浮点
         case RVT_INTEGER:
+            // cout << "get ident "<< ident <<" value " << IdentSrc->value.integer.value << endl;
             sign = to_string(IdentSrc->value.integer.value);
             break;
         case RVT_FLOAT:
+            // cout << "get ident "<< ident <<" value " << IdentSrc->value.floatNumber.value << endl;
             sign = to_string(IdentSrc->value.floatNumber.value);
             break;
         //考虑alloc类型和global类型

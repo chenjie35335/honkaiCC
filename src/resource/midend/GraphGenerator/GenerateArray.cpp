@@ -15,8 +15,14 @@ extern SignTable signTable;
 //这里是只返回大小
 void ArrayDimenAST::generateGraph(vector<int> &dimens) const {
     for(auto &sinDimen : sinArrayDimen) {
-        int dimen = sinDimen->calc();
-        dimens.push_back(dimen);
+        auto dimen = sinDimen->Calculate();
+        int dimenValue = 0;
+        if(dimen->type == ExpResult::FLOAT) {
+            dimenValue = dimen->FloatResult;
+        } else {
+            dimenValue = dimen->IntResult;
+        }
+        dimens.push_back(dimenValue);
     }
 }
 //这里需要返回RawValueP
@@ -111,21 +117,28 @@ void SinArrayElementAST::generateGraphGlobal(string &sign, int &retType) const {
             constArrayInit->generateGraphGlobal(sign, retType);
             break;
         case ARELEM_EX:{
-            int value = constExp->calc();
-            generateRawValueArr(value);
-            sign = to_string(value); 
-            RawValue *r1 = new RawValue();
-            r1->value.integer.value = stoi(sign);
-            signTable.IdentTable->ArrayTable.at(sign)->arrValue.elements.push_back(r1);
-            break;
-        }
-        case FARELEM_EX:{
-            float value = constExp->fcalc();
-            generateRawValueArr(value);
-            sign = to_string(value); 
-            RawValue *r1 = new RawValue();
-            r1->value.floatNumber.value = stoi(sign);
-            signTable.IdentTable->ArrayTable.at(sign)->arrValue.elements.push_back(r1);
+            auto value = constExp->Calculate();
+            if(value->type == ExpResult::FLOAT) {
+                float CalValue = value->FloatResult;
+                if(retType == RTT_FLOAT){
+                    generateRawValueArr(CalValue);
+                    sign = to_string(CalValue); 
+                } else {
+                    int IntValue = CalValue;
+                    generateRawValueArr(IntValue);
+                    sign = to_string(IntValue);
+                }
+            } else {
+                int CalValue = value->IntResult;
+                if(retType == RTT_FLOAT){
+                    float FloatValue = CalValue;
+                    generateRawValueArr(FloatValue);
+                    sign = to_string(FloatValue);
+                } else {
+                    generateRawValueArr(CalValue);
+                    sign = to_string(CalValue); 
+                } 
+            }
             break;
         }
         default:  assert(0);

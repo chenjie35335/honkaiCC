@@ -2,4 +2,4 @@
 #include "OptimizeDeadBlock.h"
 #include "OptimizeLoop.h"
 #include "OptimizeInline.h"
-#include "OptimizeMem2Reg.h"
+#include "OptimizeMem2reg.h"

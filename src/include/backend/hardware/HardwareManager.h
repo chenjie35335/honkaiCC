@@ -1,4 +1,4 @@
-#include <unordered_map>
+#include <map>
 #include <iostream>
 #include <cassert>
 #include "../../midend/IR/IRGraph.h"
@@ -54,6 +54,7 @@ public:
             assert(0);
         }
         else {
+            
             StackManager.insert(pair<RawValueP, int>(value, this->tempOffset));
             int len = GetLen(value);
             //cout << "alloc tempOffset = " << tempOffset << ", len = " << len << endl;
@@ -81,14 +82,20 @@ class RegisterArea : public Area
 public:
     /// @brief Register和栈空间的对应关系
     unordered_map<int, int> StackManager;
-    /// @brief 构造函数
-    /// @param min 
-    /// @param max 
+    /// @brief 浮点寄存器和栈空间对应关系
+    unordered_map<int,int> FStackManager;
 
+    /// @brief load普通寄存器
+    /// @param reg 
     void LoadRegister(int reg); 
+    /// @brief 保存普通寄存器
+    /// @param reg 
     void SaveRegister(int reg);
-    //fregs
+    /// @brief load浮点寄存器
+    /// @param reg 
     void LoadFRegister(int reg); 
+    /// @brief store浮点寄存器
+    /// @param reg 
     void SaveFRegister(int reg);
 };
 
@@ -128,6 +135,7 @@ public:
     void LoadRegister(int reg) {
         reserveArea.LoadRegister(reg);
     }
+
     void LoadFRegister(int reg) {
         reserveArea.LoadFRegister(reg);
     }
@@ -135,6 +143,7 @@ public:
     void SaveRegister(int reg) {
         reserveArea.SaveRegister(reg);
     }
+
     void SaveFRegister(int reg) {
         reserveArea.SaveFRegister(reg);
     }
@@ -167,8 +176,8 @@ class RegisterManager
 public:
     /// @brief 寄存器堆
     static const char *regs[32];
-    static const char *fregs[32];  //32位浮点
-    //static const char *dfregs[64]; //64-127的浮点
+    //32位浮点
+    static const char *fregs[32];  
     /// frm 浮点舍入模式寄存器
     frm_mode_t frmReg;
     /// fsr 浮点控制状态寄存器
@@ -178,45 +187,88 @@ public:
     static const int callerSave[];
     /// @brief 被调用者保存寄存器
     static const int calleeSave[];
+    /// @brief 调用者保存浮点寄存器
+    static const int callerFSave[];
+    /// @brief 被调用者保存浮点寄存器
+    static const int calleeFSave[];
     /// @brief 寄存器表
-    unordered_map<RawValueP, int> registerLook;
-    unordered_map<RawValueP, int> FregisterLook; //fregs
+    map<RawValueP, int> registerLook;
+    /// @brief 寄存器表栈
+    stack<map<RawValueP, int>> registerStack;
+    /// @brief 浮点寄存器表
+    map<RawValueP, int> FregisterLook; //fregs
+    /// @brief 寄存器表栈
+    stack<map<RawValueP, int>> FregisterStack;
     /// @brief 寄存器加锁
     bool RegisterLock[32];
+    /// @brief 浮点寄存器加锁
     bool FRegisterLock[32];//fregs
     /// @brief 寄存器已满
     bool RegisterFull;
+    /// @brief 寄存器是否满的栈
+    stack<bool> registerFullStack;
+    /// @brief 浮点寄存器满
     bool FRegisterFull; //fregs
+    /// @brief 寄存器是否满的栈
+    stack<bool> FregisterFullStack;
     /// @brief 未满时，当前可用寄存器
     uint32_t tempRegister;
+    /// @brief 未满时，可用寄存器栈
+    stack<uint32_t> tempRegisterStack;
+    /// @brief 未满时，当前可用浮点寄存器
     uint32_t tempFRegister;
+    /// @brief 未满时，当前可用浮点寄存器栈
+    stack<uint32_t> tempFRegisterStack;
     /// @brief 构造函数
     RegisterManager() {}
 
-    const char *GetRegister(const RawValueP &value) {
-        assert(registerLook.find(value) != registerLook.end());
-        int loc = registerLook.at(value);
-        return regs[loc];
+    void PushNewLook() {
+        registerStack.push(registerLook);
+        FregisterStack.push(FregisterLook);
+        registerFullStack.push(RegisterFull);
+        FregisterFullStack.push(FRegisterFull);
+        tempRegisterStack.push(tempRegister);
+        tempFRegisterStack.push(tempFRegister);
     }
-    //fregs
-    const char *GetFRegister(const RawValueP &value) {
-        assert(FregisterLook.find(value) != FregisterLook.end());
-        int loc = FregisterLook.at(value);
-        return fregs[loc];
+
+    void PopLook() {
+        registerLook = registerStack.top();
+        FregisterLook = FregisterStack.top();
+        RegisterFull = registerFullStack.top();
+        FRegisterFull = FregisterFullStack.top();
+        tempRegister = tempRegisterStack.top();
+        tempFRegister = tempFRegisterStack.top();
+        registerStack.pop();
+        FregisterStack.pop();
+        registerFullStack.pop();
+        FregisterFullStack.pop();
+        tempRegisterStack.pop();
+        tempFRegisterStack.pop();
+    }
+
+    const char *GetRegister(const RawValueP &value) {
+        auto tag = value->ty->tag;
+        auto &look = (tag == RTT_FLOAT) ? FregisterLook : registerLook;
+        assert(look.find(value) != look.end());
+        int loc = look.at(value);
+        return (tag == RTT_FLOAT) ? fregs[loc]:regs[loc];
     }
 
     bool IsRegister(const RawValueP &value){
-        return registerLook.find(value) != registerLook.end();
-    }
-    //fregs
-    bool IsFRegister(const RawValueP &value){
-        return FregisterLook.find(value) != FregisterLook.end();
+        auto tag = value->ty->tag;
+        auto &look = (tag == RTT_FLOAT) ? FregisterLook : registerLook;
+        return look.find(value) != look.end();
     }
 
     void addLockRegister(const RawValueP &value) {
-        assert(registerLook.find(value) != registerLook.end());
-        int loc = registerLook.at(value);
-        RegisterLock[loc] = true;
+        auto tag = value->ty->tag;
+        auto &look = (tag == RTT_FLOAT) ? FregisterLook : registerLook;
+        assert(look.find(value) != look.end());
+        int loc = look[value];
+        if(tag == RTT_FLOAT)
+            FRegisterLock[loc] = true;
+        else
+            RegisterLock[loc] = true;
     }
     //fregs
     void addLockFRegister(const RawValueP &value) {
@@ -226,42 +278,49 @@ public:
     }
 
     void LeaseLockRegister(const RawValueP &value) {
-        assert(registerLook.find(value) != registerLook.end());
-        int loc = registerLook.at(value);
-        RegisterLock[loc] = false;
-    }
-    //fregs
-    void LeaseLockFRegister(const RawValueP &value) {
-        assert(FregisterLook.find(value) != FregisterLook.end());
-        int loc = FregisterLook.at(value);
-        FRegisterLock[loc] = false;
+        auto tag = value->ty->tag;
+        //cout << "tag: " << tag << endl;
+        auto &look = (tag == RTT_FLOAT) ? FregisterLook : registerLook;
+        assert(look.find(value) != look.end());
+        int loc = look.at(value);
+        if(tag == RTT_FLOAT)
+            FRegisterLock[loc] = false;
+        else
+            RegisterLock[loc] = false;
     }
 
     void AssignRegister(const RawValueP &value, int loc) {
-        registerLook.insert(pair<RawValueP, int>(value, loc));
+        auto tag = value->ty->tag;
+        auto &look = (tag == RTT_FLOAT) ? FregisterLook : registerLook;
+        look.insert(pair<RawValueP, int>(value, loc));
     }
-    //fregs
-    void AssignFRegister(const RawValueP &value, int loc) {
-        FregisterLook.insert(pair<RawValueP, int>(value, loc));
-    }
+
 
 
     void init() {
+        for (int i = 0; i < 32; i++){
         for (int i = 0; i < 32; i++){
             RegisterLock[i] = false;
             FRegisterLock[i] = false;
         }
         FRegisterFull = false;
+            FRegisterLock[i] = false;
+        }
+        FRegisterFull = false;
         RegisterFull = false;
-        tempRegister = 5;
-        tempFRegister = 5;
+        tempRegister = 6;
+        tempFRegister = 0;
         registerLook.clear();
+        FregisterLook.clear();
         FregisterLook.clear();
     }
 
-    bool IsValid(int loc) { return ((loc > 4 && loc < 10) || (loc > 17 && loc < 32)) && !RegisterLock[loc] ;}
-    //for fregs 不知道加的对不对 //或者在后面再改一个
-    bool IsValidF(int loc) { return ((loc > 4 && loc < 10) || (loc > 17 && loc < 32)) && !FRegisterLock[loc] ;}
+    bool IsValid(int loc,int type) { 
+        if(type == RTT_FLOAT) 
+            return ((loc >= 0 && loc < 10) || (loc > 17 && loc < 32)) && !FRegisterLock[loc] ;
+        else
+            return ((loc > 5 && loc < 10) || (loc > 17 && loc < 32)) && !RegisterLock[loc] ;
+    }
 };
 
 class HardwareManager {
@@ -284,40 +343,39 @@ class HardwareManager {
     void init(const RawFunctionP &value);
 
     const char *GetRegister(const RawValueP &value) { return registerManager.GetRegister(value);}
-    const char *GetFRegister(const RawValueP &value) { return registerManager.GetFRegister(value);}
 
     void addLockRegister(const RawValueP &value) { registerManager.addLockRegister(value);}
     void addLockFRegister(const RawValueP &value) { registerManager.addLockFRegister(value);}
 
     void LeaseLockRegister(const RawValueP &value) { registerManager.LeaseLockRegister(value);}
-    void LeaseLockFRegister(const RawValueP &value) { registerManager.LeaseLockFRegister(value);}
     //分配指定寄存器
     void AssignRegister(const RawValueP &value,int loc) {registerManager.AssignRegister(value,loc);}
-    void AssignFRegister(const RawValueP &value,int loc) {registerManager.AssignFRegister(value,loc);}
 
     void LoadFromMemory(const RawValueP &value) ;
 
     void AllocRegister(const RawValueP &value);
-    void AllocFRegister(const RawValueP &value);
 
-    void StoreReg(int RandSelected);
-    void StoreFReg(int RandSelected);
+    void StoreReg(int RandSelected,int type);
 
-    bool isValid(int loc) { return registerManager.IsValid(loc);}
+    bool isValid(int loc,int type) { return registerManager.IsValid(loc,type);}
 
     int StackAlloc(const RawValueP &value) { return memoryManager.StackAlloc(value);}
 
     int getStackSize() {return memoryManager.StackSize;}
 
     void LoadRegister(int reg) { memoryManager.LoadRegister(reg);}
+
     void LoadFRegister(int reg) { memoryManager.LoadFRegister(reg);}
 
     void SaveRegister(int reg) { memoryManager.SaveRegister(reg);}
+
     void SaveFRegister(int reg) { memoryManager.SaveFRegister(reg);}
 
     void SaveLen(const RawValueP value,int len) { memoryManager.SaveLen(value,len);}
 
     int GetLen(const RawValueP &value) {return memoryManager.GetLen(value);}
+
+    bool IsRegisterNotAval(int reg,int tag);
 };
 
 /*
@@ -330,7 +388,7 @@ class HardwareManager {
 3、 ra寄存器在调用前保存至相应位置
 */
 
-int calPtrLen(const RawValueP &value);
+int calBaseLen(const RawValueP &value);
 
 
 

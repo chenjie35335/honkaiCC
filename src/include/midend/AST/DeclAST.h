@@ -22,7 +22,7 @@ class ConstDeclAST : public BaseAST {
 class BtypeAST : public BaseAST {
   public:
     int32_t type;
-    int calc() const override{
+    int getType() const override{
       if(type == BTYPE_FLOAT) return RTT_FLOAT;
       else return RTT_INT32;
     }
@@ -86,20 +86,14 @@ public:
 class InitValAST : public BaseAST {
 public:
     unique_ptr<BaseAST>Exp;
-    [[nodiscard]] int calc() const override {return Exp->calc();}
-    [[nodiscard]] float fcalc() const override {return Exp->fcalc();}
+    ExpResult *Calculate() const override { return Exp->Calculate();}
     void generateGraph(string &sign) const override;
 };
 
 class ConstExpAST : public BaseAST {
   public:
     unique_ptr<BaseAST>Exp;
-    [[nodiscard]] int calc() const override{
-        return Exp->calc();
-    }
-    [[nodiscard]] float fcalc() const override{
-        return Exp->fcalc();
-    }
+    ExpResult *Calculate() const override { return Exp->Calculate();}
     void generateGraph(string &name) const override { Exp->generateGraph(name);}
 };
 

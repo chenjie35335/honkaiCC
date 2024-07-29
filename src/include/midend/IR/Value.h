@@ -76,7 +76,7 @@ class RawValue {
 
 typedef const RawValue * RawValueP;
 
-void generateRawValueArgs(const string &ident,int index, int32_t flag);
+void generateRawValueArgs(string &ident,int index, int32_t flag);
 
 void getMidVarValue(RawValueP &value, string &name);
 
@@ -126,11 +126,15 @@ void generateElement(RawValueP &src,RawValueP &index,string &name);
 
 void generatePtr(RawValueP &src,RawValueP &index,string &name);
 
+<<<<<<< HEAD
 void generateRawValueSinArr(const string &ident,int index);
 
 void generateRawValueSinArr(const string &ident,int index, int flag);
+=======
+void generateRawValueSinArr(string &ident,int index, int flag);
+>>>>>>> backold
 
-void generateRawValueMulArr(const string &ident,int index,vector<int>dimens,int flag);
+void generateRawValueMulArr(string &ident,int index,vector<int>dimens,int flag);
 
 void MarkUse(RawValue *src,RawValue *target);
 

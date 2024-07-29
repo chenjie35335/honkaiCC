@@ -1,5 +1,5 @@
 #include "include/common.h"
-
+#include <chrono>
 using namespace std;
 
 extern FILE *yyin;
@@ -8,6 +8,7 @@ extern void backend(RawProgramme *& programme);
 extern void DCE(RawProgramme *&programme);
 extern void ConstCombine(RawProgramme *&prgramme);
 extern void CondCCP(RawProgramme *&programme);
+void InstMerge(RawProgramme *&programmer);
 
 int main(int argc, const char *argv[]) {
   // 解析命令行参数. 测试脚本/评测平台要求你的编译器能接收如下参数:
@@ -31,7 +32,13 @@ int main(int argc, const char *argv[]) {
   assert(!ret);
   freopen(output,"w",stdout);
   RawProgramme *irGraph;
+  auto start_time = std::chrono::high_resolution_clock::now();
+  cerr << "start" << endl;
   ast->generateGraph(irGraph);
+  auto end_time = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
+  std::cerr << "程序运行时间: " << duration.count() << " 微秒" << std::endl;
+  //InstMerge(irGraph);
   //if(optMode != nullptr && strcmp(optMode,"-O1") == 0) {
       //GeneratorIRTxt(irGraph,false);
       //OptimizeFuncInline(irGraph);
@@ -40,7 +47,9 @@ int main(int argc, const char *argv[]) {
       // AddPhi(irGraph);
       // renameValue(irGraph);
       //  循环优化需要基于支配树
-     // OptimizeLoop(irGraph);
+    //  OptimizeLoop(irGraph);
+      // OptimizeMem2Reg(irGraph);
+      //GeneratorIRTxt(irGraph,true);
       //mem2regTop(irGraph);
       //GeneratorIRTxt(irGraph,true);
       //DCE(irGraph);
@@ -52,18 +61,22 @@ int main(int argc, const char *argv[]) {
       //  CondCCP(irGraph);
       // exitSSA(irGraph);
   //}
+  start_time = std::chrono::high_resolution_clock::now();
+  cerr << "start" << endl;
   if(strcmp(mode,"-riscv") == 0 || strcmp(mode,"-S") == 0) {
-    OptimizeFuncInline(irGraph);
-    // exitSSA(irGraph);
+    GeneratorDT(irGraph,0);
+    auto end_time = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
+    std::cerr << "程序运行时间: " << duration.count() << " 微秒" << std::endl;
     backend(irGraph);
   } 
   else if(strcmp(mode,"-koopa") == 0) {
-    OptimizeFuncInline(irGraph);
-    GeneratorIRTxt(irGraph,false);
+     GeneratorIRTxt(irGraph,false);
   }
   else if(strcmp(mode,"-cfg") == 0){
     // OptimizeFuncInline(irGraph);
-    GeneratorDT(irGraph,3);
+    // GeneratorDT(irGraph,3);控制流图
+    GeneratorDT(irGraph,2);//支配树
   }
   else if(strcmp(mode,"-astT") == 0){
     Generator_ast(ast,1);

@@ -152,6 +152,20 @@ public:
     RawBlockArgs() {}
 };
 
+class RawTriple{
+public:
+    /// @brief the first operand
+    RawValueP hs1;
+    /// @brief the second operand
+    RawValueP hs2;
+    /// @brief the third operand
+    RawValueP hs3;
+    /// @brief op type
+    uint32_t op;
+
+    RawTriple(){}
+};
+
 class ValueKind {
     public:
         uint32_t tag;
@@ -172,6 +186,7 @@ class ValueKind {
         RawValueCop valueCop;
         RawPhi phi;
         RawConvert Convert;
+        RawTriple triple;
         // 其他数据类型
 
     ValueKind() {

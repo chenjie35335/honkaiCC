@@ -65,7 +65,15 @@ void generateRawValue(string &name, RawValueP lhs, RawValueP rhs, uint32_t op)
     RawType *ty = new RawType();
     //我们尽量按照浮点的要求去处理，后面可以转化为整形
     if(lhs->ty->tag == RTT_FLOAT || rhs->ty->tag == RTT_FLOAT){
-        ty->tag = RTT_FLOAT;
+        if( op == RBO_FEQ       || 
+            op == RBO_NOT_FEQ   || 
+            op == RBO_FGE       || 
+            op == RBO_FGT       ||
+            op == RBO_FLE       || 
+            op == RBO_FLT
+            )
+            ty->tag = RTT_INT32;
+        else ty->tag = RTT_FLOAT;
     } else {
         ty->tag = RTT_INT32;
     }
@@ -342,6 +350,12 @@ void generateRawValue(string &name, RawValueP &src)
 /// @param Truebb 
 /// @param Falsebb 
 void generateRawValue(RawValueP &cond, RawBasicBlock* &Truebb, RawBasicBlock* &Falsebb){
+    RawValueP condValue = cond;
+    if(cond->ty->tag == RTT_FLOAT) {
+        string Convert;
+        generateConvert(cond,Convert);
+        condValue = signTable.getMidVar(Convert);
+    }
     auto bb = getTempBasicBlock();
     auto &insts = bb->inst;
     RawValue *br = new RawValue();
@@ -350,7 +364,7 @@ void generateRawValue(RawValueP &cond, RawBasicBlock* &Truebb, RawBasicBlock* &F
     br->ty = (RawTypeP) ty;
     br->name = nullptr;
     br->value.tag = RVT_BRANCH;
-    br->value.branch.cond = cond;
+    br->value.branch.cond = condValue;
     br->value.branch.true_bb = (RawBasicBlockP)Truebb;
     br->value.branch.false_bb = (RawBasicBlockP)Falsebb;
     insts.push_back(br);
@@ -427,7 +441,7 @@ void generateRawValue(RawFunctionP callee,vector<RawValueP> paramsValue,string &
  * @param index 
  * @param flag 
  */
-void generateRawValueArgs(const string &ident,int index, int32_t flag){
+void generateRawValueArgs(string &ident,int index, int32_t flag){
     auto function = getTempFunction();
     auto &params = function->params;
     RawValue *value = new RawValue();
@@ -440,30 +454,13 @@ void generateRawValueArgs(const string &ident,int index, int32_t flag){
     params.push_back(value);
     auto &paramsTy = function->ty->function.params;
     paramsTy.push_back(ty);
-    signTable.insertVar(ident,value);
+    signTable.insertMidVar(ident,value);
 }
-
-void generateRawValueSinArr(const string &ident,int index) {
-    auto function = getTempFunction();
-    auto &params = function->params;
-    RawValue *value = new RawValue();
-    value->value.tag = RVT_FUNC_ARGS;
-    value->value.funcArgs.index = index;
-    value->name = nullptr;
-    RawType *ty = new RawType();
-    ty->tag = RTT_POINTER;
-    RawType *pointerTy = new RawType();
-    pointerTy->tag = RTT_INT32;
-    ty->pointer.base = pointerTy;
-    value->ty = ty;
-    value->identType = IDENT_POINTER;
-    params.push_back(value);
-    auto &paramsTy = function->ty->function.params;
-    paramsTy.push_back(ty);
-    signTable.insertVar(ident,value);
-}
-
-void generateRawValueSinArr(const string &ident,int index,int flag) {
+/// @brief a[]类型的参数
+/// @param ident 
+/// @param index 
+/// @param flag 
+void generateRawValueSinArr(string &ident,int index,int flag) {
     auto function = getTempFunction();
     auto &params = function->params;
     RawValue *value = new RawValue();
@@ -480,7 +477,7 @@ void generateRawValueSinArr(const string &ident,int index,int flag) {
     params.push_back(value);
     auto &paramsTy = function->ty->function.params;
     paramsTy.push_back(ty);
-    signTable.insertVar(ident,value);
+    signTable.insertMidVar(ident,value);
 }
 
 /**
@@ -488,7 +485,7 @@ void generateRawValueSinArr(const string &ident,int index,int flag) {
  * @param ident 
  * @param index 
  */
-void generateRawValueMulArr(const string &ident,int index,vector<int>dimens,int flag) {
+void generateRawValueMulArr(string &ident,int index,vector<int>dimens,int flag) {
     auto function = getTempFunction();
     auto &params = function->params;
     RawValue *value = new RawValue();
@@ -506,8 +503,28 @@ void generateRawValueMulArr(const string &ident,int index,vector<int>dimens,int 
     params.push_back(value);
     auto &paramsTy = function->ty->function.params;
     paramsTy.push_back(ty) ;
-    signTable.insertVar(ident,value);
+    signTable.insertMidVar(ident,value);
 }
+//alloc型变量，但是指针指向的是临外的类型
+///ty为指向的类型
+void generateRawValuePointer(string &name,RawType *ty)
+{
+    auto bb = getTempBasicBlock();
+    auto &insts = bb->inst;
+    RawValue *alloc = new RawValue();
+    RawType *pointer = new RawType();
+    pointer->tag = RTT_POINTER;
+    pointer->pointer.base = ty;
+    char *ident = (char *) malloc(sizeof(char) * name.length());
+    string NameScope = name + "_" + to_string(signTable.IdentTable->level);
+    strcpy(ident,NameScope.c_str());
+    alloc->name = ident;
+    alloc->ty = (RawTypeP)pointer;
+    alloc->value.tag = RVT_ALLOC;
+    alloc->identType = IDENT_POINTER;
+    insts.push_back(alloc);
+    signTable.insertVar(name,alloc);
+}//这个应该不会产生说是phi函数
 
 void createRawProgramme(RawProgramme *&Programme) {
     Programme = new RawProgramme();

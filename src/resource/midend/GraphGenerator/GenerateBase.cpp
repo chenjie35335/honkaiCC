@@ -31,10 +31,10 @@ void MultCompUnitAST::generateGraph() const{
     GenerateGetInt();
     GeneratePutArray();
     GenerateGetArray();
-    //GeneratePutFloat();
-    //GenerateGetFloat();
-    //GenerateGetFArray();
-    //GeneratePutFArray();
+    GeneratePutFloat();
+    GenerateGetFloat();
+    GenerateGetFArray();
+    GeneratePutFArray();
     for(auto &sinComp : sinCompUnit) {
         sinComp->generateGraph();
     }
@@ -53,13 +53,15 @@ void SinCompUnitAST::generateGraph() const{
             break;
         case COMP_VAR:{
             //需要添加类型
-            int tempType = funcType->calc();
+            int tempType = funcType->getType();
             int retType;
             if(tempType == FUNCTYPE_FLOAT){
                 retType = RTT_FLOAT;
+                // cout << "retType: " << retType << endl;
                 varGlobal->generateGraphGlobal(retType);
             } else {
                 retType = RTT_INT32;
+                // cout << "retType: " << retType << endl;
                 varGlobal->generateGraphGlobal(retType);
             }
             break;
@@ -96,7 +98,7 @@ void FuncDefAST::generateGraph(int &retType) const{
         generateRawValue(RetSrc);
     }
     signTable.clearMidVar();
-    PushRawFunction(p);
+    PushRawFunction(p); 
 }
 
 //访问参数
@@ -107,9 +109,14 @@ void FuncFParamsAST::generateGraph() const{
     }
 }
 //单个参数访问
+//就是访问参数的时候新建立的这个和全局变量重名
+//首先参数应该当成临时变量
 void SinFuncFParamAST::generateGraph(int &index) const{
-    int para = paraType->calc();
+    int para = paraType->getType();
     int RetFlag;
+    RawValueP TempArg,Arg;
+    string ArgName = "p_"+to_string(index);
+    string TempArgName = ident;
     if(para == TYPE_FLOAT) RetFlag = RTT_FLOAT;
     else RetFlag = RTT_INT32;
     switch(type) {
@@ -120,20 +127,22 @@ void SinFuncFParamAST::generateGraph(int &index) const{
                 //cerr << TempArgName << endl;
                 generateRawValueArgs(ArgName,index,RetFlag);
                 generateRawValue(TempArgName,RetFlag);
-                RawValueP TempArg = signTable.getVarR(TempArgName);
-                RawValueP Arg = signTable.getVarR(ArgName);
-                generateRawValue(Arg,TempArg);
+                Arg = signTable.getMidVar(ArgName);
             break;
-        }  
-        case PARA_ARR_SIN:{
-            generateRawValueSinArr(ident,index,RetFlag);
+        }
+        case PARA_ARR_SIN:{//这里还是要改成那种形式，就是
+            generateRawValueSinArr(ArgName,index,RetFlag);
+            Arg = signTable.getMidVar(ArgName);
+            generateRawValuePointer(TempArgName,(RawType *)Arg->ty);//生成指针，用于以后的使用
             break;
         }
         case PARA_ARR_MUL:{
              vector<int>dimens;
             //int para = paraType->calc();
             arrayDimen->generateGraph(dimens);
-            generateRawValueMulArr(ident,index,dimens,RetFlag);
+            generateRawValueMulArr(ArgName,index,dimens,RetFlag);
+            Arg = signTable.getMidVar(ArgName);
+            generateRawValuePointer(TempArgName,(RawType *)Arg->ty);
             break;
         }  
     }
@@ -197,6 +206,10 @@ void StmtAST::generateGraph() const {
             RawValueP src,dest;
             getMidVarValue(src,ExpSign);
             getVarValueL(dest,IdentSign);
+            if(dest->ty->pointer.base->tag != src->ty->tag) {
+                generateConvert(src, ExpSign);
+                src = signTable.getMidVar(ExpSign);
+            }
             generateRawValue(src,dest);
             break;
           }
@@ -254,6 +267,10 @@ void StmtAST::generateGraph() const {
             } else {
                 cerr << "unknown type:" << DestType << endl;
                 assert(0);
+            }
+            if(DestBaseTag != src->ty->tag) {
+                generateConvert(src, ElementSign);
+                src = signTable.getMidVar(ElementSign);
             }
             generateRawValue(src,dest);
             break;

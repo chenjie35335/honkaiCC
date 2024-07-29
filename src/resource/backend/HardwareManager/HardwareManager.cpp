@@ -18,60 +18,57 @@ int ValueArea::getTargetOffset(const RawValueP &value) const
 /// @brief 返回
 /// @param value
 /// @return
-int calArrLen(const RawTypeP &value)
-{
+int calArrLen(const RawTypeP &value) {
     assert(value->tag == RTT_ARRAY);
     auto ElemTag = value->array.base->tag;
-    if (ElemTag == RTT_INT32)
-        return value->array.len * 4;
-    else if(ElemTag == RTT_FLOAT)
+    if (ElemTag == RTT_INT32 || ElemTag == RTT_FLOAT)
         return value->array.len * 4;
     else if (ElemTag == RTT_ARRAY)
         return calArrLen(value->array.base) * value->array.len;
     else
         return 0;
 }
+/// @brief 这个是计算数组的一个单元的大小
+/// @param value 
+/// @return 
+int calBaseLen(const RawValueP &value){
+    auto PointerTy = value->ty->pointer.base;
+    auto PointerTyTag = PointerTy->tag;
+    if (PointerTyTag == RTT_INT32 || PointerTyTag == RTT_FLOAT)
+        return 4;
+    else if (PointerTyTag == RTT_ARRAY)
+        return calArrLen(PointerTy);
+    else assert(0);
+}
 
-/// @brief 获取指针所指位置的值
+/// @brief //这个是单纯计算alloc需要分配的空间
 /// @param value
 /// @return
-int calPtrLen(const RawValueP &value)
+int calAllocLen(const RawValueP &value)
 {
-    auto TyTag = value->ty->tag;
-    // cout << "TyTag" << TyTag << endl;
-    if (TyTag == RTT_POINTER)
-    {
-        auto PointerTy = value->ty->pointer.base;
-        auto PointerTyTag = PointerTy->tag;
-        if (PointerTyTag == RTT_INT32)
-            return 4;
-        if(PointerTyTag == RTT_FLOAT)
-            return 4;
-        else if (PointerTyTag == RTT_ARRAY)
-            return calArrLen(PointerTy);
-        else
-            assert(0);
-    }
-    else if (TyTag == RTT_ARRAY)
-    {
-        return calArrLen(value->ty);
-    }
-    else
-        return 0;
+    auto PointerTy = value->ty->pointer.base;
+    auto PointerTyTag = PointerTy->tag;
+    if (PointerTyTag == RTT_INT32 || PointerTyTag == RTT_FLOAT)
+        return 4;
+    else if (PointerTyTag == RTT_ARRAY)
+        return calArrLen(PointerTy);
+    else if(PointerTyTag == RTT_POINTER)
+        return 8;
+    else assert(0);
 }
 // 这里需要修改
 void calculateSize(int &ArgsLen, int &LocalLen, int &ReserveLen, const RawFunctionP &function)
 {
     bool has_call;
     auto &params = function->params; // 给所有的参数分配空间
-    LocalLen += 8 * params.size()+ 8*50;//这50个是固定给全局变量分配的空间
+    //LocalLen += 8*50;//这50个是固定给全局变量分配的空间
     for (auto bb : function->basicblock)
     {
         for (auto value : bb->inst)
         {
             if (value->value.tag == RVT_ALLOC)
             { // alloc 指令分配的内存,大小为4字节
-                int len = calPtrLen(value);
+                int len = calAllocLen(value);
                 // cout << "save len =" << len << endl;
                 LocalLen += len + 8; // 这里给每个指针值加上一个8字节用于存储指针
                 hardware.SaveLen(value, len);
@@ -83,11 +80,17 @@ void calculateSize(int &ArgsLen, int &LocalLen, int &ReserveLen, const RawFuncti
             if (value->value.tag == RVT_CALL)
             {
                 has_call = true;
+                // cout << "call's size" << value->value.call.args.size() << endl;
                 ArgsLen = max(ArgsLen, int(value->value.call.args.size() - 8)) * 8;
+            }
+            else if(value->value.tag == RVT_STORE) 
+            {
+                auto storeValue = value->value.store.dest;
+                if(storeValue->value.tag == RVT_GLOBAL) LocalLen += 8;//这个是给全局变量分配的
             }
         }
     }
-    ReserveLen = 14 * 8; // 无论有没有，这个我们都保存一下返回地址
+    ReserveLen = 26 * 8; // 无论有没有，这个我们都保存一下返回地址
     // cout << "Args=" <<  ArgsLen << ",Local=" << LocalLen << ",Reserve=" << ReserveLen << endl;
 }
 
@@ -124,6 +127,7 @@ void MemoryManager::initReserveArea(int min, int max)
     ReserveArea.maxAddress = max;
     ReserveArea.tempOffset = max;
     ReserveArea.StackManager.clear();
+    ReserveArea.FStackManager.clear();
 }
 
 void MemoryManager::initLocalArea(int min, int max)
@@ -138,170 +142,102 @@ void MemoryManager::initLocalArea(int min, int max)
 
 void HardwareManager::LoadFromMemory(const RawValueP &value)
 {
-    
-    if(value->value.tag == RVT_FLOAT || value->value.tag == RTT_FLOAT){
-        AllocFRegister(value);
-        const char *freg = GetFRegister(value);
-        int TargetOffset = getTargetOffset(value);
-        cout << "  flw  " << freg << ", " << TargetOffset << "(sp)" << endl;
+    // cout << "load from memory" << endl;
+    AllocRegister(value);
+    const char *reg = GetRegister(value);
+    int TargetOffset = getTargetOffset(value);
+    if(value->ty->tag == RTT_FLOAT){
+        if(TargetOffset > 2047) {
+            cout << "  li   " << "t0, " << TargetOffset << endl;
+            cout << "  add  " << "t0, sp, t0" << endl;
+            cout << "  fld  " <<  reg << ", " << 0 << "(t0)" << endl; 
+        } else 
+            cout << "  fld   " << reg << ", " << TargetOffset << "(sp)" << endl;
     } else {
-        AllocRegister(value);
-        const char *reg = GetRegister(value);
-        int TargetOffset = getTargetOffset(value);
-        cout << "  ld  " << reg << ", " << TargetOffset << "(sp)" << endl;
-        //TODO: fix fregs
+        if(TargetOffset > 2047) {
+            cout << "  li   " << "t0, " << TargetOffset << endl;
+            cout << "  add  " << "t0, sp, t0" << endl;
+            cout << "  ld  " <<  reg << ", " << 0 << "(t0)" << endl; 
+        } else 
+            cout << "  ld   " << reg << ", " << TargetOffset << "(sp)" << endl;
     }
     
+}
+
+bool HardwareManager::IsRegisterNotAval(int reg,int tag) {
+    if(tag == RTT_FLOAT)
+        return ((reg >= 10 && reg <= 17) || registerManager.RegisterLock[reg]) && reg < 32;
+    else
+        return ((reg >= 10 && reg <= 17) || registerManager.FRegisterLock[reg]) && reg < 32;
 }
 
 void HardwareManager::AllocRegister(const RawValueP &value)
 {
     // cout << "alloc register for " << value->value.tag << endl;
-    if (registerManager.RegisterFull)
-    {
+    auto ValueTy = value->ty->tag;
+    // cout << "value type: " << ValueTy << endl;
+    auto &look = (ValueTy == RTT_FLOAT) ? registerManager.FregisterLook : registerManager.registerLook;
+    auto &full = (ValueTy == RTT_FLOAT) ? registerManager.FRegisterFull : registerManager.RegisterFull;
+    auto &tempRegister = (ValueTy == RTT_FLOAT) ? registerManager.tempFRegister : registerManager.tempRegister;
+    if(look.find(value) != look.end())  return;
+    if (full) {
         int RandSelected;
-        random_device rd;
-        mt19937 gen(rd());
-        uniform_int_distribution<int> dis(0, 31);
-        do
-        {
-            RandSelected = dis(gen);
-        } while (!isValid(RandSelected));
-        StoreReg(RandSelected);
-        registerManager.registerLook.insert(pair<RawValueP, int>(value, RandSelected));
-    }
-    else
-    {
-        uint32_t &RegLoc = registerManager.tempRegister;
-        registerManager.registerLook.insert(pair<RawValueP, int>(value, RegLoc));
-        do
-        {
+        auto it = look.begin();
+        do{
+            RandSelected = it->second;
+            it++;
+        } while(!isValid(RandSelected,value->ty->tag) && it != look.end());
+        StoreReg(RandSelected,ValueTy);
+        look[value] = RandSelected;
+    } else {
+        uint32_t &RegLoc = tempRegister;
+        look[value] = RegLoc;
+        // cout << "alloc register " << RegLoc << RegisterManager::regs[RegLoc] << endl;
+        do {
             RegLoc++;
-        } while (((RegLoc >= 10 && RegLoc <= 17) || registerManager.RegisterLock[RegLoc]) && RegLoc < 32);
+        } while (IsRegisterNotAval(RegLoc,value->ty->tag));
         if (RegLoc == 32)
-            registerManager.RegisterFull = true;
-    }
-}
-
-//fregs
-void HardwareManager::AllocFRegister(const RawValueP &value)
-{
-    // cout << "alloc register for " << value->value.tag << endl;
-    if (registerManager.FRegisterFull)
-    {
-        int RandSelected;
-        random_device rd;
-        mt19937 gen(rd());
-        uniform_int_distribution<int> dis(0, 31);
-        do
-        {
-            RandSelected = dis(gen);
-        } while (!isValid(RandSelected));
-        StoreFReg(RandSelected);
-        registerManager.FregisterLook.insert(pair<RawValueP, int>(value, RandSelected));
-    }
-    else
-    {
-        uint32_t &RegLoc = registerManager.tempFRegister;
-        registerManager.FregisterLook.insert(pair<RawValueP, int>(value, RegLoc));
-        do
-        {
-            RegLoc++;
-        } while (((RegLoc >= 10 && RegLoc <= 17) || registerManager.FRegisterLock[RegLoc]) && RegLoc < 32);
-        if (RegLoc == 32)
-            registerManager.FRegisterFull = true;
+            full = true;
     }
 }
 
 
-void HardwareManager::StoreReg(int RandSelected)
+void HardwareManager::StoreReg(int RandSelected,int type)
 {
+    //cout << "spill reg" << RandSelected << endl;
+    auto &look = (type == RTT_FLOAT) ? registerManager.FregisterLook : registerManager.registerLook;
     const char *TargetReg;
     int TargetOffset;
-    for (const auto &pair : registerManager.registerLook)
-    {
-        if (pair.second == RandSelected)
-        {
-            auto value = pair.first;
-            auto ty = value->ty;
-            TargetReg = RegisterManager::regs[RandSelected];
-            if (IsMemory(value))
-            {
-                TargetOffset = getTargetOffset(pair.first);
-            }
-            else
-            {
-                TargetOffset = StackAlloc(pair.first);
-            }
-            registerManager.registerLook.erase(pair.first);
-            if (value->value.tag == RVT_FUNC_ARGS)
-                return;
-            if (!ty)
-                return;
-            else if (ty->tag == RTT_ARRAY)
-                return;
-            else if (ty->tag == RTT_POINTER)
-            {
-                auto PointerTy = ty->pointer.base;
-                auto PointerTag = PointerTy->tag;
-                if (PointerTag == RTT_ARRAY)
-                    return;
-                else
-                    cout << "  sd   " << TargetReg << ", " << TargetOffset << "(sp)" << endl;
-            }
-            else { //int
-                cout << "  sd   " << TargetReg << ", " << TargetOffset << "(sp)" << endl;
-            }
-                
+    auto pair = look.begin();
+    for (;pair != look.end();pair++)
+        if (pair->second == RandSelected)
             break;
-        }
+    if(pair == look.end()) return;
+    auto value = pair->first;
+    if (IsMemory(value))
+        TargetOffset = getTargetOffset(value);
+    else
+        TargetOffset = StackAlloc(value);
+    look.erase(value);
+    if(value->value.tag == RVT_ALLOC || value->value.tag == RVT_GLOBAL) return;
+    if(type == RTT_FLOAT) {
+        TargetReg = RegisterManager::fregs[RandSelected];
+        if(TargetOffset > 2047) {
+            cout << "  li   " << "t0, " << TargetOffset << endl;
+            cout << "  add  " << "t0, sp, t0" << endl;
+            cout << "  fsd  " <<  TargetReg << ", " << 0 << "(t0)" << endl; 
+        } else
+            cout << "  fsd   " << TargetReg << ", " << TargetOffset << "(sp)" << endl;
+    } else {
+        TargetReg = RegisterManager::regs[RandSelected];
+        if(TargetOffset > 2047) {
+            cout << "  li   " << "t0, " << TargetOffset << endl;
+            cout << "  add  " << "t0, sp, t0" << endl;
+            cout << "  sd  " <<  TargetReg << ", " << 0 << "(t0)" << endl; 
+        } else
+            cout << "  sd   " << TargetReg << ", " << TargetOffset << "(sp)" << endl;
     }
 }
-
-void HardwareManager::StoreFReg(int RandSelected)
-{
-    const char *TargetReg;
-    int TargetOffset;
-    for (const auto &pair : registerManager.FregisterLook)
-    {
-        if (pair.second == RandSelected)
-        {
-            auto value = pair.first;
-            auto ty = value->ty;
-            TargetReg = RegisterManager::fregs[RandSelected];
-            if (IsMemory(value))
-            {
-                TargetOffset = getTargetOffset(pair.first);
-            }
-            else
-            {
-                TargetOffset = StackAlloc(pair.first);
-            }
-            registerManager.FregisterLook.erase(pair.first);
-            if (value->value.tag == RVT_FUNC_ARGS)
-                return;
-            if (!ty)
-                return;
-            else if (ty->tag == RTT_ARRAY)
-                return;
-            else if (ty->tag == RTT_POINTER)
-            {
-                auto PointerTy = ty->pointer.base;
-                auto PointerTag = PointerTy->tag;
-                if (PointerTag == RTT_ARRAY)
-                    return;
-                else
-                    cout << "  sw   " << TargetReg << ", " << TargetOffset << "(sp)" << endl;
-            }
-            else { //float must be
-                cout << "  fsw   " << TargetReg << ", " << TargetOffset << "(sp)" << endl;
-            }
-                
-            break;
-        }
-    }
-}
-
 
 
 const char *RegisterManager::regs[32] = {
@@ -316,49 +252,53 @@ const char *RegisterManager::fregs[32] = {
     "fs0", "fs1",  //saved variables
     "fa0", "fa1",  //function arguments / return values
     "fa2", "fa3", "fa4", "fa5", "fa6", "fa7", //function arguments
-    "fs2", "fs3", "fs4", "fs5", "fs6", "fs7", "fs8", "fs9", "fs10", "fs11", //saved variables
+    "fs2", "fs3", "fs4", "fs5", "fs6", "fs7", "fs8", "fs9", "fs10", "fs11", //savd variables
     "ft8", "ft9", "ft10", "ft11"  //temporary variables
+    //之前写的是寄存器序号，不是寄存器名字，难崩
+    //这样写是按寄存器的序号排列的
 };
 
 const int RegisterManager::callerSave[7] = {
-    5, 6, 7, 28, 29, 30, 31};
+    5, 6, 7, 28, 29, 30, 31
+};
 
 const int RegisterManager::calleeSave[12] = {
-    8, 9, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27};
+    8, 9, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27
+};
+
+const int RegisterManager::callerFSave[12] = {
+    0, 1, 2, 3, 4, 5, 6, 7, 28, 29, 30, 31
+};
+
+const int RegisterManager::calleeFSave[12] = {
+    8, 9, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27
+};
 
 void RegisterArea::LoadRegister(int reg)
 {
     assert(StackManager.find(reg) != StackManager.end());
     int offset = StackManager.at(reg);
-    if (offset <= 2047)
-    {
+    if (offset <= 2047) {
         cout << "  ld  " << RegisterManager::regs[reg] << ", " << offset << "(sp)" << endl;
-    }
-    else
-    {
+    } else {
         cout << "  li  t0," << offset << endl;
         cout << "  add t0, sp, t0" << endl;
         cout << "  ld  " << RegisterManager::regs[reg] << ", " << 0 << "(t0)" << endl;
     }
 }
 
-//fregs
 void RegisterArea::LoadFRegister(int reg)
 {
     assert(StackManager.find(reg) != StackManager.end());
     int offset = StackManager.at(reg);
-    if (offset <= 2047)
-    {
-        cout << "  flw  " << RegisterManager::fregs[reg] << ", " << offset << "(sp)" << endl;
-    }
-    else
-    {
+    if (offset <= 2047) {
+        cout << "  fld  " << RegisterManager::fregs[reg] << ", " << offset << "(sp)" << endl;
+    } else {
         cout << "  li  t0," << offset << endl;
         cout << "  add t0, sp, t0" << endl;
-        cout << "  flw  " << RegisterManager::fregs[reg] << ", " << 0 << "(t0)" << endl;
+        cout << "  fld  " << RegisterManager::fregs[reg] << ", " << 0 << "(t0)" << endl;
     }
 }
-
 
 void RegisterArea::SaveRegister(int reg)
 {
@@ -376,23 +316,21 @@ void RegisterArea::SaveRegister(int reg)
     tempOffset -= 8;
 }
 
-//fregs
 void RegisterArea::SaveFRegister(int reg)
 {
     if (tempOffset <= 2047)
     {
-        cout << "  fsw  " << RegisterManager::fregs[reg] << ", " << tempOffset << "(sp)" << endl;
+        cout << "  fsd  " << RegisterManager::fregs[reg] << ", " << tempOffset << "(sp)" << endl;
     }
     else
     {
         cout << "  li  t0," << tempOffset << endl;
         cout << "  add t0, sp, t0" << endl;
-        cout << "  fsw  " << RegisterManager::fregs[reg] << ", " << 0 << "(t0)" << endl;
+        cout << "  fsd  " << RegisterManager::fregs[reg] << ", " << 0 << "(t0)" << endl;
     } // 这个方法虽然蠢但是是正确的
     StackManager.insert(pair<int, int>(reg, tempOffset));
     tempOffset -= 8;
 }
-
 // init要做的事：
 /*
 1、 给被调用者保存寄存器分配内存空间(这个由于在最上层最后弄)

@@ -35,7 +35,7 @@ FLEX := flex
 BISON := bison
 
 # Directories
-TOP_DIR := $(shell pwd)
+TOP_DIR := .
 TARGET_EXEC := compiler
 SRC_DIR := $(TOP_DIR)/src
 BUILD_DIR ?= $(TOP_DIR)/build
@@ -102,7 +102,7 @@ $(BUILD_DIR)/%.tab$(FB_EXT): $(SRC_DIR)/%.y
 	$(BISON) $(BFLAGS) -o $@ $<
 
 
-.PHONY: clean floatTest
+.PHONY: clean floatTest docker docker-func
 
 clean:
 	-rm -rf $(BUILD_DIR)
@@ -147,10 +147,10 @@ koopa-test:
 
 riscv-test:
 	./build/compiler -S -o hello.S hello.c 
-	clang hello.S -c -o hello.o -target riscv64-unknown-linux-elf -march=rv64im -mabi=lp64
-	ld.lld hello.o -L $$CDE_LIBRARY_PATH/riscv64 -lsys -o hello
+	clang hello.S -c -o hello.o -target riscv64-unknown-linux-elf -march=rv64imafdc -mabi=lp64d -mno-relax
+	ld.lld hello.o -L . -lsysy -o hello
 	riscv64-linux-gnu-objdump -d hello > hello.obj
-	qemu-riscv64-static hello 
+	qemu-riscv64-static hello < hello.in
 
 gdb:
 	gdb --args ./build/compiler -riscv -o hello.S  hello.c

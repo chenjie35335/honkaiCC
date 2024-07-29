@@ -76,14 +76,16 @@ void alloc_ptr_symbol(const RawValueP &value)
     Symbol_List[value] = "\%ptr"+to_string(ptr_idx++);
 }
 string GetValueType(const RawTypeP &ty)
-{
+{   
     switch(ty->tag){
         case RTT_INT32:{
             return string("i32");
         }
         case RTT_FLOAT:{
             return string("float");
-            break;
+        }
+        case RTT_UNIT:{
+            return string("");
         }
         case RTT_ARRAY:{
             string str = "["+GetValueType(ty->array.base)+", ";
@@ -182,6 +184,7 @@ void Visit_Binary(const RawValueP &value)
     string rs = Symbol_List[rhs];
     alloc_symbol(value);
     string res = Symbol_List[value];
+    //cerr << "lhs tag: " << lhs->ty->tag << " rhs tag: " << rhs->ty->tag << endl;
     cout<<"  ";
     switch(op) {
         case RBO_ADD:
@@ -278,21 +281,33 @@ void Visit_Alloc(const RawValueP &value)
     }
     
     Symbol_List[value] = "@"+string(value->name);
-    cout<<"  "<<Symbol_List[value]<< " = alloc "<<GetValueType(value->ty)<<endl;
 }
+
+void Visit_Alloc(const RawValueP &value)
+{
+    cout<<"  "<<Symbol_List[value]<< " = alloc "<<GetValueType(value->ty->pointer.base)<<endl;
+}
+
+void Name_Load(const RawValueP &value) {
+    alloc_symbol(value);
+    auto &src = value->value.load.src;
+    Name_Value(src);
+}
+
 void Visit_Load(const RawValueP &value)
 {
     alloc_symbol(value);
     string res = Symbol_List[value];
-    Visit_Value(value->value.load.src);
-    string src = Symbol_List[value->value.load.src];
-    cout<<"  "<<res<<" = load "<<src<<endl;
+    auto &src = value->value.load.src;
+    string srcName = Symbol_List[value->value.load.src];
+    cout<<"  "<<res<<" = load "<<srcName<<endl;
+    //cout << " load: " << src->value.tag << endl;
 }
-void Visit_Store(const RawValueP &value)
-{
-    Visit_Value(value->value.store.value);
-    string sv = Symbol_List[value->value.store.value];
-    RawValueP dest = value->value.store.dest;
+
+void Name_Store(const RawValueP &value) {
+    auto dest = value->value.store.dest;
+    auto src = value->value.store.value;
+    Name_Value(src);
     if(SSAmode)//多次赋值
     {
         RawValueP target = dest->value.valueCop.target;
@@ -358,6 +373,12 @@ void Visit_Global(const RawValueP &value)
     Visit_Value(global.Init);
     cout<<Symbol_List[global.Init]<<endl;
 }
+
+void Name_get_element(const RawValueP &value){
+    alloc_ptr_symbol(value);
+    Name_Value(value->value.getelement.index);
+}
+
 void visit_get_element(const RawValueP &value)
 {
     alloc_ptr_symbol(value);
@@ -383,6 +404,18 @@ void visit_aggregate(const RawValueP &value)
     content+='}';
     Symbol_List[value] = content;
 }
+
+void visit_aggregate(const RawValueP &value)
+{
+    return;
+}
+
+void Name_get_ptr(const RawValueP &value){
+    alloc_ptr_symbol(value);
+    //Name_Value(value->value.getptr.src);
+    Name_Value(value->value.getptr.index);
+}
+
 void visit_get_ptr(const RawValueP &value)
 {
     RawValueP src = value->value.getptr.src;
@@ -431,6 +464,7 @@ void Visit_VALUECOPY(const RawValueP &value) {
 void Visit_BBS(const RawBasicBlockP &bb){
     auto &insts = bb->inst;
     auto &phis = bb->phi;
+    auto &fbbs = bb->fbbs;
     cout <<"\n%"<<bb->name << ":" << endl;
     if(SSAmode) {
     // 访问Value
@@ -443,40 +477,143 @@ void Visit_BBS(const RawBasicBlockP &bb){
     {
         // cout<<"valueType:{"<<inst->value.tag<<"}"<<endl;
         Visit_Value(inst);
-        //定值点
-        // cout<<inst->value.tag<<'[';
-        // for(auto defpoint:inst->defPoints)
-        // {
-        //     cout<<Symbol_List[defpoint]<<'|';
-        // }
-        // cout<<inst->defPoints.size();
-        // cout<<']'<<endl;
     }
-    // for(auto inst : insts) 
-    // {
-    //     //使用点
-    //     cout<<inst->value.tag<<'[';
-    //     for(auto defpoint:inst->usePoints)
-    //     {
-    //         Visit_Value(defpoint);
-    //         cout<<'|';
-    //     }
-    //     cout<<']'<<inst->usePoints.size()<<endl;
+    // for(auto fbb : fbbs) {
+        // cout << fbb->name << "follow" << bb->name << endl;
     // }
-
-    //生成定义变量
-    // cout<<bb->name<<"基本块定义的变量:[";
-    // for(auto val_def:bb->defs){
-    //     cout<<Symbol_List[val_def]<<'|';
-    // }
-    // cout<<']'<<endl;
-    //生成使用变量
-    // cout<<bb->name<<"基本块使用的变量:[";
-    // for(auto val_ues:bb->uses){
-    //     cout<<Symbol_List[val_ues]<<'|';
-    // }
-    // cout<<']'<<endl;
 }
+
+void Name_Triple(const RawValueP &value) {
+    const auto &data = value->value.triple;
+    const auto &hs1 = data.hs1;
+    const auto &hs2 = data.hs2;
+    const auto &hs3 = data.hs3;
+    Name_Value(hs1);
+    Name_Value(hs2);
+    Name_Value(hs3);
+    alloc_symbol(value);
+}
+
+void Name_Value(const RawValueP &value) {
+    if(Symbol_List.find(value)!=Symbol_List.end()) return;
+    switch(value->value.tag) {
+    case RVT_RETURN: {
+        // cout<<"Value:{RVT_RETURN}"<<endl;
+        Name_Return(value);
+        break;
+    }
+    case RVT_INTEGER: {
+        // cout<<"Value:{RVT_INTEGER}"<<endl;
+        Name_Integer(value);
+        break;
+    }
+    case RVT_FLOAT:{
+        // cout<<"Value:{RVT_FLOAT}"<<endl;
+        Name_Float(value);
+        break;
+    }
+    case RVT_BINARY: {
+        // cout<<"Value:{RVT_BINARY}"<<endl;
+        Name_Binary(value);
+        break;
+    }
+    case RVT_ALLOC: {
+        // cout<<"Value:{RVT_ALLOC}"<<endl;
+        Name_Alloc(value);
+        break;
+    }
+    case RVT_LOAD: {
+        // cout<<"Value:{RVT_LOAD}"<<endl;
+        Name_Load(value);
+        break;
+    }
+    case RVT_STORE: {
+        // cout<<"Value:{RVT_STORE}"<<endl;
+        Name_Store(value);
+        break;
+    }
+    case RVT_BRANCH: {
+        // cout<<"Value:{RVT_BRANCH}"<<endl;
+        Name_Branch(value);
+        break;
+    }
+    case RVT_JUMP: {
+        // cout<<"Value:{RVT_JUMP}"<<endl;
+        Name_Jump(value);
+        break;
+    }
+    case RVT_CALL:{
+        // cout<<"Value:{RVT_CALL}"<<endl;
+        Name_Call(value);
+        break;
+    }
+    case RVT_FUNC_ARGS:{
+        // cout<<"Value:{RVT_FUNC_ARGS}"<<endl;
+        Name_Func_Args(value);
+        break;
+    }
+    case RVT_GLOBAL:{
+        // cout<<"Value:{RVT_GLOBAL}"<<endl;
+        Name_Global(value);
+        break;
+    }
+    case RVT_ZEROINIT:{
+        // cout<<"Value:{RVT_ZEROINIT}"<<endl;
+        Name_ZEROINIT(value);
+        break;
+    }
+    case RVT_GET_PTR:{
+        // cout<<"Value:{RVT_GET_PTR}"<<endl;
+        Name_get_ptr(value);
+        break;
+    }
+    case RVT_GET_ELEMENT:{
+        // cout<<"Value:{RVT_GET_ELEMENT}"<<endl;
+        Name_get_element(value);
+        break;
+    }
+    case RVT_AGGREGATE:
+    {
+        // cout<<"Value:{RVT_AGGREGATE}"<<endl;
+        Name_aggregate(value);
+        break;
+    }
+    case RVT_VALUECOPY: {
+        // cout<<"Value:{RVT_VALUECOPY}"<<endl;
+        break;
+    }
+    case RVT_PHI: {
+        // cout<<"Value:{RVT_PHI}"<<endl;
+        Name_PHI(value);break;
+    }
+    case RVT_CONVERT: {
+        // cout<<"Value:{RVT_CONVERT}"<<endl;
+        Name_Convert(value);break;
+    }
+    case RVT_TRIPE:{
+        // cout<<"Value:{RVT_TRIPLE}"<<endl;
+        Name_Triple(value);
+        break;
+    }
+    default:
+        cerr<<"tag:{"<<value->value.tag<<'}'<<endl;
+        assert(false);
+}
+}
+
+void Name_Fun(const RawFunctionP &func){
+    auto &bbs = func->basicblock;
+    auto &params = func->params;
+    //初始化符号表
+    init_symbol();
+    for(int i=0;i<params.size();i++){
+        Name_Value(params[i]);
+    }
+    for(auto &bb : bbs) {
+        Name_BBS(bb);
+    }
+}
+
 void Visit_Fun(const RawFunctionP &func)
 {
         auto &bbs = func->basicblock;
@@ -504,6 +641,37 @@ void Visit_Fun(const RawFunctionP &func)
             Visit_BBS(bb);
         printf("}\n\n");
        
+}
+
+void Visit_Triple(const RawValueP &value) {
+    const auto &data = value->value.triple;
+    const auto &hs1 = data.hs1;
+    const auto &hs2 = data.hs2;
+    const auto &hs3 = data.hs3;
+    const auto &op  = data.op;
+    string s1 = Symbol_List[hs1];
+    string s2 = Symbol_List[hs2];
+    string s3 = Symbol_List[hs3];
+    string res = Symbol_List[value];
+    cout<<"  ";
+    switch(op) {
+        case RTO_FMADD:
+            cout << res<<" = fmadd "<<s1<<", "<<s2<<", " << s3 <<endl;
+            break;
+        case RTO_FMSUB:
+            cout << res<<" = fmadd "<<s1<<", "<<s2<<", " << s3 <<endl;
+            break;
+        case RTO_FNMADD:
+            cout<<res<<" = fnmadd "<<s1<<", "<<s2 <<", " << s3<<endl;
+            break;
+        case RTO_FNMSUB:
+            cout<<res<<" = fnmsub "<<s1<<", "<<s2 <<", " << s3<<endl;
+            break;
+        default: {
+            cerr << "unknown {op:} " << op << endl;
+            assert(0);
+        }
+    }
 }
 
 void Visit_Value(const RawValueP &value) {    
@@ -603,6 +771,9 @@ void Visit_Value(const RawValueP &value) {
         }
         case RVT_CONVERT: {
             Visit_Convert(value);break;
+        }
+        case RVT_TRIPE: {
+            Visit_Triple(value);break;
         }
         default:
             cerr<<"tag:{"<<kind.tag<<'}'<<endl;
