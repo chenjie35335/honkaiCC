@@ -191,7 +191,7 @@ void Visit(const RawStore &data, const RawValueP &value,int id) {//store这个�
         string  DestReg = hardware.GetRegister(dest,id);
         string regg=hardware.GetRegister(src,id);
         cout << "  la  " << DestReg << ", " << dest->name << endl;
-        if(value->name!=NULL&&value->name=="qqq")
+        if(dest->name!=NULL&&dest->name=="qqq")
         cout << "  sd  " << SrcReg << ", " << 0 << '(' << DestReg << ')' << endl;
         else
         cout << "  sw  " << SrcReg << ", " << 0 << '(' << DestReg << ')' << endl;
@@ -205,13 +205,13 @@ void Visit(const RawStore &data, const RawValueP &value,int id) {//store这个�
         if(srcAddress > 2047) {
             cout << "  li   " << "t0, " << srcAddress << endl;
             cout << "  add  " << "t0, sp, t0" << endl;
-            if(value->name!=NULL&&value->name=="qqq")
+            if(dest->name!=NULL&&dest->name=="qqq")
             cout << "  sd  " <<  SrcReg << ", " << 0 << "(t0)" << endl;
             else
             cout << "  sw  " <<  SrcReg << ", " << 0 << "(t0)" << endl;
         } 
         else{
-            if(value->name!=NULL&&value->name=="qqq")
+            if(dest->name!=NULL&&dest->name=="qqq")
             cout << "  sd  " << SrcReg << ", " << srcAddress << "(sp)" << endl;
             else
             cout << "  sw  " << SrcReg << ", " << srcAddress << "(sp)" << endl;
@@ -223,7 +223,7 @@ void Visit(const RawStore &data, const RawValueP &value,int id) {//store这个�
         hardware.LeaseLockRegister(dest);
         string SrcReg = hardware.GetRegister(src,id);
         string ElementReg = hardware.GetRegister(dest,id);
-        if(value->name!=NULL&&value->name=="qqq")
+        if(dest->name!=NULL&&dest->name=="qqq")
         cout << "  sd  " << SrcReg << ", " << 0 << '(' << ElementReg << ')' << endl;
         else
         cout << "  sw  " << SrcReg << ", " << 0 << '(' << ElementReg << ')' << endl;
@@ -251,7 +251,7 @@ void Visit(const RawStore &data, const RawValueP &value,int id) {//store这个�
         string SrcReg = hardware.GetRegister(src,id);
         string ElementReg = hardware.GetRegister(dest,id);
         auto srcTag = src->ty->tag;
-        if(value->name!=NULL&&value->name=="qqq")
+        if(dest->name!=NULL&&dest->name=="qqq")
             cout << "  sd  " << SrcReg << ", " << 0 << '(' << ElementReg << ')' << endl;
         else
             cout << "  sw  " << SrcReg << ", " << 0 << '(' << ElementReg << ')' << endl;
