@@ -12,6 +12,7 @@ void OptimizeGCSE(RawProgramme *programme);
 void OptimizeSCCP(RawProgramme *&programme);
 void BlockEliminate(RawProgramme *&programme);
 void InstMerge(RawProgramme *&programmer);
+void MarkUseDef(RawProgramme *&programmer);
 
 int main(int argc, const char *argv[]) {
   // 解析命令行参数. 测试脚本/评测平台要求你的编译器能接收如下参数:
@@ -46,14 +47,15 @@ int main(int argc, const char *argv[]) {
   //if(optMode != nullptr && strcmp(optMode,"-O1") == 0) {
       //GeneratorIRTxt(irGraph,false);
       //OptimizeFuncInline(irGraph);
-      // GeneratorDT(irGraph,0);
+       MarkUseDef(irGraph);
+       GeneratorDT(irGraph,0);
       // GeneratorDT(irGraph,3);
-      // AddPhi(irGraph);
-      // renameValue(irGraph);
+       //AddPhi(irGraph);
+       //renameValue(irGraph);
       //  循环优化需要基于支配树
     //  OptimizeLoop(irGraph);
-      // OptimizeMem2Reg(irGraph);
-      //GeneratorIRTxt(irGraph,true);
+       OptimizeMem2Reg(irGraph);
+       //GeneratorIRTxt(irGraph,true);
       //mem2regTop(irGraph);
       //GeneratorIRTxt(irGraph,true);
       //DCE(irGraph);
@@ -63,8 +65,8 @@ int main(int argc, const char *argv[]) {
       // ConstCombine(irGraph);
       // DCE(irGraph);
       // OptimizeGCSE(irGraph);
-      // OptimizeSCCP(irGraph);
-      
+      OptimizeSCCP(irGraph);
+      BlockEliminate(irGraph);
       exitSSA(irGraph);
   //}
   start_time = std::chrono::high_resolution_clock::now();

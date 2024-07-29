@@ -11,6 +11,18 @@ using namespace std;
 /// 这个还是比较恶心！
 void ClearInst(RawFunction *&function) {
     auto &bbs = function->basicblock;
+    for(auto bb : bbs) {
+        auto &fbbs = bb->fbbs;
+        auto &pbbs = bb->pbbs;
+        if(bb->isDeleted) {
+            for(auto fbb : fbbs) {
+                fbb->pbbs.remove(bb);
+            }
+            for(auto pbb : pbbs) {
+                pbb->fbbs.remove(bb);
+            }
+        }
+    }
     bbs.erase(remove_if(bbs.begin(), bbs.end(), [](RawBasicBlock *bb) {
     return bb->isDeleted == true;
 }), bbs.end());
