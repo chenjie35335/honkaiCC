@@ -53,13 +53,13 @@ int main(int argc, const char *argv[]) {
       // exitSSA(irGraph);
   //}
   if(strcmp(mode,"-riscv") == 0 || strcmp(mode,"-S") == 0) {
-    // OptimizeFuncInline(irGraph);
+    OptimizeFuncInline(irGraph);
     // exitSSA(irGraph);
     backend(irGraph);
   } 
   else if(strcmp(mode,"-koopa") == 0) {
     OptimizeFuncInline(irGraph);
-     GeneratorIRTxt(irGraph,false);
+    GeneratorIRTxt(irGraph,false);
   }
   else if(strcmp(mode,"-cfg") == 0){
     // OptimizeFuncInline(irGraph);

@@ -318,8 +318,6 @@ const char *RegisterManager::fregs[32] = {
     "fa2", "fa3", "fa4", "fa5", "fa6", "fa7", //function arguments
     "fs2", "fs3", "fs4", "fs5", "fs6", "fs7", "fs8", "fs9", "fs10", "fs11", //saved variables
     "ft8", "ft9", "ft10", "ft11"  //temporary variables
-    //之前写的是寄存器序号，不是寄存器名字，难崩
-    //这样写是按寄存器的序号排列的
 };
 
 const int RegisterManager::callerSave[7] = {
