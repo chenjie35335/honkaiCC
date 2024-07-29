@@ -416,6 +416,10 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
             if(!ko){
                 ko=1;yy=*it;
             }
+            // if((*it)->value.tag==RVT_GLOBAL){
+            //     cout<<(*it)->ty->tag<<endl;
+            //     cout<<"??"<<endl;
+            // }
             mp[*it]=cnt;
             // if((*it)->value.tag==RVT_GET_ELEMENT){
             //     res++;
@@ -623,11 +627,11 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
 
 
 int checkuse(RawValue * y,RawValueP xx,int op){
+        for(auto it:def[mp[y]]){
+        if(it==xx) return 1;
+    }
     for(auto it:use[mp[y]]){
         if(it==xx) return 2;
-    }
-    for(auto it:def[mp[y]]){
-        if(it==xx) return 1;
     }
     return 0;
     //  uint32_t ee=(y->ty->tag);
@@ -915,9 +919,10 @@ void HardwareManager::spill(vector<RawBasicBlockP> &bbbuffer,int id,vector<RawVa
             // chg(x,pvue,value);
             j++;
             }
-            else if(checkuse(x,pvue,1)==2){
+           else if(checkuse(x,pvue,2)==2){
                 if(CNT==0){
-                    cout<<pvue->value.tag<<endl;
+                    cout<<pvue->value.tag<<"uninit!"<<endl;
+                    cout<<pvue->ty->tag<<endl;
                 }
                 //r load
             auto &insts = it->inst;
@@ -1215,13 +1220,13 @@ void RegisterArea::LoadRegister(int reg)
     int offset = StackManager.at(reg);
     if (offset <= 2047)
     {
-        cout << "  lw  " << RegisterManager::regs[reg] << ", " << offset << "(sp)" << endl;
+        cout << "  ld  " << RegisterManager::regs[reg] << ", " << offset << "(sp)" << endl;
     }
     else
     {
         cout << "  li  t0," << offset << endl;
         cout << "  add t0, sp, t0" << endl;
-        cout << "  lw  " << RegisterManager::regs[reg] << ", " << 0 << "(t0)" << endl;
+        cout << "  ld  " << RegisterManager::regs[reg] << ", " << 0 << "(t0)" << endl;
     }
 }
 

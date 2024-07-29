@@ -76,6 +76,8 @@ void Visit(const RawLoad &data, const RawValueP &value,int id) {
     } else{
         cout<<src->value.tag<<"!!!"<<endl;
         cout<<src->value.integer.value<<endl;
+        cout<<src->name<<endl;
+        cout<<value->value.tag<<endl;
         exit(0);
     }
 }
@@ -366,9 +368,9 @@ void Visit(const RawCall &data,const RawValueP &value,int id) {
             if(l > 2047) {
                         cout << "  li   " << "t0, " << l << endl;
                         cout << "  add  " << "t0, sp, t0" << endl;
-                        cout << "  lw  " <<  hardware.registerManager.regs[zz] << ", " << 0 << "(t0)" << endl; 
+                        cout << "  ld  " <<  hardware.registerManager.regs[zz] << ", " << 0 << "(t0)" << endl; 
                     } else
-            cout << "  lw   " << hardware.registerManager.regs[zz] << ", " << l << "(sp)" << endl;
+            cout << "  ld   " << hardware.registerManager.regs[zz] << ", " << l << "(sp)" << endl;
         hardware.registerManager.registerLook.insert(pair<RawValueP, int>(params[i],zz));
             hardware.registerManager.LX[pos]={-1,-1};
             }
@@ -387,9 +389,9 @@ void Visit(const RawCall &data,const RawValueP &value,int id) {
             if(l > 2047) {
                         cout << "  li   " << "t0, " << l << endl;
                         cout << "  add  " << "t0, sp, t0" << endl;
-                        cout << "  lw  " <<  hardware.registerManager.regs[zz] << ", " << 0 << "(t0)" << endl; 
+                        cout << "  ld  " <<  hardware.registerManager.regs[zz] << ", " << 0 << "(t0)" << endl; 
                     } else
-                     cout << "  lw   " << hardware.registerManager.regs[zz] << ", " << l << "(sp)" << endl;
+                     cout << "  ld   " << hardware.registerManager.regs[zz] << ", " << l << "(sp)" << endl;
         hardware.registerManager.registerLook.insert(pair<RawValueP, int>(params[i],zz));
             hardware.registerManager.LX[pos]={-1,-1};
             }
@@ -435,9 +437,9 @@ void Visit(const RawCall &data,const RawValueP &value,int id) {
         if(l > 2047) {
                         cout << "  li   " << "t0, " << l << endl;
                         cout << "  add  " << "t0, sp, t0" << endl;
-                        cout << "  lw  " <<  hardware.registerManager.regs[RegisterManager::callerSave[i]] << ", " << 0 << "(t0)" << endl; 
+                        cout << "  ld  " <<  hardware.registerManager.regs[RegisterManager::callerSave[i]] << ", " << 0 << "(t0)" << endl; 
                     } else
-                    cout << "  lw   " << hardware.registerManager.regs[RegisterManager::callerSave[i]] << ", " << l << "(sp)" << endl;
+                    cout << "  ld   " << hardware.registerManager.regs[RegisterManager::callerSave[i]] << ", " << l << "(sp)" << endl;
         hardware.registerManager.registerLook.insert(pair<RawValueP, int>(val,RegisterManager::callerSave[i]));
         }
      }
@@ -465,10 +467,10 @@ void Visit(const RawCall &data,const RawValueP &value,int id) {
         if(l > 2047) {
                         cout << "  li   " << "t0, " << l << endl;
                         cout << "  add  " << "t0, sp, t0" << endl;
-                        cout << "  lw  " << hardware.registerManager.regs[i] << ", " << 0 << "(t0)" << endl; 
+                        cout << "  ldd  " << hardware.registerManager.regs[i] << ", " << 0 << "(t0)" << endl; 
                     } 
         else
-        cout << "  lw   " << hardware.registerManager.regs[i] << ", " << l << "(sp)" << endl;
+        cout << "  ld   " << hardware.registerManager.regs[i] << ", " << l << "(sp)" << endl;
         hardware.registerManager.registerLook.insert(pair<RawValueP, int>(val,i));
     }
            
