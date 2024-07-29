@@ -83,33 +83,49 @@ void MultiArrayElementAST::generateGraphGlobal(vector<RawValueP> &elem, int &ret
 
 //这里就直接传字符串，然后返回查表获取了
 void SinArrayElementAST::generateGraph(string &sign, int &retType) const {
+    //constexp = rettype
     switch(type) {
         case ARELEM_AI: 
             constArrayInit->generateGraph(sign, retType);
             break;
         case ARELEM_EX:{
-            //constExp->generateGraph(sign);
-            generateRawValueArr(constExp->calc());
-            sign = to_string(constExp->calc());
-            //push to table
-            RawValue *r1 = new RawValue();
-            r1->value.integer.value = stoi(sign);
-            signTable.IdentTable->ArrayTable.at(sign)->arrValue.elements.push_back(r1);
+            constExp->generateGraph(sign);
+            auto value = constExp->Calculate();
+            if(value->type == ExpResult::FLOAT){
+                float res = value->FloatResult;
+                if(retType == RVT_FLOAT){
+                    sign = to_string(res);
+                    RawValue *r1 = new RawValue();
+                    r1->value.floatNumber.value = res;
+                    signTable.IdentTable->ArrayTable.at(sign)->arrValue.elements.push_back(r1);
+                }else {
+                    int res_cvt = res;
+                    sign = to_string(res_cvt);
+                    RawValue *r1 = new RawValue();
+                    r1->value.integer.value = res_cvt;
+                    signTable.IdentTable->ArrayTable.at(sign)->arrValue.elements.push_back(r1);
+                }
+            } else {
+                int res = value->IntResult;
+                if(retType == RVT_FLOAT){
+                    float res_cvt = res;
+                    sign = to_string(res);
+                    RawValue *r1 = new RawValue();
+                    r1->value.floatNumber.value = res_cvt;
+                    signTable.IdentTable->ArrayTable.at(sign)->arrValue.elements.push_back(r1);
+                }else {
+                    sign = to_string(res);
+                    RawValue *r1 = new RawValue();
+                    r1->value.integer.value = res;
+                    signTable.IdentTable->ArrayTable.at(sign)->arrValue.elements.push_back(r1);
+                }
+            }
             break;
-        }
-        case FARELEM_EX:{
-            //constExp->generateGraph(sign, retType);
-            generateRawValueArr(constExp->fcalc());
-            sign = to_string(constExp->fcalc());
-            //push to table
-            RawValue *r1 = new RawValue();
-            r1->value.floatNumber.value = stoi(sign);
-            signTable.IdentTable->ArrayTable.at(sign)->arrValue.elements.push_back(r1);
-            break;
-        }
-        default:  assert(0);
-    }
+            }
+          default:  assert(0);
+        }   
 }
+
 
 void SinArrayElementAST::generateGraphGlobal(string &sign, int &retType) const {
     switch(type) {
@@ -123,10 +139,16 @@ void SinArrayElementAST::generateGraphGlobal(string &sign, int &retType) const {
                 if(retType == RTT_FLOAT){
                     generateRawValueArr(CalValue);
                     sign = to_string(CalValue); 
+                    RawValue *r1 = new RawValue();
+                    r1->value.floatNumber.value = CalValue;
+                    signTable.IdentTable->ArrayTable.at(sign)->arrValue.elements.push_back(r1);
                 } else {
                     int IntValue = CalValue;
                     generateRawValueArr(IntValue);
                     sign = to_string(IntValue);
+                    RawValue *r1 = new RawValue();
+                    r1->value.integer.value = IntValue;
+                    signTable.IdentTable->ArrayTable.at(sign)->arrValue.elements.push_back(r1);
                 }
             } else {
                 int CalValue = value->IntResult;
@@ -134,9 +156,15 @@ void SinArrayElementAST::generateGraphGlobal(string &sign, int &retType) const {
                     float FloatValue = CalValue;
                     generateRawValueArr(FloatValue);
                     sign = to_string(FloatValue);
+                    RawValue *r1 = new RawValue();
+                    r1->value.floatNumber.value = FloatValue;
+                    signTable.IdentTable->ArrayTable.at(sign)->arrValue.elements.push_back(r1);
                 } else {
                     generateRawValueArr(CalValue);
                     sign = to_string(CalValue); 
+                    RawValue *r1 = new RawValue();
+                    r1->value.integer.value = CalValue;
+                    signTable.IdentTable->ArrayTable.at(sign)->arrValue.elements.push_back(r1);
                 } 
             }
             break;

@@ -163,16 +163,6 @@ void GeneratorDT(RawProgramme *&programme,int genDot)
 void init_bbs(const RawFunctionP &func)
 {
     auto &bbs = func->basicblock;
-<<<<<<< HEAD
-    node_nodes.clear();//清除所有节点的支配节点集合
-    visit_bbs.clear();//清除
-    for (RawBasicBlockP pbb : bbs)
-    {
-        //添加所有的基本块，初始化为未标记
-        RawBasicBlockP * preDomainNode = (RawBasicBlockP *)&(pbb->preDomainNode);
-        *preDomainNode = NULL;//初始化节点前驱为零
-        visit_bbs[pbb]=false;
-=======
     for (auto pbb : bbs)
     {
         //添加所有的基本块，初始化为未标记
@@ -181,7 +171,6 @@ void init_bbs(const RawFunctionP &func)
         if(!domains.empty()) 
             domains.clear();
         preDomainNode = nullptr;//初始化节点前驱为零
->>>>>>> backold
     }
     
 }

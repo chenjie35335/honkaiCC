@@ -54,7 +54,7 @@ void LValRAST::generateGraph(string &sign) const {
             assert(0);
         }
     } else if(type == ARRAY) {//对于右值来说，const和非const是没有区别的
-        //右值可以calc算出来
+        //ident = arr[i][j];
         RawValueP IdentSrc = signTable.getVarR(ident);
         assert(IdentSrc->ty->tag == RTT_POINTER);
         vector<RawValueP> dimens;
@@ -78,8 +78,6 @@ void LValRAST::generateGraph(string &sign) const {
             for(advance(it,1);it != dimens.end();it++) {
                 generateElement(IdentSrc, *it, sign);
                 IdentSrc = signTable.getMidVar(sign);
-                //push table
-                //signTable.IdentTable->ArrayTable.at(ident)->arrValue.elements.push_back((RawValue*)IdentSrc);
             }
             SrcBaseTag = IdentSrc->ty->pointer.base->tag;
         } else {
@@ -91,6 +89,12 @@ void LValRAST::generateGraph(string &sign) const {
             generateRawValue(sign,IdentSrc);
         } else if(SrcBaseTag == RTT_ARRAY) {
             generateElement(IdentSrc,zero,sign);
-        } else assert(0);
+        } else if(SrcBaseTag == RTT_POINTER) {
+            //TODO:
+        }
+        else {
+            cout<< SrcBaseTag << "SRCBaseTag" <<endl;
+            assert(0);
+        } 
     }
 }

@@ -252,9 +252,8 @@ void StmtAST::generateGraph() const {
                  }
                  //to find the position
                  //insert to arrTable
-                 RawValue * temp;
-                 temp->value.integer.value = stoi(ExpSign);
-                 signTable.IdentTable->ArrayTable.at(ident)->arrValue.elements[DestBaseTag] = temp;
+                 signTable.IdentTable->insertArr(IdentSign,(RawValue*&)src);
+                 //signTable.IdentTable->ArrayTable.at(IdentSign)->arrValue.elements[DestBaseTag] = (RawValue*)src;
             } else if(DestType == IDENT_POINTER) {
                 auto it = dimens.begin();
                 generatePtr(dest, *it, ElementSign);

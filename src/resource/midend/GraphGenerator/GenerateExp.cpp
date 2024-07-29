@@ -507,12 +507,9 @@ void PrimaryExpAST::generateGraph(string &sign) const
 
 // to calc()
 void FuncExpAST::generateGraph(string &sign) const{
-  cerr << "function name = " << ident << endl;
+  //cerr << "function name = " << ident << endl;
   RawFunctionP callee= signTable.getFunction(ident);
   vector<RawValueP> paramsValue;
-  if(para->calc() != ERROR){
-    //paramsValue.at(stoi(sign))->value.integer.value = para->calc();
-  }
   para->generateGraph(paramsValue);
   generateRawValue(callee,paramsValue,sign);
 }

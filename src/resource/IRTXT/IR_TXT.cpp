@@ -93,7 +93,7 @@ string GetValueType(const RawTypeP &ty)
             return str;
         }
         case RTT_POINTER:{
-            return GetValueType(ty->pointer.base);
+            return "*"+GetValueType(ty->pointer.base);
         }
         default:{
             cerr << "{tag:} " << ty->tag << endl;
@@ -147,42 +147,70 @@ switch(retType->tag) {
 }
 }
 
-void Visit_ZEROINIT(const RawValueP &value)
+void Name_ZEROINIT(const RawValueP &value)
 {
     Symbol_List[value] = "zeroinit";
 }
+
+void Visit_ZEROINIT(const RawValueP &value){
+    return;
+}
+
 void Visit_Return(const RawValueP &value)
 {
     const auto& ret = value->value.ret;
     string ret_res = "";
     // return 语句存在返回值
     if(ret.value != nullptr) {
-        Visit_Value(ret.value);
         ret_res = Symbol_List[ret.value];
+        //cout << Symbol_List[ret.value] << endl;
     }
-    else{// return 语句不存在返回值
-    }   
     cout<<"  ret "<<ret_res;
     cout<<endl;
 }
+
+void Name_Return(const RawValueP &value) 
+{
+    auto src = value->value.ret.value;
+    if(!src) return;
+    Name_Value(src);
+}
+
 void Visit_Integer(const RawValueP &value)
 {
+    return;
+}
+
+void Name_Integer(const RawValueP &value) {
+    //cout << value->value.integer.value << endl;
     Symbol_List[value]=to_string(value->value.integer.value);
 }
+
 void Visit_Float(const RawValueP &value){
+    return;
+}
+
+void Name_Float(const RawValueP &value) {
     Symbol_List[value]=to_string(value->value.floatNumber.value);
 }
+
+void Name_Binary(const RawValueP &value) {
+    const RawBinary &data = value->value.binary;
+    const auto &lhs = data.lhs;
+    const auto &rhs = data.rhs;
+    Name_Value(lhs);
+    Name_Value(rhs);
+    alloc_symbol(value);
+}
+
 void Visit_Binary(const RawValueP &value)
 {
     const RawBinary &data = value->value.binary;
     const auto &lhs = data.lhs;
     const auto &rhs = data.rhs;
     const auto &op  = data.op;
-    Visit_Value(lhs);
     string ls = Symbol_List[lhs];
-    Visit_Value(rhs);
     string rs = Symbol_List[rhs];
-    alloc_symbol(value);
     string res = Symbol_List[value];
     //cerr << "lhs tag: " << lhs->ty->tag << " rhs tag: " << rhs->ty->tag << endl;
     cout<<"  ";
@@ -266,16 +294,17 @@ void Visit_Binary(const RawValueP &value)
     }
 }
 
-void Visit_Convert(const RawValueP &value) {
+void Name_Convert(const RawValueP &value) {
     alloc_symbol(value);
+}
+
+void Visit_Convert(const RawValueP &value) {
     string res = Symbol_List[value];
-    Visit_Value(value->value.Convert.src);
     string src = Symbol_List[value->value.Convert.src];
     cout<<"  "<<res<<" = Convert "<<src<<endl;
 }
 
-void Visit_Alloc(const RawValueP &value)
-{
+void Name_Alloc(const RawValueP &value) {
     if(SSAmode){
         var_id[value]=0;//变量首次定义
     }
@@ -296,7 +325,6 @@ void Name_Load(const RawValueP &value) {
 
 void Visit_Load(const RawValueP &value)
 {
-    alloc_symbol(value);
     string res = Symbol_List[value];
     auto &src = value->value.load.src;
     string srcName = Symbol_List[value->value.load.src];
@@ -310,41 +338,65 @@ void Name_Store(const RawValueP &value) {
     Name_Value(src);
     if(SSAmode)//多次赋值
     {
+        if(dest->value.tag == RVT_VALUECOPY){
         RawValueP target = dest->value.valueCop.target;
         var_id[target]++;
         Symbol_List[dest] = "@"+ string(target->name) +'_'+to_string(var_id[target]); 
+        }
     }
-    else{
-        Visit_Value(value->value.store.dest);
-    }
+    return;
+}
+
+void Visit_Store(const RawValueP &value)
+{
+    
+    string sv = Symbol_List[value->value.store.value];
     string sd = Symbol_List[value->value.store.dest];
+    //cout << "store src's tag:" << value->value.store.value->value.tag << endl;
     cout<<"  store "<<sv<<", "<<sd<<endl;
 }
+
+void Name_Branch(const RawValueP &value) {
+    Name_Value(value->value.branch.cond);
+    return;
+}
+
 void Visit_Branch(const RawValueP &value)
 {
     const RawBranch branch = value->value.branch;
-    Visit_Value(branch.cond);
     cout<<"  br "<<Symbol_List[branch.cond]<<", %"<<branch.true_bb->name<<", %"<<branch.false_bb->name<<endl;
 }
+
+void Name_Jump(const RawValueP &value) {
+    return;
+}
+
 void Visit_Jump(const RawValueP &value)
 {
     cout<<"  jump %"<<value->value.jump.target->name<<endl;
 }
+
+void Name_Call(const RawValueP &value) {
+    if (value->ty->tag != RTT_UNIT)
+        alloc_symbol(value);
+    for(auto arg : value->value.call.args ){
+        //cout << "args' tag " << arg->value.tag << endl;
+        Name_Value(arg);
+    }
+}
+
 void Visit_Call(const RawValueP &value)
 {
     const RawCall call = value->value.call;
+   // cout << "call's type" << value->ty->tag << endl;
     if (value->ty->tag != RTT_UNIT)//函数有返回值
     {
-        alloc_symbol(value);
         cout<<"  "<<Symbol_List[value]<<" = call @";
         cout<<call.callee->name<<'(';
     }
     else{//函数无返回值
         cout<<"  call @"<<call.callee->name<<'(';
     }
-    //函数参数
-    for(auto arg : call.args)
-        Visit_Value(arg);
     for(auto arg =  call.args.begin(); arg != call.args.end();arg++)
     {
         if(arg!=call.args.begin())
@@ -352,9 +404,9 @@ void Visit_Call(const RawValueP &value)
         cout<<Symbol_List[*arg];
     }
     cout<<')'<<endl;
-    
 }
-void Visit_Func_Args(const RawValueP &value)
+
+void Name_Func_Args(const RawValueP &value)
 {
     int index = value->value.funcArgs.index;
     // 为参数重新分配空间
@@ -362,15 +414,23 @@ void Visit_Func_Args(const RawValueP &value)
     //cout<<"  "<<Symbol_List[value]<< " = alloc "<<GetValueType(value->ty)<<endl;
     //cout<<"  store "<<"\%p_"<<index<<", "<<Symbol_List[value]<<endl;
 }
+
+void Visit_Func_Args(const RawValueP &value) {
+    return;
+}
+
+void Name_Global(const RawValueP &value) {
+    Global_List[value] = '@'+string(value->name);
+    Name_Value(value->value.global.Init);
+}
+
 void Visit_Global(const RawValueP &value)
 {
-    Global_List[value] = '@'+string(value->name);
     RawGlobal global = value->value.global;
 
-    cout<<"global "<<Global_List[value]<<" = alloc "<<GetValueType(value->ty)<<", ";
+    cout<<"global "<<Global_List[value]<<" = alloc "<<GetValueType(value->ty->pointer.base)<<", ";
         
     //全局变量初始值
-    Visit_Value(global.Init);
     cout<<Symbol_List[global.Init]<<endl;
 }
 
@@ -381,15 +441,13 @@ void Name_get_element(const RawValueP &value){
 
 void visit_get_element(const RawValueP &value)
 {
-    alloc_ptr_symbol(value);
     RawValueP src = value->value.getelement.src;
     RawValueP index = value->value.getelement.index;
-    Visit_Value(src);
-    Visit_Value(index);
+    //cout << "index tag" << index->value.tag << endl;
     cout<<"  "<<Symbol_List[value]<<" = getelemptr "<<Symbol_List[src]<<", "<<Symbol_List[index]<<endl;
 }
-void visit_aggregate(const RawValueP &value)
-{
+
+void Name_aggregate(const RawValueP &value){//这里可能要考虑一下
     string content = "{";
     vector<RawValue *> elements = value->value.aggregate.elements;
     for(auto elem:elements)
@@ -397,7 +455,7 @@ void visit_aggregate(const RawValueP &value)
         uint32_t tag = elem->value.tag;
         if(tag == RVT_INTEGER){content+=to_string(elem->value.integer.value);}
         else if(tag == RVT_FLOAT){content+=to_string(elem->value.floatNumber.value);}
-        else {Visit_Value(elem);content+=Symbol_List[elem];}
+        else {Name_Value(elem);content+=Symbol_List[elem];}
         if(elem != elements.back())
             content+=", ";
     }
@@ -419,47 +477,69 @@ void Name_get_ptr(const RawValueP &value){
 void visit_get_ptr(const RawValueP &value)
 {
     RawValueP src = value->value.getptr.src;
-    Visit_Value(src);
     RawValueP index = value->value.getptr.index;
-    Visit_Value(index);
-    alloc_ptr_symbol(value);
     cout<<"  "<<Symbol_List[value]<<" = getptr "<<Symbol_List[src]<<", "<<Symbol_List[index]<<endl;
 }
+
+void Name_PHI(const RawValueP &value) {
+    if(!SSAmode){
+        cout<<"在非SSA模式的IR中使用PHI函数"<<endl;
+        return;
+    }
+    
+    RawValueP target =value->value.phi.target;
+    auto &phis = value->value.phi.phi;
+    for(auto phi : phis) {
+        //cout << "phi's tag " << phi->value.tag << endl;
+        if(phi.second->value.tag == RVT_INTEGER || phi.second->value.tag == RVT_FLOAT)
+        Name_Value(phi.second);
+    }
+    //cout << "target tag" << target->value.tag << endl;
+    Name_Value(target);
+    var_id[target]++;
+    string PhiName = "@"+ string(target->name) +'_'+to_string(var_id[target]);
+    Symbol_List[value] = PhiName;
+}
+
 void Visit_PHI(const RawValueP &value) {
     if(!SSAmode){
 
         cout<<"在非SSA模式的IR中使用PHI函数"<<endl;
         return;
     }
-    RawValueP target =value->value.phi.target;
-    var_id[target]++;
-    Symbol_List[value] = "@"+ string(target->name) +'_'+to_string(var_id[target]);
-    for(auto pvalue:value->value.phi.phi)
-    {
-        Visit_Value(pvalue.second);
-    }
     
     cout<<"  "<<Symbol_List[value]<<" = phi {";
-     for(auto pvalue:value->value.phi.phi){
-        cout<<'('<<pvalue.first->name<<','<<Symbol_List[pvalue.second]<<')';
+    for(auto pvalue:value->value.phi.phi){
+        // cout << "bb's exec: " << pvalue.first->isExec << endl;
+        cout<<'('<<pvalue.first->name<<',' << Symbol_List[pvalue.second]<<')';
         if(pvalue != value->value.phi.phi.back())
             cout<<", ";
-     }
+    }
     cout<<'}'<<endl;
 }
 
 void Visit_VALUECOPY(const RawValueP &value) {
     if(!SSAmode){
-
         cout<<"在非SSA模式的IR中使用ValueCopy"<<endl;
         return;
     }
+}//这里其实确实可以像之前那样干
 
-    RawValueP  target = value->value.valueCop.target;
-    Symbol_List[value] = "@"+string(target->name)+'_'+to_string(var_id[target]);
-    //cout << Symbol_List[value] << " = " << "alloc i32" << endl;
-    // cout <<"regard as copy"<< endl;
-}
+void Name_BBS(const RawBasicBlockP &bb) {
+    auto &insts = bb->inst;
+    auto &phis = bb->phi;
+    if(SSAmode) {
+// 访问Value
+        for(auto phi : phis) 
+        {
+            Name_Value(phi);
+        }
+    }
+    for(auto inst : insts) 
+    {
+        Name_Value(inst);
+    }  
+}   
 
 void Visit_BBS(const RawBasicBlockP &bb){
     auto &insts = bb->inst;
@@ -475,7 +555,6 @@ void Visit_BBS(const RawBasicBlockP &bb){
     }
     for(auto inst : insts) 
     {
-        // cout<<"valueType:{"<<inst->value.tag<<"}"<<endl;
         Visit_Value(inst);
     }
     // for(auto fbb : fbbs) {
@@ -620,15 +699,13 @@ void Visit_Fun(const RawFunctionP &func)
         auto &params = func->params;
         if(judgement(func->name))
             return;
-        //初始化符号表
-        init_symbol();
         //函数名称
         printf("fun @%s(",func->name);
         //函数参数
         for(int i=0;i<params.size();i++)
         {
             if(i!=0)cout<<',';
-            cout<<"@p_"<<i<<": "<<GetParamType(params[i]->ty);
+            cout<<Symbol_List[params[i]]<<": "<<GetParamType(params[i]->ty);
         }
         //判断函数返回值类型
         // cout<<"): i32";
@@ -674,13 +751,9 @@ void Visit_Triple(const RawValueP &value) {
     }
 }
 
-void Visit_Value(const RawValueP &value) {    
-    if(Symbol_List.find(value)!=Symbol_List.end())
-    {
-        // cout<<"value has alloc"<<endl;
-        return ;
-    }
+void Visit_Value(const RawValueP &value) {
     const auto& kind = value->value;
+    //cout << " value Status: " << value->status << endl;
     // cout<<"valueType:{"<<kind.tag<<"}"<<endl;
     switch(kind.tag) {
         case RVT_RETURN: {
@@ -694,7 +767,7 @@ void Visit_Value(const RawValueP &value) {
             break;
         }
         case RVT_FLOAT:{
-            //cout<<"Value:{RVT_FLOAT}"<<endl;
+            //cout<<"Value:{RVT_FLOAT}:" << value->value.floatNumber.value<<endl;
             Visit_Float(value);
             break;
         }
@@ -770,6 +843,7 @@ void Visit_Value(const RawValueP &value) {
             Visit_PHI(value);break;
         }
         case RVT_CONVERT: {
+            //cout<<"Value:{RVT_CONVERT}"<<endl;
             Visit_Convert(value);break;
         }
         case RVT_TRIPE: {
@@ -788,6 +862,10 @@ void GeneratorIRTxt(RawProgramme * &programme,bool isSSAmode)
     SSAmode = isSSAmode;//确定IR的输出形式
     auto &values = programme->values;
     auto &funcs = programme->funcs;
-    for(auto &value : values) Visit_Value(value);
-    for(auto &func : funcs) Visit_Fun(func);
+    for(auto &value : values) {
+        Name_Value(value);Visit_Value(value);
+    }
+    for(auto &func : funcs) {
+        Name_Fun(func);Visit_Fun(func);
+    }
 }
