@@ -95,11 +95,11 @@ int HardwareManager::init(const RawFunctionP &function)
     int StackLen = ArgsLen + LocalLen + ReserveLen;
     StackLen = (StackLen + 15) / 16 * 16;
     memoryManager.initStack(StackLen);
-    int ArgsMin = 0, ArgsMax = ArgsLen - 4;
+    int ArgsMin = 0, ArgsMax = ArgsLen - 8;
     memoryManager.initArgsArea(ArgsMin, ArgsMax);
-    int LocalMin = ArgsMax + 4, LocalMax = LocalMin + LocalLen - 4;
+    int LocalMin = ArgsMax + 8, LocalMax = LocalMin + LocalLen - 8;
     memoryManager.initLocalArea(LocalMin, LocalMax);
-    int ReserveMin = LocalMax + 4, ReserveMax = ReserveMin + ReserveLen - 4;
+    int ReserveMin = LocalMax + 8, ReserveMax = ReserveMin + ReserveLen - 8;
     memoryManager.initReserveArea(ReserveMin, ReserveMax);
     registerManager.init();
     return StackLen;

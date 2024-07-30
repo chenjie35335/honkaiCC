@@ -55,16 +55,16 @@ public:
         //     assert(0);
         // }
         //else
-        if(op!=-1){
-            StackManager.insert(pair<RawValueP, int>(value, op));
-            int len = GetLen(value);
-            //cout << "alloc tempOffset = " << tempOffset << ", len = " << len << endl;
-            tempOffset += len;
-            return StackManager.at(value);
-        }
+        // if(op!=-1){
+        //     StackManager.insert(pair<RawValueP, int>(value, op));
+        //     int len = GetLen(value);
+        //     //cout << "alloc tempOffset = " << tempOffset << ", len = " << len << endl;
+        //     tempOffset += len;
+        //     return StackManager.at(value);
+        // }
             StackManager.insert(pair<RawValueP, int>(value, tempOffset));
             int len = GetLen(value);
-            //cout << "alloc tempOffset = " << tempOffset << ", len = " << len << endl;
+            // cout << "alloc tempOffset = " << tempOffset << ", len = " << len << endl;
             tempOffset += len;
             return StackManager.at(value);
     }
