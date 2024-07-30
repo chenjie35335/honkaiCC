@@ -1116,9 +1116,9 @@ void HardwareManager::StoreReg(int RandSelected)
                         if(TargetOffset > 2047) {
                         cout << "  li   " << "t0, " << TargetOffset << endl;
                         cout << "  add  " << "t0, sp, t0" << endl;
-                        cout << "  sw  " <<  TargetReg << ", " << 0 << "(t0)" << endl; 
+                        cout << "  sd  " <<  TargetReg << ", " << 0 << "(t0)" << endl; 
                     } else{
-                    cout << "  sw   " << TargetReg << ", " << TargetOffset << "(sp)" << endl;
+                    cout << "  sd   " << TargetReg << ", " << TargetOffset << "(sp)" << endl;
                         }
                     registerManager.LX.push_back({RandSelected, TargetOffset});
                     (registerManager.LY).push_back(value);
@@ -1129,9 +1129,9 @@ void HardwareManager::StoreReg(int RandSelected)
                 if(TargetOffset > 2047) {
                         cout << "  li   " << "t0, " << TargetOffset << endl;
                         cout << "  add  " << "t0, sp, t0" << endl;
-                        cout << "  sw  " <<  TargetReg << ", " << 0 << "(t0)" << endl; 
+                        cout << "  sd  " <<  TargetReg << ", " << 0 << "(t0)" << endl; 
                 } else{
-                        cout << "  sw   " << TargetReg << ", " << TargetOffset << "(sp)" << endl;
+                        cout << "  sd   " << TargetReg << ", " << TargetOffset << "(sp)" << endl;
                     }
                 registerManager.LX.push_back({RandSelected, TargetOffset});
                 registerManager.LY.push_back(value);
@@ -1252,16 +1252,16 @@ void RegisterArea::SaveRegister(int reg)
 {
     if (tempOffset <= 2047)
     {
-        cout << "  sw  " << RegisterManager::regs[reg] << ", " << tempOffset << "(sp)" << endl;
+        cout << "  sd  " << RegisterManager::regs[reg] << ", " << tempOffset << "(sp)" << endl;
     }
     else
     {
         cout << "  li  t0," << tempOffset << endl;
         cout << "  add t0, sp, t0" << endl;
-        cout << "  sw  " << RegisterManager::regs[reg] << ", " << 0 << "(t0)" << endl;
+        cout << "  sd  " << RegisterManager::regs[reg] << ", " << 0 << "(t0)" << endl;
     } // 这个方法虽然蠢但是是正确的
     StackManager.insert(pair<int, int>(reg, tempOffset));
-    tempOffset -= 4;
+    tempOffset -= 8;
 }
 
 //fregs

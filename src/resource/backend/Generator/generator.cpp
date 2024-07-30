@@ -456,9 +456,7 @@ void Visit(const RawCall &data,const RawValueP &value,int id) {
      
     cout<<"  call "<<data.callee->name<<endl;
 
-    
-
-    if((hardware.registerManager.LX).size()){
+if((hardware.registerManager.LX).size()){
 
         for(int i = 0;i < 7;i++) {
         for(int pos=0;pos<hardware.registerManager.LX.size();pos++){
@@ -480,8 +478,6 @@ void Visit(const RawCall &data,const RawValueP &value,int id) {
     
      
     if(value->ty->tag == RTT_INT32){
-        hardware.AssignRegister(value,10);
-    }
     string st=hardware.GetRegister(value,id);
     if(st!="a0"){
         cout << "  mv  " << st << ", " << "a0" << endl;
@@ -489,6 +485,7 @@ void Visit(const RawCall &data,const RawValueP &value,int id) {
             int Y=hardware.registerManager.vp[id][value];
             int X=26-hardware.registerManager.vis[id][Y]+5;
             hardware.registerManager.registerLook.insert(pair<RawValueP, int>(value,X));
+    }
     }
     if((hardware.registerManager.LX).size())
    for(int i=10;i<min((int)(10+params.size()),18);i++){

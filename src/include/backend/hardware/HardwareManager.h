@@ -77,9 +77,9 @@ public:
 
     int GetLen(const RawValueP &value) {
         if(LenTable.find(value) != LenTable.end())
-        return LenTable.at(value);
+            return LenTable.at(value);
         else
-        return 4;
+            return 8;
     }
 };
 //可以考虑在计算的时候添一个大小
