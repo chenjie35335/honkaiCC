@@ -78,6 +78,7 @@ class IdentTableNode {
         void insertSSA(const string &name, RawValue *&value) {SSATable.insert(pair<string, RawValue *>(name, value));}
     //查找当前ARRAY表
         //bool findConstArr(const string &ident) { return ConstArrTable.find(ident) != ConstArrTable.end();}
+        bool findArr(const string &ident) {return ArrayTable.find(ident) != ArrayTable.end();}
         bool findConstArr(const string &ident) { return ArrayTable.find(ident) != ArrayTable.end();}
 };
 

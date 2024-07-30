@@ -43,6 +43,8 @@ RawValue * IdentTableNode::SearchVarL(string &name){
     if(findValue(name) || findFValue(name)) {
         cerr << '"' << name << '"' << "is a constant and can't be altered" << endl;
         assert(0);
+    } else if(findArr(name)){
+        return this->ArrayTable.at(name)->position;
     } else if(findConstArr(name)){
         cerr << '"' << name << '"' << "is a constant array and can't be altered" << endl;
     }
@@ -75,10 +77,9 @@ RawValue * IdentTableNode::SearchVarR(const string &name){
         string svalue = to_string(value);
         generateRawValue(value);
         return signTable.getMidVar(svalue);
-    }
-     else if(findVariable(name)) {
+    } else if(findVariable(name)) {
         return this->VarTable.at(name);
-    } else if(findConstArr(name)){
+    } else if(findConstArr(name) || findArr(name)){
         //return this->ConstArrTable.at(name);
         return this->ArrayTable.at(name)->position;
     } else if(this->father == nullptr){

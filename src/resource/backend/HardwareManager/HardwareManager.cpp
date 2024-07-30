@@ -38,7 +38,10 @@ int calBaseLen(const RawValueP &value){
         return 4;
     else if (PointerTyTag == RTT_ARRAY)
         return calArrLen(PointerTy);
-    else assert(0);
+    else if(PointerTyTag == RTT_POINTER){
+        //二阶指针，值是多少
+        return 4;
+    } else assert(0);
 }
 
 /// @brief //这个是单纯计算alloc需要分配的空间

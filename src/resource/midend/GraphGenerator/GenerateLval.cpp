@@ -91,6 +91,10 @@ void LValRAST::generateGraph(string &sign) const {
             generateElement(IdentSrc,zero,sign);
         } else if(SrcBaseTag == RTT_POINTER) {
             //TODO:
+            alloc_now++;
+            sign = "%" + to_string(alloc_now);
+            //cout << "666" << endl;
+            generatePtr(IdentSrc, zero, sign);
         }
         else {
             cout<< SrcBaseTag << "SRCBaseTag" <<endl;
