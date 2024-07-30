@@ -61,7 +61,7 @@ void calculateSize(int &ArgsLen, int &LocalLen, int &ReserveLen, const RawFuncti
 {
     bool has_call;
     auto &params = function->params; // 给所有的参数分配空间
-    LocalLen += 4 * params.size();
+    LocalLen += 8 * params.size();
     for (auto bb : function->basicblock)
     {
         for (auto value : bb->inst)
@@ -70,21 +70,21 @@ void calculateSize(int &ArgsLen, int &LocalLen, int &ReserveLen, const RawFuncti
             { // alloc 指令分配的内存,大小为4字节
                 int len = calAllocLen(value);
                 // cout << "save len =" << len << endl;
-                LocalLen += len + 4; // 这里给每个指针值加上一个4字节用于存储指针
+                LocalLen += len + 8; // 这里给每个指针值加上一个4字节用于存储指针
                 hardware.SaveLen(value, len);
             }
             else if (value->ty->tag != RTT_UNIT)
             { // 指令的类型不为unit, 存在返回值，分配内存
-                LocalLen += 4;
+                LocalLen += 8;
             }
             if (value->value.tag == RVT_CALL)
             {
                 has_call = true;
-                ArgsLen = max(ArgsLen, int(value->value.call.args.size() - 8)) * 4;
+                ArgsLen = max(ArgsLen, int(value->value.call.args.size() - 8)) * 8;
             }
         }
     }
-    ReserveLen = 14 * 4; // 无论有没有，这个我们都保存一下返回地址
+    ReserveLen = 14 * 8; // 无论有没有，这个我们都保存一下返回地址
     // cout << "Args=" <<  ArgsLen << ",Local=" << LocalLen << ",Reserve=" << ReserveLen << endl;
 }
 
