@@ -50,6 +50,10 @@ void Visit(const RawLoad &data, const RawValueP &value,int id) {
         hardware.AllocRegister(value,id);
         string TargetReg = hardware.GetRegister(value,id);
         cout << "  la  " << TargetReg << ", " << src->name << endl;
+        
+        if(value->name!=NULL&&value->name=="WWw")
+        cout << "  ld  " << TargetReg << ", " << 0 << '(' << TargetReg << ')' << endl;
+        else
         cout << "  lw  " << TargetReg << ", " << 0 << '(' << TargetReg << ')' << endl;
     } else if(hardware.IsMemory(src)){
         hardware.AllocRegister(value,id);
@@ -58,8 +62,14 @@ void Visit(const RawLoad &data, const RawValueP &value,int id) {
         if(srcAddress > 2047) {
             cout << "  li   " << "t0, " << srcAddress << endl;
             cout << "  add  " << "t0, sp, t0" << endl;
+            if(value->name!=NULL&&value->name=="WWw")
+            cout << "  ld  " <<  TargetReg << ", " << 0 << "(t0)" << endl;
+            else
             cout << "  lw  " <<  TargetReg << ", " << 0 << "(t0)" << endl;
         } else {
+            if(value->name!=NULL&&value->name=="WWw")
+                cout << "  ld   " << TargetReg << ", " << srcAddress << "(sp)" << endl;
+            else
                 cout << "  lw   " << TargetReg << ", " << srcAddress << "(sp)" << endl;
             }
         // if(hardware.registerManager.sadd[value]){
@@ -71,10 +81,15 @@ void Visit(const RawLoad &data, const RawValueP &value,int id) {
         hardware.AllocRegister(value,id);
         string TargetReg = hardware.GetRegister(value,id);
         string ElementReg = hardware.GetRegister(src,id);
+        if(value->name!=NULL&&value->name=="WWw")
+        cout << "  ld  " << TargetReg << ", " << 0 << '(' << ElementReg << ')' << endl;
+        else
         cout << "  lw  " << TargetReg << ", " << 0 << '(' << ElementReg << ')' << endl;
         // hardware.LeaseLockRegister(src);
     } else{
         cout<<src->value.tag<<"!!!"<<endl;
+        cout<<src->value.integer.value<<endl;
+        cout<<src->name<<endl;
         cout<<value->value.tag<<endl;
         exit(0);
     }
@@ -93,7 +108,7 @@ void Visit(const RawAggregate &aggregate,string src,string dest,int &index,int i
             //int offset = index *4;
             cout<<"Agg"<<endl;
             cout << "  li  " << src << ", " << value << endl;
-            cout << "  sw  " << src << ", " << 0 << '(' << dest << ')' << endl;
+            cout << "  sd  " << src << ", " << 0 << '(' << dest << ')' << endl;
             cout << "  addi " << dest <<  ", " << dest << ", " << 4 << endl;
             index++;
         } //add float
@@ -156,6 +171,9 @@ void Visit(const RawStore &data, const RawValueP &value,int id) {//store这个�
                 int stackLen = hardware.getStackSize();
             int offsets=stackLen+(idd-8)*4;
             string regg=hardware.GetRegister(src,id);
+            if(value->name!=NULL&&value->name=="qqq")
+            cout << "  ld  " << regg << ", " << offsets << "(sp)" << endl;
+            else
             cout << "  lw  " << regg << ", " << offsets << "(sp)" << endl;
                 hardware.StackAlloc(src,offsets);
             FF[idd]=-1;
@@ -173,6 +191,9 @@ void Visit(const RawStore &data, const RawValueP &value,int id) {//store这个�
         string  DestReg = hardware.GetRegister(dest,id);
         string regg=hardware.GetRegister(src,id);
         cout << "  la  " << DestReg << ", " << dest->name << endl;
+        if(dest->name!=NULL&&dest->name=="qqq")
+        cout << "  sd  " << SrcReg << ", " << 0 << '(' << DestReg << ')' << endl;
+        else
         cout << "  sw  " << SrcReg << ", " << 0 << '(' << DestReg << ')' << endl;
         //首先全局变量会被当成寄存器使用吗？
     } else if(hardware.IsMemory(dest)){
@@ -184,16 +205,27 @@ void Visit(const RawStore &data, const RawValueP &value,int id) {//store这个�
         if(srcAddress > 2047) {
             cout << "  li   " << "t0, " << srcAddress << endl;
             cout << "  add  " << "t0, sp, t0" << endl;
+            if(dest->name!=NULL&&dest->name=="qqq")
+            cout << "  sd  " <<  SrcReg << ", " << 0 << "(t0)" << endl;
+            else
             cout << "  sw  " <<  SrcReg << ", " << 0 << "(t0)" << endl;
         } 
-        else
-        cout << "  sw  " << SrcReg << ", " << srcAddress << "(sp)" << endl;
+        else{
+            if(dest->name!=NULL&&dest->name=="qqq")
+            cout << "  sd  " << SrcReg << ", " << srcAddress << "(sp)" << endl;
+            else
+            cout << "  sw  " << SrcReg << ", " << srcAddress << "(sp)" << endl;
+        }
+        
     } else if(dest->value.tag == RVT_GET_ELEMENT || dest->value.tag == RVT_GET_PTR) {
  //      hardware.addLockRegister(dest);
         Visit(src,id);
         hardware.LeaseLockRegister(dest);
         string SrcReg = hardware.GetRegister(src,id);
         string ElementReg = hardware.GetRegister(dest,id);
+        if(dest->name!=NULL&&dest->name=="qqq")
+        cout << "  sd  " << SrcReg << ", " << 0 << '(' << ElementReg << ')' << endl;
+        else
         cout << "  sw  " << SrcReg << ", " << 0 << '(' << ElementReg << ')' << endl;
     } else assert(0);
     } else if(src->value.tag == RVT_AGGREGATE && dest->ty->tag == RTT_ARRAY){//这里貌似还是没有什么好办法
@@ -219,6 +251,9 @@ void Visit(const RawStore &data, const RawValueP &value,int id) {//store这个�
         string SrcReg = hardware.GetRegister(src,id);
         string ElementReg = hardware.GetRegister(dest,id);
         auto srcTag = src->ty->tag;
+        if(dest->name!=NULL&&dest->name=="qqq")
+            cout << "  sd  " << SrcReg << ", " << 0 << '(' << ElementReg << ')' << endl;
+        else
             cout << "  sw  " << SrcReg << ", " << 0 << '(' << ElementReg << ')' << endl;
     } else {
         cerr << "src tag:" << src->value.tag << ", dest tag: " << dest->value.tag << endl;
@@ -366,9 +401,9 @@ void Visit(const RawCall &data,const RawValueP &value,int id) {
             if(l > 2047) {
                         cout << "  li   " << "t0, " << l << endl;
                         cout << "  add  " << "t0, sp, t0" << endl;
-                        cout << "  lw  " <<  hardware.registerManager.regs[zz] << ", " << 0 << "(t0)" << endl; 
+                        cout << "  ld  " <<  hardware.registerManager.regs[zz] << ", " << 0 << "(t0)" << endl; 
                     } else
-            cout << "  lw   " << hardware.registerManager.regs[zz] << ", " << l << "(sp)" << endl;
+            cout << "  ld   " << hardware.registerManager.regs[zz] << ", " << l << "(sp)" << endl;
         hardware.registerManager.registerLook.insert(pair<RawValueP, int>(params[i],zz));
             hardware.registerManager.LX[pos]={-1,-1};
             }
@@ -387,9 +422,9 @@ void Visit(const RawCall &data,const RawValueP &value,int id) {
             if(l > 2047) {
                         cout << "  li   " << "t0, " << l << endl;
                         cout << "  add  " << "t0, sp, t0" << endl;
-                        cout << "  lw  " <<  hardware.registerManager.regs[zz] << ", " << 0 << "(t0)" << endl; 
+                        cout << "  ld  " <<  hardware.registerManager.regs[zz] << ", " << 0 << "(t0)" << endl; 
                     } else
-                     cout << "  lw   " << hardware.registerManager.regs[zz] << ", " << l << "(sp)" << endl;
+                     cout << "  ld   " << hardware.registerManager.regs[zz] << ", " << l << "(sp)" << endl;
         hardware.registerManager.registerLook.insert(pair<RawValueP, int>(params[i],zz));
             hardware.registerManager.LX[pos]={-1,-1};
             }
@@ -403,9 +438,9 @@ void Visit(const RawCall &data,const RawValueP &value,int id) {
             if(offset > 2047) {
                 cout << "  li  t0, " << offset << endl;
                 cout << "  add  t0, t0, sp" << endl;
-                cout << "  sw  " << reg << ", " << 0 << "(t0)" << endl;
+                cout << "  sd  " << reg << ", " << 0 << "(t0)" << endl;
             } else{
-                cout << "  sw  " << reg << ", " << offset << "(sp)" << endl;
+                cout << "  sd  " << reg << ", " << offset << "(sp)" << endl;
             }
             hardware.registerManager.registerLook.erase(params[i]);
             hardware.StackAlloc(params[i]);
@@ -435,9 +470,9 @@ void Visit(const RawCall &data,const RawValueP &value,int id) {
         if(l > 2047) {
                         cout << "  li   " << "t0, " << l << endl;
                         cout << "  add  " << "t0, sp, t0" << endl;
-                        cout << "  lw  " <<  hardware.registerManager.regs[RegisterManager::callerSave[i]] << ", " << 0 << "(t0)" << endl; 
+                        cout << "  ld  " <<  hardware.registerManager.regs[RegisterManager::callerSave[i]] << ", " << 0 << "(t0)" << endl; 
                     } else
-                    cout << "  lw   " << hardware.registerManager.regs[RegisterManager::callerSave[i]] << ", " << l << "(sp)" << endl;
+                    cout << "  ld   " << hardware.registerManager.regs[RegisterManager::callerSave[i]] << ", " << l << "(sp)" << endl;
         hardware.registerManager.registerLook.insert(pair<RawValueP, int>(val,RegisterManager::callerSave[i]));
         }
      }
@@ -465,10 +500,10 @@ void Visit(const RawCall &data,const RawValueP &value,int id) {
         if(l > 2047) {
                         cout << "  li   " << "t0, " << l << endl;
                         cout << "  add  " << "t0, sp, t0" << endl;
-                        cout << "  lw  " << hardware.registerManager.regs[i] << ", " << 0 << "(t0)" << endl; 
+                        cout << "  ld  " << hardware.registerManager.regs[i] << ", " << 0 << "(t0)" << endl; 
                     } 
         else
-        cout << "  lw   " << hardware.registerManager.regs[i] << ", " << l << "(sp)" << endl;
+        cout << "  ld   " << hardware.registerManager.regs[i] << ", " << l << "(sp)" << endl;
         hardware.registerManager.registerLook.insert(pair<RawValueP, int>(val,i));
     }
            
@@ -567,8 +602,7 @@ void Visit(const RawGetElement &data,const RawValueP &value,int id) {
         hardware.AllocRegister(src,id);
         srcAddrReg = hardware.GetRegister(src,id);
         cout << "  la  " << srcAddrReg << ", " << src->name << endl;
-     } else if(src->value.tag == RVT_ALLOC){//这里包含了参数值的问题
-        cout<< "alloc getelem "<< src->name << endl;
+     } else if(src->value.tag ==RVT_ALLOC){//这里包含了参数值的问题
         hardware.AllocRegister(src,id);
         srcAddrReg = hardware.GetRegister(src,id);
         int srcAddr = hardware.getTargetOffset(src);

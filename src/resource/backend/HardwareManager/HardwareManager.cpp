@@ -253,6 +253,7 @@ void check(RawValueP y,map<RawValueP,int>&vdef){
 const int M=50005,N=25;
 vector<RawValueP> def[M],use[M];
     map<RawValueP,int> mp;
+     int cnt=0;
 void make_def_use(vector<RawBasicBlockP> bbbuffer){
     for(auto bb:bbbuffer){
         for(auto it:bb->inst){
@@ -273,6 +274,16 @@ void make_def_use(vector<RawBasicBlockP> bbbuffer){
                                 break;
                             }
                             case RVT_LOAD:{
+                                auto qq=(y->value.load.src);
+                                if(qq->ty!=NULL){
+                                    if(qq->ty->tag==0||qq->ty->tag==4) use[mp[it]].push_back(qq);
+                                    if(!mp[qq]){
+                                        mp[qq]=++cnt;
+                                        def[cnt].clear();use[cnt].clear();
+                                        def[mp[it]].push_back(qq);
+                                    }
+                                }
+                                
                                 break;
                             }
                             case RVT_STORE:{
@@ -280,11 +291,19 @@ void make_def_use(vector<RawBasicBlockP> bbbuffer){
                                 auto qqq=(y->value.store.dest);
                                 if(qq->ty!=NULL){
                                     if(qq->ty->tag==0||qq->ty->tag==4) use[mp[it]].push_back(qq);
-                                    if(!mp[qq]) def[mp[it]].push_back(qq);
                                 }
+                                if(!mp[qq]){
+                                        mp[qq]=++cnt;
+                                        def[cnt].clear();use[cnt].clear();
+                                        def[mp[it]].push_back(qq);
+                                    }
                                 if(qqq->ty!=NULL)
                                 if(qqq->ty->tag==0||qqq->ty->tag==4) use[mp[it]].push_back(qqq);
-                                 if(!mp[qqq]) def[mp[it]].push_back(qqq);
+                                 if(!mp[qqq]){
+                                        mp[qqq]=++cnt;
+                                        def[cnt].clear();use[cnt].clear();
+                                        def[mp[it]].push_back(qqq);
+                                    }
                                 break;
                             }
                             case RVT_RETURN:{
@@ -320,6 +339,16 @@ void make_def_use(vector<RawBasicBlockP> bbbuffer){
                                 auto qqq=(y->value.getptr.src);
                                 use[mp[it]].push_back(qq);
                                 use[mp[it]].push_back(qqq);
+                                if(!mp[qq]){
+                                        mp[qq]=++cnt;
+                                        def[cnt].clear();use[cnt].clear();
+                                        def[mp[it]].push_back(qq);
+                                    }
+                                if(!mp[qqq]){
+                                        mp[qqq]=++cnt;
+                                        def[cnt].clear();use[cnt].clear();
+                                        def[mp[it]].push_back(qqq);
+                                    }
                                 break;
                             }
                             case RVT_GET_ELEMENT:{
@@ -327,6 +356,16 @@ void make_def_use(vector<RawBasicBlockP> bbbuffer){
                                 auto qqq=(y->value.getelement.index);
                                  use[mp[it]].push_back(qq);
                                  use[mp[it]].push_back(qqq); 
+                                 if(!mp[qq]){
+                                        mp[qq]=++cnt;
+                                        def[cnt].clear();use[cnt].clear();
+                                        def[mp[it]].push_back(qq);
+                                    }
+                                 if(!mp[qqq]){
+                                        mp[qqq]=++cnt;
+                                        def[cnt].clear();use[cnt].clear();
+                                        def[mp[it]].push_back(qqq);
+                                    }
                                 break;
                             }
                             case RVT_AGGREGATE:{
@@ -360,7 +399,7 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
     vector<RawValueP> nxt[M];
     int ko=0;
     RawValueP yy;
-    int cnt=0;
+    cnt=0;
     for(auto it:cuf){
         if(it->value.funcArgs.index>=8) break;
   //      cout<<it->value.funcArgs.index<<endl;
@@ -377,6 +416,10 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
             if(!ko){
                 ko=1;yy=*it;
             }
+            // if((*it)->value.tag==RVT_GLOBAL){
+            //     cout<<(*it)->ty->tag<<endl;
+            //     cout<<"??"<<endl;
+            // }
             mp[*it]=cnt;
             // if((*it)->value.tag==RVT_GET_ELEMENT){
             //     res++;
@@ -449,7 +492,6 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
     cnt=0;
     //扫描IR 假設bbbufer是存放基本快的vector
     int changes=1;
-
     while(changes){
         changes=0;
         map<RawValueP,int>vdef;
@@ -585,11 +627,11 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
 
 
 int checkuse(RawValue * y,RawValueP xx,int op){
+        for(auto it:def[mp[y]]){
+        if(it==xx) return 1;
+    }
     for(auto it:use[mp[y]]){
         if(it==xx) return 2;
-    }
-    for(auto it:def[mp[y]]){
-        if(it==xx) return 1;
     }
     return 0;
     //  uint32_t ee=(y->ty->tag);
@@ -674,13 +716,12 @@ int checkuse(RawValue * y,RawValueP xx,int op){
 
 
 void chg(RawValueP &y,RawValueP &xx,RawValue* &u){
-     uint32_t ee=(y->ty->tag);
-                RawValue* yy=(RawValue*) y;
+
+    RawValue* yy=(RawValue*) y;
                     
                     if(yy==xx){
                         y=u;return;
                     }
-
                     uint32_t e=(y->value.tag);
                         switch(e){
                             case RVT_ALLOC:{
@@ -853,7 +894,9 @@ void HardwareManager::spill(vector<RawBasicBlockP> &bbbuffer,int id,vector<RawVa
             ty->tag = RTT_POINTER;
             RawType *pointerTy = new RawType();
             pointerTy->tag = RTT_INT32;
+            if(pvue->ty!=NULL)
             ty->pointer.base = pvue->ty;
+            else ty->pointer.base=pointerTy;
             alloc->ty = (RawTypeP)ty;
             alloc->value.tag = RVT_ALLOC;
             alloc->name="qqq";
@@ -876,7 +919,11 @@ void HardwareManager::spill(vector<RawBasicBlockP> &bbbuffer,int id,vector<RawVa
             // chg(x,pvue,value);
             j++;
             }
-            else if(checkuse(x,pvue,1)==2){
+           else if(checkuse(x,pvue,2)==2){
+                if(CNT==0){
+                    cout<<pvue->value.tag<<"uninit!"<<endl;
+                    cout<<pvue->ty->tag<<endl;
+                }
                 //r load
             auto &insts = it->inst;
             RawValue * load = new RawValue();
@@ -884,8 +931,10 @@ void HardwareManager::spill(vector<RawBasicBlockP> &bbbuffer,int id,vector<RawVa
             // if(pvue->ty->tag==RTT_POINTER)
             // tyy->tag=RTT_POINTER;
             // else
-            tyy->tag = RTT_INT32;
+            tyy->tag = RTT_POINTER;
+            if(aloc->ty!=NULL&&aloc->ty->pointer.base!=NULL)
             load->ty = (RawTypeP) aloc->ty->pointer.base;
+            else load->ty=(RawTypeP) tyy;
             load->name = "WWw";
             load->value.tag = RVT_LOAD;
             load->value.load.src =aloc;
@@ -1171,13 +1220,13 @@ void RegisterArea::LoadRegister(int reg)
     int offset = StackManager.at(reg);
     if (offset <= 2047)
     {
-        cout << "  lw  " << RegisterManager::regs[reg] << ", " << offset << "(sp)" << endl;
+        cout << "  ld  " << RegisterManager::regs[reg] << ", " << offset << "(sp)" << endl;
     }
     else
     {
         cout << "  li  t0," << offset << endl;
         cout << "  add t0, sp, t0" << endl;
-        cout << "  lw  " << RegisterManager::regs[reg] << ", " << 0 << "(t0)" << endl;
+        cout << "  ld  " << RegisterManager::regs[reg] << ", " << 0 << "(t0)" << endl;
     }
 }
 
