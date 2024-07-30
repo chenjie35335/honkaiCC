@@ -193,24 +193,24 @@ void Visit(const RawBinary &data,const RawValueP &value) {
             cout << "  remw  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
             break;
         case RBO_LT:
-            cout << "  sext.w  " << LhsRegister << ", " << LhsRegister << endl;
-            cout << "  sext.w  " << RhsRegister << ", " << RhsRegister << endl;
+            // cout << "  sext.w  " << LhsRegister << ", " << LhsRegister << endl;
+            // cout << "  sext.w  " << RhsRegister << ", " << RhsRegister << endl;
             cout << "  slt  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
             break;
         case RBO_GT:
-            cout << "  sext.w  " << LhsRegister << ", " << LhsRegister << endl;
-            cout << "  sext.w  " << RhsRegister << ", " << RhsRegister << endl;
+            // cout << "  sext.w  " << LhsRegister << ", " << LhsRegister << endl;
+            // cout << "  sext.w  " << RhsRegister << ", " << RhsRegister << endl;
             cout << "  slt  " <<ValueRegister<<", "<< RhsRegister << ", " << LhsRegister <<endl;
             break;
         case RBO_GE:
-            cout << "  sext.w  " << LhsRegister << ", " << LhsRegister << endl;
-            cout << "  sext.w  " << RhsRegister << ", " << RhsRegister << endl;
+            // cout << "  sext.w  " << LhsRegister << ", " << LhsRegister << endl;
+            // cout << "  sext.w  " << RhsRegister << ", " << RhsRegister << endl;
             cout << "  slt  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
             cout << "  seqz " << ValueRegister <<", "<< ValueRegister  <<endl;
             break;
         case RBO_LE:
-            cout << "  sext.w  " << LhsRegister << ", " << LhsRegister << endl;
-            cout << "  sext.w  " << RhsRegister << ", " << RhsRegister << endl;
+            // cout << "  sext.w  " << LhsRegister << ", " << LhsRegister << endl;
+            // cout << "  sext.w  " << RhsRegister << ", " << RhsRegister << endl;
             cout << "  sgt  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
             cout << "  seqz " << ValueRegister <<", "<< ValueRegister  <<endl;
             break;   
@@ -391,12 +391,12 @@ void Visit(const RawGetPtr &data, const RawValueP &value) {
     hardware.LeaseLockRegister(index);
     const char *ptrReg = hardware.GetRegister(value);
     if(elementLen == 4) {
-        cout << "  slli " << IndexReg << ", " << IndexReg << ", " << 2 << endl;
+        cout << "  slli " << ptrReg << ", " << IndexReg << ", " << 2 << endl;
     } else {
         cout << "  li  " << ptrReg << ", " << elementLen << endl;
-        cout << "  mul " << IndexReg << ", " << IndexReg << ", " << ptrReg << endl;
+        cout << "  mul " << ptrReg << ", " << IndexReg << ", " << ptrReg << endl;
     }
-    cout << "  add  " << ptrReg << ", " << srcAddrReg << ", " << IndexReg << endl;
+    cout << "  add  " << ptrReg << ", " << srcAddrReg << ", " << ptrReg << endl;
 }
 
 //处理getElement类型变量,
@@ -436,12 +436,12 @@ void Visit(const RawGetElement &data,const RawValueP &value) {
      hardware.LeaseLockRegister(index);
      const char *ptrReg = hardware.GetRegister(value);
      if(elementLen == 4) {
-        cout << "  slli " << IndexReg << ", " << IndexReg << ", " << 2 << endl;
+        cout << "  slli " << ptrReg << ", " << IndexReg << ", " << 2 << endl;
     } else {
         cout << "  li  " << ptrReg << ", " << elementLen << endl;
-        cout << "  mul " << IndexReg << ", " << IndexReg << ", " << ptrReg << endl;
+        cout << "  mul " << ptrReg << ", " << IndexReg << ", " << ptrReg << endl;
     }
-    cout << "  add  " << ptrReg << ", " << srcAddrReg << ", " << IndexReg << endl;
+    cout << "  add  " << ptrReg << ", " << srcAddrReg << ", " << ptrReg << endl;
     cout << endl;
 }
 

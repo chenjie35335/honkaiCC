@@ -160,8 +160,8 @@ all:
 	sudo -S make
 
 riscv-debug:
-	qemu-riscv64-static -g 1234 hello &
-	gdb-multiarch hello
+	qemu-riscv64-static -g 1234 hello < hello.in & 
+	gdb-multiarch hello 
 
 -include $(DEPS)
 
