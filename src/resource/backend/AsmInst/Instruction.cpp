@@ -1,4 +1,4 @@
-#include "../../../include/backend/AsmInst/instruction.h"
+#include "../../../include/backend/AsmInst/Instruction.h"
 #include "../../../include/backend/hardware/HardwareManager.h"
 #include <cassert>
 
@@ -133,11 +133,6 @@ AsmInst * AsmInst::CreateFles(uint32_t frd, uint32_t frs1, uint32_t frs2){
     return inst;
 }
 
-AsmInst * AsmInst::CreateFneqs(uint32_t frd, uint32_t frs1, uint32_t frs2){
-    AsmInst *inst = new AsmInst(RISCV_FNEQS,0,0,0,0,0.0,frs1,frs2,frd,"");
-    return inst;
-}
-
 AsmInst * AsmInst::CreateFeqs(uint32_t frd, uint32_t frs1, uint32_t frs2){
     AsmInst *inst = new AsmInst(RISCV_FEQS,0,0,0,0,0.0,frs1,frs2,frd,"");
     return inst;
@@ -240,9 +235,6 @@ ostream & operator << (ostream &os,const AsmInst &inst){
             break;
         case RISCV_FEQS:
             os << "\t" << "feq.s " << frd << ", " << frs1 << ", " << frs2 << endl;
-            break;
-        case RISCV_FNEQS:   
-            os << "\t" << "fne.s " << frd << ", " << frs1 << ", " << frs2 << endl;
             break;
         case RISCV_BNEZ:   
             os << "\t" << "bnez " << frs1 << ", " << inst.label << endl;

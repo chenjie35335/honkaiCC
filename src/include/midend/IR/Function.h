@@ -6,6 +6,7 @@
 #include <vector>
 #include <unordered_map>
 #include <list>
+class AsmInst;
 using namespace std;
 /// @brief type
 class RawFunction{
@@ -20,6 +21,16 @@ class RawFunction{
     list <RawBasicBlock *> basicblock;
     /// value set
     unordered_set<RawValue *> values;
+    /// handle the stacklen
+    vector<AsmInst *> handleStack;
+    /// handle the save registers
+    list<AsmInst *> saveRegister;
+    /// load the save register
+    list<AsmInst *> loadRegister;
+    /// handle the stacklen
+    list<AsmInst *> exitStack;
+
+    RawFunction() {}
 };
 typedef const RawFunction * RawFunctionP;
 /// @brief generate rawfunction data structure

@@ -64,7 +64,6 @@ public:
         // }
             StackManager.insert(pair<RawValueP, int>(value, tempOffset));
             int len = GetLen(value);
-            // cout << "alloc tempOffset = " << tempOffset << ", len = " << len << endl;
             tempOffset += len;
             return StackManager.at(value);
     }
@@ -299,7 +298,6 @@ class HardwareManager {
     void AllocRegister(const RawValueP &value,int id);
     void AllocFRegister(const RawValueP &value);
 
-    void loadReg(int RandSelected);
     void StoreReg(int RandSelected);
     void StoreFReg(int RandSelected);
 
@@ -318,8 +316,6 @@ class HardwareManager {
     int GetLen(const RawValueP &value) {return memoryManager.GetLen(value);}
 
     int struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector<RawValue*> &cuf);
-
-    void RegisterManagerAlloc();
 
     void spill(vector<RawBasicBlockP> &bbbuffer,int id,vector<RawValue*> &cuf);
 

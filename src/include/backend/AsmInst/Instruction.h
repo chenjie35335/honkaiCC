@@ -1,6 +1,7 @@
 #ifndef STORMY_ASM
 #define STORMY_ASM
-
+#define SP 2
+#define T0 5
 #include <iostream>
 #include <vector>
 using namespace std;
@@ -31,7 +32,6 @@ enum Type{
             RISCV_FGES, //fge.s指令
             RISCV_FGTS, //fgt.s指令
             RISCV_FLTS, //flt.s指令
-            RISCV_FNEQS, //fneq.s指令
             RISCV_FEQS, //feq.s指令
             RISCV_BNEZ, //bneq指令
             RISCV_J     //j指令
@@ -90,7 +90,6 @@ class AsmInst {//首先我要确定一下inst里面有什么，首先是指令�
     static AsmInst * CreateFges(uint32_t frd, uint32_t frs1, uint32_t frs2);//创建fge.s指令
     static AsmInst * CreateFgts(uint32_t frd, uint32_t frs1, uint32_t frs2);//创建fgt.s指令
     static AsmInst * CreateFles(uint32_t frd, uint32_t frs1, uint32_t frs2);//创建flt.s指令
-    static AsmInst * CreateFneqs(uint32_t frd, uint32_t frs1, uint32_t frs2);//创建fneq.s指令
     static AsmInst * CreateFeqs(uint32_t frd, uint32_t frs1, uint32_t frs2);//创建feq.s指令
     static AsmInst * CreateBnez(uint32_t rs1,string label);//创建bneq指令
     static AsmInst * CreateJ(string label);//创建j指令
