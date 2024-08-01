@@ -481,8 +481,8 @@ void Visit(const RawGetPtr &data, const RawValueP &value, int id)
     }
     else
     {
-        cout << "  li  " << ptrReg << ", " << elementLen << endl;
-        cout << "  mul " << IndexReg << ", " << IndexReg << ", " << ptrReg << endl;
+        cout << "  li  " << "t0" << ", " << elementLen << endl;
+        cout << "  mul " << IndexReg << ", " << IndexReg << ", " << "t0" << endl;
     }
     cout << "  add  " << ptrReg << ", " << srcAddrReg << ", " << IndexReg << endl;
 }
@@ -747,7 +747,7 @@ void Visit(const RawFunctionP &func, int id)
         {
             cout << "addi sp, sp, " << -StackSize << endl;
             auto addiSp = AsmInst::CreateAddi(SP,SP,-StackSize);
-            instAlloc.tempFunction->handleStack.push_back(addiSp);
+            // instAlloc.tempFunction->handleStack.push_back(addiSp);
         }
         else
         {
@@ -758,7 +758,7 @@ void Visit(const RawFunctionP &func, int id)
             instAlloc.tempFunction->handleStack.push_back(liT0);
             instAlloc.tempFunction->handleStack.push_back(addSp);
         }
-        hardware.SaveRegister(1);
+        hardware.SaveRegister(1);;
         for (int i = 0; i < 12; i++)
         {
             hardware.SaveRegister(RegisterManager::calleeSave[i]);
@@ -770,7 +770,6 @@ void Visit(const RawFunctionP &func, int id)
 
         // for(auto param : params)
         //  Visit(param,id);
-
         for (auto bb : bbs)
             Visit(bb, id);
         cout << endl;

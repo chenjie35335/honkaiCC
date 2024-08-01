@@ -250,7 +250,8 @@ void check(RawValueP y,map<RawValueP,int>&vdef){
             }
 const int M=50005,N=25;
 vector<RawValueP> def[M],use[M];
-    map<RawValueP,int> mp;
+map<RawValueP,int> mp;
+vector<RawValueP> INST;
      int cnt=0;
 void make_def_use(vector<RawBasicBlockP> bbbuffer){
     for(auto bb:bbbuffer){
@@ -277,6 +278,7 @@ void make_def_use(vector<RawBasicBlockP> bbbuffer){
                                     if(qq->ty->tag==0||qq->ty->tag==4) use[mp[it]].push_back(qq);
                                     if(!mp[qq]){
                                         mp[qq]=++cnt;
+                                        INST.push_back(qq);
                                         def[cnt].clear();use[cnt].clear();
                                         def[mp[it]].push_back(qq);
                                     }
@@ -291,6 +293,7 @@ void make_def_use(vector<RawBasicBlockP> bbbuffer){
                                     if(qq->ty->tag==0||qq->ty->tag==4) use[mp[it]].push_back(qq);
                                     if(!mp[qq]){
                                         mp[qq]=++cnt;
+                                        INST.push_back(qq);
                                         def[cnt].clear();use[cnt].clear();
                                         def[mp[it]].push_back(qq);
                                     }
@@ -299,6 +302,7 @@ void make_def_use(vector<RawBasicBlockP> bbbuffer){
                                 if(qqq->ty!=NULL){
                                 if(!mp[qqq]){
                                         mp[qqq]=++cnt;
+                                        INST.push_back(qqq);
                                         def[cnt].clear();use[cnt].clear();
                                         def[mp[it]].push_back(qqq);
                                     }
@@ -342,11 +346,13 @@ void make_def_use(vector<RawBasicBlockP> bbbuffer){
                                 use[mp[it]].push_back(qqq);
                                 if(!mp[qq]){
                                         mp[qq]=++cnt;
+                                        INST.push_back(qq);
                                         def[cnt].clear();use[cnt].clear();
                                         def[mp[it]].push_back(qq);
                                     }
                                 if(!mp[qqq]){
                                         mp[qqq]=++cnt;
+                                        INST.push_back(qqq);
                                         def[cnt].clear();use[cnt].clear();
                                         def[mp[it]].push_back(qqq);
                                     }
@@ -359,11 +365,13 @@ void make_def_use(vector<RawBasicBlockP> bbbuffer){
                                  use[mp[it]].push_back(qqq); 
                                  if(!mp[qq]){
                                         mp[qq]=++cnt;
+                                        INST.push_back(qq);
                                         def[cnt].clear();use[cnt].clear();
                                         def[mp[it]].push_back(qq);
                                     }
                                  if(!mp[qqq]){
                                         mp[qqq]=++cnt;
+                                        INST.push_back(qqq);
                                         def[cnt].clear();use[cnt].clear();
                                         def[mp[it]].push_back(qqq);
                                     }
@@ -394,6 +402,7 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
     for(int i=0;i<200000;i++){
         registerManager.g[i].clear();
     }
+    INST.clear();
     registerManager.n=0;
     vector<RawValueP> in[M],out[M],lin[M],lout[M];
     mp.clear();
@@ -405,12 +414,14 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
         if(it->value.funcArgs.index>=8) break;
   //      cout<<it->value.funcArgs.index<<endl;
         cnt++;
+        INST.push_back(it);
         mp[it]=cnt;
         def[cnt].clear();use[cnt].clear();
         def[cnt].push_back(it);
     }
     // cout<<"!!!"<<endl;
     // int res=0;
+
     for(auto bb:bbbuffer){
         auto &insts=bb->inst;
         for(auto it=insts.begin();it!=insts.end();it++){
@@ -422,6 +433,7 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
             //     cout<<"??"<<endl;
             // }
             mp[*it]=cnt;
+            INST.push_back(*it);
             // if((*it)->value.tag==RVT_GET_ELEMENT){
             //     res++;
             //     if(cnt==423)
@@ -444,9 +456,7 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
     //     }
     // }
     // int count=8;
-     for(auto bb:bbbuffer){
-        auto &insts=bb->inst;
-        for(auto it=insts.begin();it!=insts.end();it++){
+        for(auto it=INST.begin();it!=INST.end();it++){
                 // cout<<mp[*it]<<":"<<((*it)->ty->tag)<<endl;
                 // cout<<"DEF:";
                 // for(auto it:def[mp[*it]]) cout<<mp[it]<<" ";
@@ -485,10 +495,9 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
             else if(flg==RVT_RETURN){
                 ;
             }
-                else if(j!=insts.end()&&flg!=RVT_RETURN)
+                else if(j!=INST.end()&&flg!=RVT_RETURN)
                 nxt[x].push_back(*(j));
         }
-    }
 
     cnt=0;
     //扫描IR 假設bbbufer是存放基本快的vector
@@ -496,9 +505,7 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
     while(changes){
         changes=0;
         map<RawValueP,int>vdef;
-        for(int i=0;i<bbbuffer.size();i++){
-            auto & insts=(bbbuffer[i]->inst);
-            for(auto it=insts.begin();it!=insts.end();it++){
+            for(auto it=INST.begin();it!=INST.end();it++){
                 auto x=*it;
             int c1=mp[x];
             vector<RawValueP> toc=lout[c1];
@@ -542,27 +549,21 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
                 }
                 }//||lout[c1]!=toc
         }
-    }
     int res=0;
-    for(int i=0;i<bbbuffer.size();i++){
-            auto & insts=(bbbuffer[i]->inst);
-            for(auto it=insts.begin();it!=insts.end();it++){
+            for(auto it=INST.begin();it!=INST.end();it++){
                 int e=eq(in[mp[*it]],lin[mp[*it]]);
                 e|=eq(out[mp[*it]],lout[mp[*it]]);
                 if(e) changes=1;
                 in[mp[*it]]=lin[mp[*it]];
                 out[mp[*it]]=lout[mp[*it]];
             }
-        }
     }
 
     int tot=0;
     registerManager.vp[id].clear();
     registerManager.rvp[id].clear();
 
-    for(int i=0;i<bbbuffer.size();i++){
-        auto blk=bbbuffer[i];
-        for(auto x:bbbuffer[i]->inst){
+        for(auto x:INST){
         int p=mp[x];
         for(auto it:in[p]){
             if(!registerManager.vp[id][it]) registerManager.vp[id][it]=++tot,registerManager.rvp[id][tot]=it; 
@@ -571,13 +572,13 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
             if(!registerManager.vp[id][it]) registerManager.vp[id][it]=++tot,registerManager.rvp[id][tot]=it; 
             }
         }
-    }
+
     registerManager.n=tot;
     for(int i=1;i<=registerManager.n;i++) registerManager.g[i].clear();
     map<pair<RawValueP,RawValueP> ,int> vis;
     vis.clear();
-    for(auto bb:bbbuffer){
-        for(auto it:bb->inst){
+ 
+        for(auto it:INST){
         int cnt=mp[it];
         for(auto u1:in[cnt]){
             for(auto v1:in[cnt])if(u1!=v1){
@@ -597,7 +598,7 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
                 vis[{u1,v1}]=vis[{v1,u1}]=1;
                }
             }
-        }
+        
     }
 
     // cout<<tot<<endl;
