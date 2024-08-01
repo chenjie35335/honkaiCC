@@ -5,6 +5,7 @@
 #include "../../../include/midend/ValueTable/SignTable.h"
 #include <bits/stdc++.h>
 using namespace std;
+map<RawValueP,int> fff;
 static int LC_Number[100];
 static int current_LC = 0;
 vector<RawBasicBlockP> buf;
@@ -99,11 +100,17 @@ void Visit(const RawLoad &data, const RawValueP &value, int id)
     }
     else
     {
-        cout << src->value.tag << "!!!" << endl;
-        cout << src->value.integer.value << endl;
-        cout << src->name << endl;
-        cout << value->value.tag << endl;
-        exit(0);
+        hardware.AllocRegister(value, id);
+        string TargetReg = hardware.GetRegister(value, id);
+        string preReg = hardware.GetRegister(src, id);
+        cout << "  mv  " << TargetReg << ", " << preReg << endl;
+        // cout << src->value.tag << "!!!" << endl;
+        // cout << src->value.load.src->value.tag << endl;
+        // cout << src->name << endl;
+        // cout << value->value.tag << endl;
+        // cout<<fff[value]<<endl;
+        // cout<<fff[src]<<endl;
+        // exit(0);
     }
 }
 int F[1000];
@@ -1340,6 +1347,17 @@ void generateASM(RawProgramme *&programme)
                 if (x)
                     break;
             }
+            int ccc=0;
+            // for(auto bb:buf){
+            //     for(auto itt:bb->inst){
+            //         cout<<itt->value.tag<<" ";
+            //         if(itt->name=="WWw") cout<<"*";
+            //         fff[(RawValueP)itt]=++ccc;
+            //         cout<<" "<<ccc;
+            //         cout<<endl;
+                    
+            //     }
+            // }
             if (it == funcs.begin())
                 break;
         }

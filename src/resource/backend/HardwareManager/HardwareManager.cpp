@@ -291,25 +291,28 @@ void make_def_use(vector<RawBasicBlockP> bbbuffer){
                                 auto qqq=(y->value.store.dest);
                                 if(qq->ty!=NULL){
                                     if(qq->ty->tag==0||qq->ty->tag==4) use[mp[it]].push_back(qq);
-                                }
-                                if(!mp[qq]){
+                                    if(!mp[qq]){
                                         mp[qq]=++cnt;
                                         def[cnt].clear();use[cnt].clear();
                                         def[mp[it]].push_back(qq);
                                     }
-                                if(qqq->ty!=NULL)
-                                if(qqq->ty->tag==0||qqq->ty->tag==4) use[mp[it]].push_back(qqq);
-                                 if(!mp[qqq]){
+                                }
+                                
+                                if(qqq->ty!=NULL){
+                                if(!mp[qqq]){
                                         mp[qqq]=++cnt;
                                         def[cnt].clear();use[cnt].clear();
                                         def[mp[it]].push_back(qqq);
                                     }
+                                if(qqq->ty->tag==0||qqq->ty->tag==4) use[mp[it]].push_back(qqq);
+                                }
                                 break;
                             }
                             case RVT_RETURN:{
                                 auto qq=(y->value.ret.value);
-                                if(qq!=NULL)
+                                if(qq!=NULL&&qq->ty!=NULL){
                                 if(qq->ty->tag==0||qq->ty->tag==4) use[mp[it]].push_back(qq);
+                                }
                                 break;
                             }
                             case RVT_BINARY:{
@@ -627,9 +630,11 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
 
 
 int checkuse(RawValue * y,RawValueP xx,int op){
+        if(op==1)
         for(auto it:def[mp[y]]){
         if(it==xx) return 1;
     }
+    if(op==2)
     for(auto it:use[mp[y]]){
         if(it==xx) return 2;
     }
@@ -873,14 +878,11 @@ void HardwareManager::spill(vector<RawBasicBlockP> &bbbuffer,int id,vector<RawVa
     //     }
     // }
      //打标记
-    int CNT=0;
+    int CNT=0,WOK=0;
     for(auto itt:bbbuffer){
         RawBasicBlock* it =(RawBasicBlock*)itt;
         for(auto j=(it->inst).begin();j!=(it->inst).end();j++){
-            
-        //     if(!okk){
-        //     okk=1;continue;
-        // }
+        int pOK=0;
             auto x=*j;
             auto p=j;
             p++;
@@ -901,8 +903,6 @@ void HardwareManager::spill(vector<RawBasicBlockP> &bbbuffer,int id,vector<RawVa
             alloc->value.tag = RVT_ALLOC;
             alloc->name="qqq";
             aloc=alloc;
-            
-            // signTable.insertVar(namee,alloc);//alloc要不要存？
 
             //store
             auto &instss = it->inst;
@@ -916,13 +916,15 @@ void HardwareManager::spill(vector<RawBasicBlockP> &bbbuffer,int id,vector<RawVa
             store->value.store.dest = alloc;
             it->inst.insert(p,store);
             store->addr=alloc;
-            // chg(x,pvue,value);
+            pOK=1;
             j++;
             }
-           else if(checkuse(x,pvue,2)==2){
+           if(!pOK&&checkuse(x,pvue,2)==2){
                 if(CNT==0){
+                    WOK=1;
                     cout<<pvue->value.tag<<"uninit!"<<endl;
                     cout<<pvue->ty->tag<<endl;
+                    cout<<pvue->name<<endl;
                 }
                 //r load
             auto &insts = it->inst;
@@ -932,7 +934,7 @@ void HardwareManager::spill(vector<RawBasicBlockP> &bbbuffer,int id,vector<RawVa
             // tyy->tag=RTT_POINTER;
             // else
             tyy->tag = RTT_POINTER;
-            if(aloc->ty!=NULL&&aloc->ty->pointer.base!=NULL)
+            if(aloc->ty!=NULL)
             load->ty = (RawTypeP) aloc->ty->pointer.base;
             else load->ty=(RawTypeP) tyy;
             load->name = "WWw";
