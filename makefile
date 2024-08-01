@@ -102,7 +102,7 @@ $(BUILD_DIR)/%.tab$(FB_EXT): $(SRC_DIR)/%.y
 	$(BISON) $(BFLAGS) -o $@ $<
 
 
-.PHONY: clean floatTest
+.PHONY: clean floatTest docker docker-func
 
 clean:
 	-rm -rf $(BUILD_DIR)

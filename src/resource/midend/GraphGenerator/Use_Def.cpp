@@ -60,9 +60,16 @@ void MarkUseDef(RawBasicBlock *&bb)
             src->usePoints.push_back(inst);
             src->usebbs.push_back(bb);
             bb->uses.insert(src);
-            dest->defPoints.push_back(inst);
-            dest->defbbs.push_back(bb);
-            bb->defs.insert(dest);
+            if(dest->value.tag == RVT_GET_ELEMENT || dest->value.tag == RVT_GET_PTR){
+                dest->usePoints.push_back(inst);
+                dest->usebbs.push_back(bb);
+                bb->uses.insert(dest);
+            }
+            else {
+                dest->defPoints.push_back(inst);
+                dest->defbbs.push_back(bb);
+                bb->defs.insert(dest);
+            }
             break;
         }
         case RVT_BRANCH://cond的use
@@ -87,19 +94,28 @@ void MarkUseDef(RawBasicBlock *&bb)
             break;
         }
         case RVT_GET_PTR://这个唯一有用的就是index的use,其他没用
+        //貌似src也有点用了,都是
         {
             auto index = (RawValue *) inst->value.getptr.index;
+            auto src = (RawValue *)inst->value.getptr.src;
             index->usePoints.push_back(inst);
             index->usebbs.push_back(bb);
             bb->uses.insert(index);
+            src->usePoints.push_back(inst);
+            src->usebbs.push_back(bb);
+            bb->uses.insert(src);
             break;
         }
         case RVT_GET_ELEMENT:
         {
             auto index = (RawValue *) inst->value.getelement.index;
+            auto src = (RawValue *)inst->value.getelement.src;
             index->usePoints.push_back(inst);
             index->usebbs.push_back(bb);
             bb->uses.insert(index);
+            src->usePoints.push_back(inst);
+            src->usebbs.push_back(bb);
+            bb->uses.insert(src);
             break;
         }
         case RVT_PHI:

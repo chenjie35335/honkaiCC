@@ -76,14 +76,16 @@ void alloc_ptr_symbol(const RawValueP &value)
     Symbol_List[value] = "\%ptr"+to_string(ptr_idx++);
 }
 string GetValueType(const RawTypeP &ty)
-{
+{   
     switch(ty->tag){
         case RTT_INT32:{
             return string("i32");
         }
         case RTT_FLOAT:{
             return string("float");
-            break;
+        }
+        case RTT_UNIT:{
+            return string("");
         }
         case RTT_ARRAY:{
             string str = "["+GetValueType(ty->array.base)+", ";
@@ -311,12 +313,14 @@ void Name_Alloc(const RawValueP &value) {
 
 void Visit_Alloc(const RawValueP &value)
 {
-    cout<<"  "<<Symbol_List[value]<< " = alloc "<<GetValueType(value->ty->pointer.base)<<endl;
+    cerr << "alloc" << Symbol_List[value] << endl;
+    cout<<"  "<<Symbol_List[value]<< " = alloc ";
+    cout <<GetValueType(value->ty->pointer.base)<<endl;
 }
 
 void Name_Load(const RawValueP &value) {
     alloc_symbol(value);
-    //auto &src = value->value.load.src;
+    auto &src = value->value.load.src;
     //Name_Value(src);
 }
 
@@ -324,15 +328,16 @@ void Visit_Load(const RawValueP &value)
 {
     string res = Symbol_List[value];
     auto &src = value->value.load.src;
-    string srcName = Symbol_List[value->value.load.src];
+    string srcName = Symbol_List[src];
     cout<<"  "<<res<<" = load "<<srcName<<endl;
-    //cout << " load: " << src->value.tag << endl;
+    // cout << " load: " << src->value.tag << endl;
 }
 
 void Name_Store(const RawValueP &value) {
     auto dest = value->value.store.dest;
     auto src = value->value.store.value;
     Name_Value(src);
+    //Name_Value(dest);
     if(SSAmode)//多次赋值
     {
         if(dest->value.tag == RVT_VALUECOPY){
@@ -434,6 +439,7 @@ void Visit_Global(const RawValueP &value)
 void Name_get_element(const RawValueP &value){
     alloc_ptr_symbol(value);
     Name_Value(value->value.getelement.index);
+    Name_Value(value->value.getelement.src);
 }
 
 void visit_get_element(const RawValueP &value)
@@ -467,7 +473,7 @@ void visit_aggregate(const RawValueP &value)
 
 void Name_get_ptr(const RawValueP &value){
     alloc_ptr_symbol(value);
-    //Name_Value(value->value.getptr.src);
+    Name_Value(value->value.getptr.src);
     Name_Value(value->value.getptr.index);
 }
 

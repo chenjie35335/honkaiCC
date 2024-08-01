@@ -5,11 +5,15 @@ using namespace std;
 extern FILE *yyin;
 extern int yyparse(unique_ptr<BaseAST> &ast);
 extern void backend_advanced(RawProgramme *& programme);
-extern void DCE(RawProgramme *&programme);
-extern void ConstCombine(RawProgramme *&prgramme);
-extern void CondCCP(RawProgramme *&programme);
-extern void backend_advanced(RawProgramme *& programme);
+void OptimizeMem2Reg(RawProgramme *&programme);
+extern void OptimizeDCE(RawProgramme *&programme);
+extern void OptimizeConstCombine(RawProgramme *&prgramme);
+extern void OptimizeSCCP(RawProgramme *&programme);
 extern void MarkUseDef(RawProgramme *&programme);
+extern void OptimizeLCSE(RawProgramme *programme);
+extern void OptimizeGCSE(RawProgramme *programme);
+extern void OptimizeFuncInline(RawProgramme *IR);
+extern void OptimizeLoop(RawProgramme *IR);
 int main(int argc, const char *argv[]) {
   // 解析命令行参数. 测试脚本/评测平台要求你的编译器能接收如下参数:
   // compiler0 -S1 -o2 输出文件3 输入文件4
@@ -35,13 +39,12 @@ int main(int argc, const char *argv[]) {
   ast->generateGraph(irGraph);
   if(optMode != nullptr && strcmp(optMode,"-O1") == 0) {
      // GeneratorIRTxt(irGraph,false);
-     MarkUseDef(irGraph);
+      MarkUseDef(irGraph);
       //OptimizeFuncInline(irGraph);
       GeneratorDT(irGraph,0);
-      AddPhi(irGraph);
-      renameValue(irGraph);
       //  循环优化需要基于支配树
-     // OptimizeLoop(irGraph);
+    //  OptimizeLoop(irGraph);
+      // OptimizeMem2Reg(irGraph);
       //GeneratorIRTxt(irGraph,true);
       //mem2regTop(irGraph);
       //GeneratorIRTxt(irGraph,true);
@@ -49,11 +52,15 @@ int main(int argc, const char *argv[]) {
       //GeneratorIRTxt(irGraph,true);
       //  DCE(irGraph);
       //GeneratorIRTxt(irGraph,true);
-      // ConstCombine(irGraph);
+      //ConstCombine(irGraph);
       // DCE(irGraph);
-      CondCCP(irGraph);
+      // OptimizeSCCP(irGraph);
       //GeneratorIRTxt(irGraph,true);
-      exitSSA(irGraph);
+      // GeneratorDT(irGraph,0);
+      // OptimizeGCSE(irGraph);
+      // OptimizeLCSE(irGraph);
+      //GeneratorIRTxt(irGraph,true);
+      // exitSSA(irGraph);
   }
   if(strcmp(mode,"-riscv") == 0 || strcmp(mode,"-S") == 0) {
     // OptimizeFuncInline(irGraph);
@@ -66,7 +73,8 @@ int main(int argc, const char *argv[]) {
   }
   else if(strcmp(mode,"-cfg") == 0){
     // OptimizeFuncInline(irGraph);
-    GeneratorDT(irGraph,3);
+    // GeneratorDT(irGraph,3);控制流图
+    GeneratorDT(irGraph,2);//支配树
   }
   else if(strcmp(mode,"-astT") == 0){
     Generator_ast(ast,1);

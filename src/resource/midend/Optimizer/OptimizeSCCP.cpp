@@ -4,7 +4,7 @@
 #include "../../../include/midend/IR/LibFunction.h"
 #include "../../../include/midend/AST/AST.h"
 #include "../../../include/midend/ValueTable/SignTable.h"
-#include "../../../include/midend/Optimizer/OpimizeConditionCCP.h"
+#include "../../../include/midend/Optimizer/OptimizeSCCP.h"
 #include <algorithm>
 #include <cassert>
 using namespace std;
@@ -449,7 +449,7 @@ void MarkDeletedBB(RawProgramme *&programme) {
     }
 }
 
-void CondCCP(RawProgramme *&programme) {
+void OptimizeSCCP(RawProgramme *&programme) {
     auto &values = programme->values;
     auto &funcs = programme->funcs;
     for(auto func : funcs){

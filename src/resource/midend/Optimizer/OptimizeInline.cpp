@@ -5,9 +5,9 @@
 #include <deque>
 #include <unordered_map>
 #include <unordered_set>
-#include "../IR/Function.h"
-#include "../IR/BasicBlock.h"
-#include "../IR/Value.h"
+#include "../../../include/midend/IR/Function.h"
+#include "../../../include/midend/IR/BasicBlock.h"
+#include "../../../include/midend/IR/Value.h"
 #include "../../../include/midend/Optimizer/OptimizeInline.h"
 bool judgementOutFunc(string fun_name)
 {
@@ -390,6 +390,17 @@ void InlineValue(unordered_map<RawBasicBlock *,RawBasicBlock *> copybbs,RawBasic
                     copyValue->value.floatNumber.value = value->value.floatNumber.value;
                     break;
                 }
+                case RVT_CONVERT:{
+                    // copyValue->value.Convert.src =
+                    if(InlineShareVar.count((RawValue*)value->value.Convert.src)!=0){
+                        copyValue->value.Convert.src=InlineShareVar[(RawValue*)value->value.Convert.src];
+                    }
+                    else if(copyValues.count((RawValue*)value->value.Convert.src)!=0)
+                        copyValue->value.Convert.src=copyValues[(RawValue*)value->value.Convert.src];
+                    else
+                        copyValue->value.Convert.src=value->value.Convert.src;
+                    break;
+                }
                 case RVT_ALLOC:{
                     needDel.push_back(copyValues[value]);
                     break;
@@ -538,6 +549,12 @@ void InlineValue(unordered_map<RawBasicBlock *,RawBasicBlock *> copybbs,RawBasic
                     MarkUse((RawValue*)value->value.load.src,value);
                     MarkDef(value,value);
                     newBlock->uses.insert((RawValue*)value->value.load.src);
+                    break;
+                }
+                case RVT_CONVERT:{
+                    MarkUse((RawValue*)value->value.Convert.src,value);
+                    MarkDef(value,value);
+                    newBlock->uses.insert((RawValue*)value->value.Convert.src);
                     break;
                 }
                 case RVT_STORE:{//store %1, @x

@@ -118,7 +118,7 @@ void DCE(RawFunction *&function) {//目前来看这里没有办法直接删除�
     ClearInst(function);
 }
 
-void DCE(RawProgramme *&programme) {
+void OptimizeDCE(RawProgramme *&programme) {
     auto &funcs = programme->funcs;
     for(auto func : funcs) {
         DCE(func);

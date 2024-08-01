@@ -2,17 +2,16 @@
 #include "../../../include/midend/IR/BasicBlock.h"
 #include "../../../include/midend/IR/Programme.h"
 #include "../../../include/midend/SSA/DT.h"
+#include <set>
 #include <assert.h>
 #include <stack>
 #include <vector>
 #include <iostream>
 #include <algorithm>
 #include <unordered_set>
-#include <unordered_map>
 using namespace std;
 unordered_set<RawBasicBlockP> cfgloop;
-vector<pair<RawBasicBlockP,nodeSet>>node_nodes;
-unordered_map<RawBasicBlockP,bool>visit_bbs;
+unordered_set<RawBasicBlock*>visitbb;
 void cal_cfgloop(const RawBasicBlockP &start,const RawBasicBlockP &end)
 {
     cfgloop.clear();//清空上一条回边对应的循环的计算的结果
@@ -141,8 +140,15 @@ void GeneratorDT(RawProgramme *&programme,int genDot)
         init_bbs(func);
         auto &bbs = func->basicblock;
         if(bbs.size()>0){
-            func_domain_nodes(func);
-            direct_domain_nodes();
+            list<RawBasicBlock*> RPO;//逆后序遍历顺序
+            visitbb.clear();//清除访问
+            cal_RPO((*bbs.begin()),RPO);//计算逆后序遍历
+            unordered_map<RawBasicBlock*,RawBasicBlock*>idom;//计算idom
+            cal_IDOM(RPO,idom);
+            // for(auto item:idom){
+            //     cout<<item.first->name<<"的直接必经节点是"<<item.second->name<<endl;
+            // }
+            cal_DT((RawFunction*)func,idom);
             RawBasicBlock * s_bb = *bbs.begin();
             computeDF(s_bb);
             if(genDot==1)
@@ -157,113 +163,86 @@ void GeneratorDT(RawProgramme *&programme,int genDot)
 void init_bbs(const RawFunctionP &func)
 {
     auto &bbs = func->basicblock;
-    node_nodes.clear();//清除所有节点的支配节点集合
-    visit_bbs.clear();//清除
-    for (RawBasicBlockP pbb : bbs)
+    for (auto pbb : bbs)
     {
         //添加所有的基本块，初始化为未标记
-        RawBasicBlockP * preDomainNode = (RawBasicBlockP *)&(pbb->preDomainNode);
-        *preDomainNode = NULL;//初始化节点前驱为零
-        visit_bbs[pbb]=false;
+        auto &preDomainNode = pbb->preDomainNode;
+        auto &domains = pbb->domains;
+        domains.clear();
+        preDomainNode = nullptr;//初始化节点前驱为零
     }
     
 }
-void clearBbsFlag()
-{
-    for(auto& pbb:visit_bbs)
-    {
-        //将所有标志清零
-        pbb.second = false;
+//计算根据idom支配树
+void cal_DT(RawFunction* func,unordered_map<RawBasicBlock*,RawBasicBlock*>idom){
+    auto it = ++func->basicblock.begin();
+    for(;it!=func->basicblock.end();it++){
+        RawBasicBlock* bb = (*it);
+        bb->preDomainNode = idom[bb];
+        idom[bb]->domains.push_back(bb);
     }
+    // for(auto item:idom){
+    //     RawBasicBlock* father = item.second;
+    //     RawBasicBlock* child = item.first;
+    //     cout<<"123132"<<endl;
+    //     cout<<father->name<<endl;
+    //     f
+    //     // father->domains.push_back(child);
+    // }
 }
-void func_domain_nodes(const RawFunctionP &func)
-{
-    auto &bbs = func->basicblock;
-    RawBasicBlockP s_bbs = *bbs.begin();
-    for (RawBasicBlockP pbb : bbs)//遍历所有节点
-    {
-        // cout<<pbb->name<<"支配的节点有{"<<endl;
-        find_domain_nodes(s_bbs,pbb);//判断当前pbb节点所支配的节点(节点删除法)
-        // cout<<'}'<<endl;
+//计算逆后序遍历顺序
+void cal_RPO(RawBasicBlock* nowbb,list<RawBasicBlock*> &RPO){
+    visitbb.insert(nowbb);
+    for(auto neighbor:nowbb->fbbs){
+        if(visitbb.find(neighbor)==visitbb.end()){//未访问
+            cal_RPO(neighbor,RPO);
+        }
     }
+    RPO.push_front(nowbb);
 }
-void find_domain_nodes(const RawBasicBlockP &s_bbs,const RawBasicBlockP &delete_bbs)
-{
-    clearBbsFlag();//清除标记
-    visit_bbs[delete_bbs] = true;//将删除的节点标志为已访问
-
-    stack<RawBasicBlockP>stack_bbs;
-    stack_bbs.push(s_bbs);//初始化,将起始节点入栈
-
-    while (!stack_bbs.empty())
+//计算idom集合
+void cal_IDOM(list<RawBasicBlock*> RPO,unordered_map<RawBasicBlock*,RawBasicBlock*>&DOMS){
+    // unordered_map<RawBasicBlock*,RawBasicBlock*>DOMS;
+    unordered_map<RawBasicBlock*,int>idx;
+    int index =0;
+    for(auto bb:RPO){
+        DOMS[bb]=nullptr;
+        idx[bb]= index++;
+    }
+    DOMS[RPO.front()]=RPO.front();
+    bool Changed = true;
+    while (Changed)
     {
-        //获取并弹出栈顶元素
-        RawBasicBlockP pbb = stack_bbs.top();stack_bbs.pop();
-        //判断是否遍历过该元素
-        if(visit_bbs[pbb]==false)//未遍历过该元素
-        {
-            // cout<<"当前访问的节点：{"<<pbb->name<<"}"<<endl;
-            visit_bbs[pbb]=true;//标记当前访问过的元素
-            auto &fbbs = pbb->fbbs;
-            for (RawBasicBlockP npbb : fbbs){//广度优先
-                if(!visit_bbs[npbb])//未访问过添加到栈中
-                    stack_bbs.push(npbb);
+        Changed = false;
+        auto b = ++RPO.begin();
+        for (; b != RPO.end(); ++b) {
+            RawBasicBlock * newIDOM = (*b)->pbbs.front();
+            auto p = ++(*b)->pbbs.begin();
+            for(;p!=(*b)->pbbs.end();p++){
+                if(DOMS[(*p)]!=nullptr){
+                    newIDOM = intersect((*p),newIDOM,DOMS,idx);
+                }
+            }
+            if(DOMS[(*b)]!=newIDOM){
+                DOMS[(*b)]=newIDOM;
+                Changed = true;
             }
         }
     }
-    nodeSet ns;
-    // 未遍历的节点即是被pbb节点支配的节点
-    for(auto pbb:visit_bbs)
-    {
-        if(!pbb.second)//未被访问的是支配的节点
-        {
-            // cout<<pbb.first->name<<endl;
-            ns.insert(pbb.first);
-        }
-    }
-    node_nodes.push_back(make_pair(delete_bbs,ns));
 }
-bool check_bb_inOther(const RawBasicBlockP &bb)
-{
-    for(int i = 1;i < node_nodes.size();i++)//遍历除自己外的每一个支配集
-    {
-        nodeSet nodes = node_nodes[i].second;
-        if(nodes.find(bb)!= nodes.end())//找到元素
+//计算公共祖先
+RawBasicBlock* intersect(RawBasicBlock*b1,RawBasicBlock*b2,unordered_map<RawBasicBlock*,RawBasicBlock*>DOMS,unordered_map<RawBasicBlock*,int>idx){
+    while(b1!=b2){
+        while (idx[b1]>idx[b2])
         {
-            return true;
+            b1 = DOMS[b1];
+        }
+        while (idx[b2]>idx[b1])
+        {
+            b2 = DOMS[b2];
         }
     }
-    return false;
-}
-void direct_domain_nodes()
-{
-    sort(node_nodes.begin(),node_nodes.end(),[](pair<RawBasicBlockP,nodeSet> &a,pair<RawBasicBlockP,nodeSet> &b){
-        return a.second.size()>b.second.size();
-    });
-    while (!node_nodes.empty())
-    {
-        RawBasicBlock* pbb = (RawBasicBlock*)node_nodes[0].first;
-        nodeSet domainNodes = node_nodes[0].second;
-        for(auto bb:node_nodes[0].second)//去除非直接直配的节点
-        {
-            if(check_bb_inOther(bb)){//同时被其他节点支配;
-                domainNodes.erase(bb);
-            }
-        }
-        auto &domains = pbb->domains;
-        //为节点分配空间
-        // cout<<pbb->name<<"支配节点分配的空间大小"<<domainNodes.size()<<endl;
-        // cout<<pbb->name<<"支配的节点{"<<endl;
-        for(RawBasicBlockP bb : domainNodes){
-            auto bbData = (RawBasicBlock *) bb;
-            domains.push_back(bbData);
-            // cout<<bb->name<<endl;
-            RawBasicBlockP * preDomainNode = (RawBasicBlockP *)&(bb->preDomainNode);
-            *preDomainNode = pbb;
-        }
-        // cout<<'}'<<endl;
-        node_nodes.erase(node_nodes.begin());
-    }
+    return b1;
 }
 //判断A是否支配B,或者B的必经结点是否是A
 bool AisdomB(const RawBasicBlockP A, const RawBasicBlockP B)

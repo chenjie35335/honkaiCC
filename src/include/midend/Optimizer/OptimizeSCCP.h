@@ -28,5 +28,5 @@ class CondCCPTabl{
 }
 };
 
-void CondCCP(RawProgramme *&programme);
+void OptimizeSCCP(RawProgramme *&programme);
 #endif
