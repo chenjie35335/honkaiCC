@@ -66,8 +66,8 @@ case RVT_LOAD: {
 case RVT_STORE: {
     auto src = (RawValue *)S->value.store.value;
     if(src->value.tag != RVT_INTEGER) {
-    src->usePoints.remove(S);
-    W.push_back(src);
+        src->usePoints.remove(S);
+        W.push_back(src);
     }
     break;
 }
@@ -87,22 +87,16 @@ default:
 void DCE(RawFunction *&function) {//目前来看这里没有办法直接删除，还是得遍历一遍后删除
     if(function->basicblock.size() == 0) return;
     vector<RawValue *> W;
-    auto &values = function->values;
-    for(auto value : values) {
-        auto valueTag = value->value.tag;
-        if(valueTag == RVT_ALLOC) {
-            auto &copies = value->copiesValues;
-            for(auto copy : copies) {
-                // if(copy->value.tag == RVT_VALUECOPY) {
-                // auto target = copy->value.valueCop.target;
-                // cout << target->name << "phi" << endl;
-                // } else if(copy->value.tag == RVT_PHI) {
-                //     auto target = copy->value.phi.target;
-                //     cout << target->name << "copy" << endl;
-                // }
-                W.push_back(copy);
-            }
-        }//这里只放入所有alloc类型的值，然后其相关的再删掉
+    auto &bbs = function->basicblock;
+    for(auto bb : bbs) {
+        auto &phis = bb->phi;
+        auto &insts = bb->inst;
+        for(auto phi : phis) {
+            W.push_back(phi);
+        }
+        for(auto inst : insts) {
+            if(inst->ty->tag != RTT_UNIT) W.push_back(inst); 
+        }
     }
     while(!W.empty()) {
         auto value = W.back();
