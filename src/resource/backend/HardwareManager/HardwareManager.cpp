@@ -155,6 +155,9 @@ void check(RawValueP y,map<RawValueP,int>&vdef){
                   } else{
                     auto x= y->value.tag; 
                         switch(x){
+                            case RVT_GLOBAL:{
+                                break;
+                            }
                             case RVT_ALLOC:{
                                 break;
                             }
@@ -263,6 +266,9 @@ void make_def_use(vector<RawBasicBlockP> bbbuffer){
             auto x= it->value.tag;
             auto y=it;
                         switch(x){
+                            case RVT_GLOBAL:{
+                                break;
+                            }
                             case RVT_INTEGER:{
                                 break;
                             }
@@ -399,7 +405,7 @@ int eq(vector<RawValueP> x,vector<RawValueP> y){
 }
 int OK=0;
 int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector<RawValue*> &cuf){
-    for(int i=0;i<200000;i++){
+    for(int i=0;i<500000;i++){
         registerManager.g[i].clear();
     }
     INST.clear();
@@ -428,21 +434,40 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
             if(!ko){
                 ko=1;yy=*it;
             }
-            // if((*it)->value.tag==RVT_GLOBAL){
-            //     cout<<(*it)->ty->tag<<endl;
-            //     cout<<"??"<<endl;
+            ++cnt;
+            //     if((*it)->value.tag==RVT_GET_ELEMENT){
+            //         auto qq=(*it)->value.getelement.src;
+            //         auto qqq=(*it)->value.getelement.index;
+            //         mp[qq]=cnt;INST.push_back(qq);
+            //         def[cnt].clear();use[cnt].clear();
+            //         if(qq->ty->tag==0||qq->ty->tag==4)
+            //         def[cnt].push_back(qq);
+            //         cnt++;
+            //         mp[qqq]=cnt;INST.push_back(qqq);
+            //         def[cnt].clear();use[cnt].clear();
+            //          if(qqq->ty->tag==0||qqq->ty->tag==4)
+            //         def[cnt].push_back(qqq);
+            //         cnt++;
             // }
+
+            // if((*it)->value.tag==RVT_GET_PTR){
+            //         auto qq=(*it)->value.getptr.src;
+            //         auto qqq=(*it)->value.getptr.index;
+            //         mp[qq]=cnt;INST.push_back(qq);
+            //         def[cnt].clear();use[cnt].clear();
+            //          if(qq->ty->tag==0||qq->ty->tag==4)
+            //         def[cnt].push_back(qq);
+            //         cnt++;
+            //         mp[qqq]=cnt;INST.push_back(qqq);
+            //         def[cnt].clear();use[cnt].clear();
+            //          if(qqq->ty->tag==0||qqq->ty->tag==4)
+            //         def[cnt].push_back(qqq);
+            //         cnt++;
+            // }
+
             mp[*it]=cnt;
             INST.push_back(*it);
-            // if((*it)->value.tag==RVT_GET_ELEMENT){
-            //     res++;
-            //     if(cnt==423)
-            //     cout<<res<<"!"<<endl;
-            //     // cout<<mp[(*it)->value.getelement.index]<<" "<<mp[(*it)->value.getelement.src]<<endl;
-            //     // cout<<(*it)->value.getelement.src->value.tag<<"?"<<endl;
-            // }
             def[cnt].clear();use[cnt].clear();
-            cnt++;
         }
     }
     make_def_use(bbbuffer);
@@ -974,7 +999,7 @@ void HardwareManager::InitallocReg(vector<RawBasicBlockP> &bbbuffer,int id,vecto
         for(int i=1;i<=m;i++){
             in_rank.push_back({registerManager.g[i].size(),i});
         }
-        int ux[50000]={0};
+        int ux[500000]={0};
         sort(in_rank.begin(),in_rank.end());
         int cnt=in_rank.size();
         while(cnt){

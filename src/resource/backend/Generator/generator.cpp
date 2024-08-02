@@ -14,7 +14,7 @@ extern InstAlloc instAlloc;
 // extern RegisterManager registerManager;
 // visit const LC
 map<RawValueP, int> malc;
-int FF[1000];
+int FF[10000];
 void Visit(const RawValueP &value, int id);
 
 int convert(float number)
@@ -779,38 +779,6 @@ void Visit(const RawFunctionP &func, int id)
 void Visits(const RawBinary &data, const RawValueP &value, list<RawValue *>::const_iterator it, RawBasicBlockP bb);
 void Visits(const RawValueP &value, list<RawValue *>::const_iterator it, RawBasicBlockP bb);
 extern SignTable signTable;
-void addload(int x, list<RawValue *>::const_iterator it, RawBasicBlock *bb)
-{
-
-    // RawValue *value = new RawValue();
-    // value->name = nullptr;
-    // value->value.tag = RVT_INTEGER;
-    // value->value.integer.value = x;
-    // RawType *ty = new RawType();
-    // ty->tag = RTT_INT32;
-    // value->ty = ty;
-
-    // RawValueP nb;
-    // auto p=--it;
-    // auto &insts = bb->inst;
-    // RawValue * load = new RawValue();
-    // RawType *tyy = new RawType();
-    // tyy->tag = RTT_INT32;
-    // load->ty = (RawTypeP) tyy;
-    // load->name = nullptr;
-    // load->value.tag = RVT_LOAD;
-    // load->value.load.src = value;
-    // MarkUse((RawValue *)x,load);
-    // bb->inst.insert(p,load);
-    // RawValue *SrcValue = (RawValue*) x;
-    // bb->uses.insert(SrcValue);
-    // string nm=value->name;
-    // signTable.insertMidVar(nm,load);
-    // MarkDef(load,load);
-
-    // 打标记记这条value后需要add sp即可，不会对生命周期造成影响。maybe?
-    // hardware.registerManager.sadd[load]=1;
-}
 
 void Visits(const RawLoad &data, const RawValueP &value, list<RawValue *>::const_iterator it, RawBasicBlockP bb)
 {
@@ -821,18 +789,6 @@ void Visits(const RawLoad &data, const RawValueP &value, list<RawValue *>::const
     else if (hardware.IsMemory(src))
     {
         int srcAddress = hardware.getTargetOffset(src);
-        //     if(srcAddress>=2048){
-        //         addload(srcAddress,it,(RawBasicBlock*)bb);
-        //            cout << "  li  " << DestReg << ", " << srcAddress << endl;  加load
-        //     }
-        // } else if(src->value.tag == RVT_GET_ELEMENT || src->value.tag == RVT_GET_PTR){
-        // 先不处理
-        // hardware.addLockRegister(src);
-        // hardware.AllocRegister(value);
-        // string TargetReg = hardware.GetRegister(value);
-        // string ElementReg = hardware.GetRegister(src);
-        // cout << "  lw  " << TargetReg << ", " << 0 << '(' << ElementReg << ')' << endl;
-        // hardware.LeaseLockRegister(src);
     }
     else
         return;
@@ -1145,18 +1101,41 @@ void generateASM(RawProgramme *&programme)
     auto &values = programme->values;
     auto &funcs = programme->funcs;
     map<RawFunction *, int> mp;
-    for (int i = 0; i < 1000; i++)
+    for (int i = 0; i < 10000; i++)
         FF[i] = -1;
     int cnt = 0;
+    int res=0;
     if (funcs.end() != funcs.begin())
         for (auto it = --funcs.end();; it--)
-        {
+        {   
+           
             auto func = *it;
             hardware.registerManager.registerLook.clear();
             buf.clear();
             mp[func] = ++cnt;
             Visits(func, cnt);
             vector<RawValue *> &cuf = (func->params);
+            for(auto bb:buf){
+                RawBasicBlock* bbb=(RawBasicBlock*)bb;
+                for(auto it=bbb->inst.begin();it!=bbb->inst.end();it++){
+                        if((*it)->value.tag==RVT_GET_ELEMENT){
+                    RawValue* qq=(RawValue*)((*it)->value.getelement.src);
+                    RawValue* qqq=(RawValue*)((*it)->value.getelement.index);
+                     bbb->inst.insert(it,qq);
+                     bbb->inst.insert(it,qqq);
+                     res++;
+            }
+
+            if((*it)->value.tag==RVT_GET_PTR){
+                     RawValue* qq=(RawValue*)((*it)->value.getptr.src);
+                    RawValue* qqq=(RawValue*)((*it)->value.getptr.index);
+                   
+                     bbb->inst.insert(it,qq);
+                     bbb->inst.insert(it,qqq);
+                     res++;
+            }
+                }
+            }
             while (1)
             {
                 // cout<<func->name<<endl;

@@ -189,17 +189,17 @@ public:
     /// @brief 构造函数
 
     // points color
-    int vis[4000][4000]={0};
-    int rvis[4000][4000]={0};
+    int vis[5000][5000]={0};
+    int rvis[5000][5000]={0};
     // clash graph
     int Ccolor;
     map<RawValue*,int> mpp;
     int n;
    // map<RawValueP,int> kill;
    // int killc[1000]={0};
-    vector<int> g[200005];
-    map<RawValueP,int> vp[100005]; //value的下标映射
-    map<int,RawValueP> rvp[100005];//反映射
+    vector<int> g[500005];
+    map<RawValueP,int> vp[500005]; //value的下标映射
+    map<int,RawValueP> rvp[500005];//反映射
     map<int,string>hreg;//从虚拟到真实的的reg映射
 
     map<RawValueP,int> sadd;
