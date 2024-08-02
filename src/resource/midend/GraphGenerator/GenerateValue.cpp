@@ -287,7 +287,7 @@ void generateRawValueArrGlobal(string &name,vector<int> &dimen,RawValue *&init, 
         values.push_back(global);
         //add but error
         //signTable.IdentTable->ArrayTable.at(ident)->arrValue.elements.push_back(init);
-        signTable.IdentTable->ArrayTable.at(ident)->position = init;
+        //signTable.IdentTable->ArrayTable.at(ident)->position = init;
         signTable.insertVar(name,global);
 }
 /// @brief 
@@ -321,7 +321,7 @@ void generateRawValueArr(string &name,vector<int> &dimen, int32_t flag) {
     alloc->identType = IDENT_ARR;
     insts.push_back(alloc);
     signTable.insertVar(name,alloc);
-    signTable.IdentTable->ArrayTable.at(ident)->position = alloc;
+    //signTable.IdentTable->ArrayTable.at(ident)->position = alloc;
 }  
 /// @brief load型value
 /// @param sign 
@@ -864,8 +864,8 @@ void ArrInit(RawValueP src, RawValueP target) {
                 generateRawValue(ElemCov,Addr);
             } else generateRawValue(element,Addr);
         }
-        signTable.IdentTable->ArrayTable.at(sign)->arrValue.elements.push_back((RawValue*)src);
-        signTable.IdentTable->ArrayTable.at(sign)->position = (RawValue*)src;
+        //signTable.IdentTable->ArrayTable.at(sign)->arrValue.elements.push_back((RawValue*)src);
+        //signTable.IdentTable->ArrayTable.at(sign)->position = (RawValue*)src;
     }
 }
 

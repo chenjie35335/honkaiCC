@@ -97,13 +97,13 @@ void SinArrayElementAST::generateGraph(string &sign, int &retType) const {
                     sign = to_string(res);
                     RawValue *r1 = new RawValue();
                     r1->value.floatNumber.value = res;
-                    signTable.IdentTable->ArrayTable.at(sign)->arrValue.elements.push_back(r1);
+                    //signTable.IdentTable->ArrayTable.at(sign)->arrValue.elements.push_back(r1);
                 }else {
                     int res_cvt = res;
                     sign = to_string(res_cvt);
                     RawValue *r1 = new RawValue();
                     r1->value.integer.value = res_cvt;
-                    signTable.IdentTable->ArrayTable.at(sign)->arrValue.elements.push_back(r1);
+                    //signTable.IdentTable->ArrayTable.at(sign)->arrValue.elements.push_back(r1);
                 }
             } else {
                 int res = value->IntResult;
@@ -112,12 +112,12 @@ void SinArrayElementAST::generateGraph(string &sign, int &retType) const {
                     sign = to_string(res);
                     RawValue *r1 = new RawValue();
                     r1->value.floatNumber.value = res_cvt;
-                    signTable.IdentTable->ArrayTable.at(sign)->arrValue.elements.push_back(r1);
+                    //signTable.IdentTable->ArrayTable.at(sign)->arrValue.elements.push_back(r1);
                 }else {
                     sign = to_string(res);
                     RawValue *r1 = new RawValue();
                     r1->value.integer.value = res;
-                    signTable.IdentTable->ArrayTable.at(sign)->arrValue.elements.push_back(r1);
+                    //signTable.IdentTable->ArrayTable.at(sign)->arrValue.elements.push_back(r1);
                 }
             }
             break;
@@ -141,14 +141,14 @@ void SinArrayElementAST::generateGraphGlobal(string &sign, int &retType) const {
                     sign = to_string(CalValue); 
                     RawValue *r1 = new RawValue();
                     r1->value.floatNumber.value = CalValue;
-                    signTable.IdentTable->ArrayTable.at(sign)->arrValue.elements.push_back(r1);
+                    //signTable.IdentTable->ArrayTable.at(sign)->arrValue.elements.push_back(r1);
                 } else {
                     int IntValue = CalValue;
                     generateRawValueArr(IntValue);
                     sign = to_string(IntValue);
                     RawValue *r1 = new RawValue();
                     r1->value.integer.value = IntValue;
-                    signTable.IdentTable->ArrayTable.at(sign)->arrValue.elements.push_back(r1);
+                    //signTable.IdentTable->ArrayTable.at(sign)->arrValue.elements.push_back(r1);
                 }
             } else {
                 int CalValue = value->IntResult;
@@ -158,13 +158,13 @@ void SinArrayElementAST::generateGraphGlobal(string &sign, int &retType) const {
                     sign = to_string(FloatValue);
                     RawValue *r1 = new RawValue();
                     r1->value.floatNumber.value = FloatValue;
-                    signTable.IdentTable->ArrayTable.at(sign)->arrValue.elements.push_back(r1);
+                    //signTable.IdentTable->ArrayTable.at(sign)->arrValue.elements.push_back(r1);
                 } else {
                     generateRawValueArr(CalValue);
                     sign = to_string(CalValue); 
                     RawValue *r1 = new RawValue();
                     r1->value.integer.value = CalValue;
-                    signTable.IdentTable->ArrayTable.at(sign)->arrValue.elements.push_back(r1);
+                    //signTable.IdentTable->ArrayTable.at(sign)->arrValue.elements.push_back(r1);
                 } 
             }
             break;

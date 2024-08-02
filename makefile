@@ -136,6 +136,9 @@ test:
 	make
 	build/compiler $(TARGET) hello.c -o hello.koopa
 
+onlytest:
+	build/compiler -riscv hello.c -o hello.koopa
+
 autotest:
 	autotest -koopa -s lv8 /root/compiler
 

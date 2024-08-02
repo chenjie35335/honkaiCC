@@ -44,11 +44,13 @@ class LValRAST : public BaseAST {
           position+= dimen->value.integer.value;
         }
         if (signTable.IdentTable->ArrayTable.find(ident) != signTable.IdentTable->ArrayTable.end()) {
-            throw std::out_of_range("Cannot find name of array in array table for integer");
+            cout<<"Cannot find name of array in array table for integer" << endl;
+            return new ExpResult(-1);
         }
         auto arrayTableEntry = signTable.IdentTable->ArrayTable.at(ident);
         if (position >= arrayTableEntry->arrValue.elements.size()) {
-            throw std::out_of_range("ArrayTable position index out of range for intrger");
+            cout << "ArrayTable position index out of range for intrger" << endl;
+            return new ExpResult(-2);
         }
         RawValue* arrayIdent = arrayTableEntry->arrValue.elements.at(position);
         //int res = arrayIdent->value.integer.value;

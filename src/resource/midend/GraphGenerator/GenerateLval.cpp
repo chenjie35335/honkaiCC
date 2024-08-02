@@ -40,6 +40,8 @@ void LValRAST::generateGraph(string &sign) const {
                 generateElement(IdentSrc,zero,sign);
                 //IdentSrc = signTable.getMidVar(sign);
                 //generateElement(IdentSrc,zero,sign);
+            } else if(PointerTag == RTT_POINTER){ //add but don;t know meaning
+                generatePtr(IdentSrc, zero, sign);
             } else assert(0);
             break;
         }//这里如果是ptr还得用getptr或者getelementptr
