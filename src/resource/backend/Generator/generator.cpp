@@ -1107,34 +1107,49 @@ void generateASM(RawProgramme *&programme)
     int res=0;
     if (funcs.end() != funcs.begin())
         for (auto it = --funcs.end();; it--)
-        {   
+        {
            
             auto func = *it;
             hardware.registerManager.registerLook.clear();
             buf.clear();
             mp[func] = ++cnt;
             Visits(func, cnt);
+            int fir=0;
+            map<RawValue*,int> VIS;
             vector<RawValue *> &cuf = (func->params);
             for(auto bb:buf){
                 RawBasicBlock* bbb=(RawBasicBlock*)bb;
+                // if(!fir){
+                //     fir=1;
+                //     auto y=bbb->inst.begin();
+
+                //     for(auto x:values)if(!VIS[x]){
+                //         bbb->inst.insert(y,x);    
+                //     }
+                // }
+                
                 for(auto it=bbb->inst.begin();it!=bbb->inst.end();it++){
+                    VIS[*it]=1;
                         if((*it)->value.tag==RVT_GET_ELEMENT){
                     RawValue* qq=(RawValue*)((*it)->value.getelement.src);
                     RawValue* qqq=(RawValue*)((*it)->value.getelement.index);
-                     bbb->inst.insert(it,qq);
-                     bbb->inst.insert(it,qqq);
+                    if(!VIS[qq])
+                    bbb->inst.insert(it,qq),VIS[qq]=1;
+                    if(!VIS[qqq])
+                     bbb->inst.insert(it,qqq),VIS[qqq]=1;
                      res++;
             }
 
             if((*it)->value.tag==RVT_GET_PTR){
                      RawValue* qq=(RawValue*)((*it)->value.getptr.src);
                     RawValue* qqq=(RawValue*)((*it)->value.getptr.index);
-                   
-                     bbb->inst.insert(it,qq);
-                     bbb->inst.insert(it,qqq);
+                   if(!VIS[qq])
+                    bbb->inst.insert(it,qq),VIS[qq]=1;
+                    if(!VIS[qqq])
+                     bbb->inst.insert(it,qqq),VIS[qqq]=1;
                      res++;
             }
-                }
+            }
             }
             while (1)
             {

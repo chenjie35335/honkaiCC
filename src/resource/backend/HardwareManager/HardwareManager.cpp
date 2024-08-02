@@ -753,6 +753,9 @@ void chg(RawValueP &y,RawValueP &xx,RawValue* &u){
                     }
                     uint32_t e=(y->value.tag);
                         switch(e){
+                            case RVT_GLOBAL:{
+                                return;
+                            }
                             case RVT_ALLOC:{
                                 return;
                             }
@@ -822,7 +825,7 @@ void chg(RawValueP &y,RawValueP &xx,RawValue* &u){
                             //     return checkuse((RawValue *)qq,xx,1);
                             // }
                             default:{
-                                cout<<e<<endl;
+                                cout<<e<<":825"<<endl;
                                 exit(0);
                             }
                         
