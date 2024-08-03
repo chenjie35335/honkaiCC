@@ -14,6 +14,7 @@ extern void OptimizeLCSE(RawProgramme *programme);
 extern void OptimizeGCSE(RawProgramme *programme);
 extern void OptimizeFuncInline(RawProgramme *IR);
 extern void OptimizeLoop(RawProgramme *IR);
+extern void OptimizeLoopUnroll(RawProgramme *IR);
 int main(int argc, const char *argv[]) {
   // 解析命令行参数. 测试脚本/评测平台要求你的编译器能接收如下参数:
   // compiler0 -S1 -o2 输出文件3 输入文件4
@@ -44,6 +45,7 @@ int main(int argc, const char *argv[]) {
       GeneratorDT(irGraph,0);
       //  循环优化需要基于支配树
     //  OptimizeLoop(irGraph);
+    OptimizeLoopUnroll(irGraph);
       // OptimizeMem2Reg(irGraph);
       //GeneratorIRTxt(irGraph,true);
       //mem2regTop(irGraph);
