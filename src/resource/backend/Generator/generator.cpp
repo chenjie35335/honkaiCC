@@ -196,7 +196,7 @@ void Visit(const RawStore &data, const RawValueP &value, int id)
                     cout << "  sw  " << SrcReg << ", " << srcAddress << "(sp)" << endl;
             }
         }
-        else if (dest->value.tag == RVT_GET_ELEMENT || dest->value.tag == RVT_GET_PTR)
+        else if (dest->value.tag == RVT_GET_ELEMENT || dest->value.tag == RVT_GET_PTR || dest->value.tag == RVT_LOAD)
         {
             //      hardware.addLockRegister(dest);
             Visit(src, id);
@@ -207,7 +207,7 @@ void Visit(const RawStore &data, const RawValueP &value, int id)
             else
                 cout << "  sw  " << SrcReg << ", " << 0 << '(' << ElementReg << ')' << endl;
         }
-        else{
+        else {
             cerr << "dest's Ty Kind: " << dest->value.tag << endl;
             assert(0);
         }
@@ -637,6 +637,16 @@ void Visit(const RawValueP &value, int id)
     {
         // cout << "alloc" << endl;
         hardware.StackAlloc(value);
+        if(value->identType != IDENT_VAR) {
+            auto offset = hardware.getTargetOffset(value);
+            auto reg = hardware.GetRegister(value, id);
+            if(offset > 2047) {
+                cout << "   li   t0, " << offset << endl;
+                cout << "   add " << reg << ", sp, t0" << endl;
+            } else {
+                cout << "   addi  " << reg << ", sp, " << offset << endl;
+            }
+        }
         break;
     }
     case RVT_LOAD:

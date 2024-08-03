@@ -342,6 +342,12 @@ void make_def_use(vector<RawBasicBlockP> bbbuffer){
                                 auto qq=(y->value.ret.value);
                                 if(qq!=NULL&&qq->ty!=NULL){
                                 if(cktag(qq)) use[mp[it]].push_back(qq);
+                                if(!mp[qq]){
+                                        mp[qq]=++cnt;
+                                        INST.push_back(qq);
+                                        def[cnt].clear();use[cnt].clear();
+                                        def[mp[it]].push_back(qq);
+                                    }
                                 }
                                 break;
                             }
@@ -645,7 +651,15 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
                 vis[{u1,v1}]=vis[{v1,u1}]=1;
                }
             }
-        
+        if(it->value.tag == RVT_GET_ELEMENT || it->value.tag == RVT_GET_PTR) {
+            int u = registerManager.vp[id][it];
+            for(auto use : use[mp[it]]){
+                int v = registerManager.vp[id][use];
+                registerManager.g[u].push_back(v);
+                registerManager.g[v].push_back(u);
+                vis[{it,use}]=vis[{use,it}]=1;
+            }
+        }
     }
 
     // cout<<tot<<endl;
