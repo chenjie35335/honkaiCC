@@ -165,7 +165,8 @@ void check(RawValueP y,map<RawValueP,int>&vdef){
                     // }
                     vdef[y]=1;
                     midl.push_back(y);
-                  } else{
+                  }
+                  else{
                     auto x= y->value.tag; 
                         switch(x){
                             case RVT_FLOAT:{
@@ -341,6 +342,12 @@ void make_def_use(vector<RawBasicBlockP> bbbuffer){
                                 auto qq=(y->value.ret.value);
                                 if(qq!=NULL&&qq->ty!=NULL){
                                 if(cktag(qq)) use[mp[it]].push_back(qq);
+                                if(!mp[qq]){
+                                        mp[qq]=++cnt;
+                                        INST.push_back(qq);
+                                        def[cnt].clear();use[cnt].clear();
+                                        def[mp[it]].push_back(qq);
+                                    }
                                 }
                                 break;
                             }
@@ -626,13 +633,6 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
  
         for(auto it:INST){
         int cnt=mp[it];
-        // cout<<cnt<<":"<<endl;
-        // cout<<"IN:";
-        // for(auto it:in[cnt]) cout<<mp[it]<<" ";
-        //         cout<<endl;
-        //         cout<<"OUT:";
-        //         for(auto it:out[cnt]) cout<<mp[it]<<" ";
-        //         cout<<endl;
         for(auto u1:in[cnt]){
             for(auto v1:in[cnt])if(u1!=v1){
                 if(vis[{u1,v1}]) continue;
@@ -655,7 +655,7 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
             int u = registerManager.vp[id][it];
             for(auto use : use[mp[it]]){
                 int v = registerManager.vp[id][use];
-                registerManager.g[u].push_back(mp[use]);
+                registerManager.g[u].push_back(v);
                 registerManager.g[v].push_back(u);
                 vis[{it,use}]=vis[{use,it}]=1;
             }
@@ -1029,8 +1029,8 @@ void HardwareManager::InitallocReg(vector<RawBasicBlockP> &bbbuffer,int id,vecto
         //  for(int i=1;i<=m;i++){
         //     RawValueP ee=registerManager.rvp[id][i];
         //     int e=mp[ee];
-        //     cout<<e<<":  ";
-        //     cout<<"valuekind: " << ee->value.tag <<" confict:";
+        //     cout<<e<<":";
+        //     cout<<registerManager.g[i].size()<<" ";
         //     for(auto it:registerManager.g[i]){
         //         cout<<it<<" ";
         //     }

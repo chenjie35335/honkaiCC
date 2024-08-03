@@ -67,7 +67,7 @@ void Visit(const RawLoad &data, const RawValueP &value, int id)
                 cout << "  lw   " << TargetReg << ", " << srcAddress << "(sp)" << endl;
         }
     }
-    else if (src->value.tag == RVT_GET_ELEMENT || src->value.tag == RVT_GET_PTR)
+    else if (src->value.tag == RVT_GET_ELEMENT || src->value.tag == RVT_GET_PTR || src->value.tag == RVT_LOAD)
     {
         //        hardware.addLockRegister(src);
         hardware.AllocRegister(value, id);
@@ -81,17 +81,7 @@ void Visit(const RawLoad &data, const RawValueP &value, int id)
     }
     else
     {
-        hardware.AllocRegister(value, id);
-        string TargetReg = hardware.GetRegister(value, id);
-        string preReg = hardware.GetRegister(src, id);
-        cout << "  mv  " << TargetReg << ", " << preReg << endl;
-        // cout << src->value.tag << "!!!" << endl;
-        // cout << src->value.load.src->value.tag << endl;
-        // cout << src->name << endl;
-        // cout << value->value.tag << endl;
-        // cout<<fff[value]<<endl;
-        // cout<<fff[src]<<endl;
-        // exit(0);
+        assert(0);
     }
 }
 // 全局处理aggregate类型
@@ -196,7 +186,7 @@ void Visit(const RawStore &data, const RawValueP &value, int id)
                     cout << "  sw  " << SrcReg << ", " << srcAddress << "(sp)" << endl;
             }
         }
-        else if (dest->value.tag == RVT_GET_ELEMENT || dest->value.tag == RVT_GET_PTR)
+        else if (dest->value.tag == RVT_GET_ELEMENT || dest->value.tag == RVT_GET_PTR || dest->value.tag == RVT_LOAD)
         {
             //      hardware.addLockRegister(dest);
             Visit(src, id);
@@ -207,7 +197,7 @@ void Visit(const RawStore &data, const RawValueP &value, int id)
             else
                 cout << "  sw  " << SrcReg << ", " << 0 << '(' << ElementReg << ')' << endl;
         }
-        else{
+        else {
             cerr << "dest's Ty Kind: " << dest->value.tag << endl;
             assert(0);
         }
@@ -637,6 +627,16 @@ void Visit(const RawValueP &value, int id)
     {
         // cout << "alloc" << endl;
         hardware.StackAlloc(value);
+        if(value->identType != IDENT_VAR) {
+            auto offset = hardware.getTargetOffset(value);
+            auto reg = hardware.GetRegister(value, id);
+            if(offset > 2047) {
+                cout << "   li   t0, " << offset << endl;
+                cout << "   add " << reg << ", sp, t0" << endl;
+            } else {
+                cout << "   addi  " << reg << ", sp, " << offset << endl;
+            }
+        }
         break;
     }
     case RVT_LOAD:
