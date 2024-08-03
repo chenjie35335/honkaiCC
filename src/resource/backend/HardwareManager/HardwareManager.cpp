@@ -929,6 +929,7 @@ void HardwareManager::spill(vector<RawBasicBlockP> &bbbuffer,int id,vector<RawVa
             alloc->ty = (RawTypeP)ty;
             alloc->value.tag = RVT_ALLOC;
             alloc->name="qqq";
+            alloc->identType = IDENT_VAR;
             aloc=alloc;
 
             //store
