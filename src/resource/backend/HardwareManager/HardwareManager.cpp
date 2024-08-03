@@ -141,20 +141,42 @@ void HardwareManager::LoadFromMemory(const RawValueP &value,int id)
     // int TargetOffset = getTargetOffset(value);
     // cout << "  lw  " << reg << ", " << TargetOffset << "(sp)" << endl;
 }
+bool cktag(RawValueP value){
+    if(!value->ty) return false;
+    if(!(value->ty->tag)) return false;
+    if(value->ty->tag == RTT_UNIT) return false;
+    else if(value->ty->tag == RTT_FUNCTION) return false;
+    else if(value->ty->tag == RTT_POINTER) {
+        if(value->identType == IDENT_VAR) return false;
+        else return true;
+    } else {
+        return true;
+    }
+}
 int m=0;
 vector<RawValueP> midl;
 void check(RawValueP y,map<RawValueP,int>&vdef){
                 if(vdef[y]) return;
                 uint32_t e=(y->ty->tag);
-                if(e==RTT_INT32||e==RTT_POINTER){
-                    if(y->value.tag==RVT_ALLOC){
-                        return;
-                    }
+                if(cktag(y)){
+                    // if(y->value.tag==RVT_ALLOC){
+                    //     return;
+                    // }
                     vdef[y]=1;
                     midl.push_back(y);
-                  } else{
+                  }
+                  else{
                     auto x= y->value.tag; 
                         switch(x){
+                            case RVT_FLOAT:{
+                                break;
+                            }
+                            case RVT_INTEGER:{
+                                break;
+                            }
+                            case RVT_FUNC_ARGS:{
+                                break;
+                            }
                             case RVT_GLOBAL:{
                                 break;
                             }
@@ -239,13 +261,8 @@ void check(RawValueP y,map<RawValueP,int>&vdef){
                                 for(auto  it:vec) check(it,vdef);
                                 break;
                             }
-                            case RVT_VALUECOPY:{
-                                auto qq=(y->value.valueCop.target);
-                                check(qq,vdef);
-                                break;
-                            }
                             default:{
-                                cout << "unknown kind: " << y->value.tag << endl;
+                                cerr << "unknown kind: " << y->value.tag << endl;
                                 assert(false);
                             }
                         }
@@ -260,12 +277,16 @@ void make_def_use(vector<RawBasicBlockP> bbbuffer){
     for(auto bb:bbbuffer){
         for(auto it:bb->inst){
             int xx=it->ty->tag;
-            if(xx==0||xx==4){
-                def[mp[it]].push_back(it);
-            }
+            
             auto x= it->value.tag;
             auto y=it;
+            if(cktag(it)){
+                def[mp[it]].push_back(it);
+            }
                         switch(x){
+                            case RVT_FUNC_ARGS:{
+                                break;
+                            }
                             case RVT_GLOBAL:{
                                 break;
                             }
@@ -281,7 +302,7 @@ void make_def_use(vector<RawBasicBlockP> bbbuffer){
                             case RVT_LOAD:{
                                 auto qq=(y->value.load.src);
                                 if(qq->ty!=NULL){
-                                    if(qq->ty->tag==0||qq->ty->tag==4) use[mp[it]].push_back(qq);
+                                    if(cktag(qq)) use[mp[it]].push_back(qq);
                                     if(!mp[qq]){
                                         mp[qq]=++cnt;
                                         INST.push_back(qq);
@@ -296,7 +317,7 @@ void make_def_use(vector<RawBasicBlockP> bbbuffer){
                                 auto qq=(y->value.store.value);    
                                 auto qqq=(y->value.store.dest);
                                 if(qq->ty!=NULL){
-                                    if(qq->ty->tag==0||qq->ty->tag==4) use[mp[it]].push_back(qq);
+                                    if(cktag(qq)) use[mp[it]].push_back(qq);
                                     if(!mp[qq]){
                                         mp[qq]=++cnt;
                                         INST.push_back(qq);
@@ -312,27 +333,27 @@ void make_def_use(vector<RawBasicBlockP> bbbuffer){
                                         def[cnt].clear();use[cnt].clear();
                                         def[mp[it]].push_back(qqq);
                                     }
-                                if(qqq->ty->tag==0||qqq->ty->tag==4) use[mp[it]].push_back(qqq);
+                                if(cktag(qqq)) use[mp[it]].push_back(qqq);
                                 }
                                 break;
                             }
                             case RVT_RETURN:{
                                 auto qq=(y->value.ret.value);
                                 if(qq!=NULL&&qq->ty!=NULL){
-                                if(qq->ty->tag==0||qq->ty->tag==4) use[mp[it]].push_back(qq);
+                                if(cktag(qq)) use[mp[it]].push_back(qq);
                                 }
                                 break;
                             }
                             case RVT_BINARY:{
                                 auto qq=(y->value.binary.lhs);
                                 auto qqq=(y->value.binary.rhs);
-                                if(qq->ty->tag==0||qq->ty->tag==4) use[mp[it]].push_back(qq);
-                                if(qqq->ty->tag==0||qqq->ty->tag==4) use[mp[it]].push_back(qqq);
+                                if(cktag(qq)) use[mp[it]].push_back(qq);
+                                if(cktag(qqq)) use[mp[it]].push_back(qqq);
                                 break;
                             }
                             case RVT_BRANCH:{
                                 auto qq=(y->value.branch.cond);
-                                if(qq->ty->tag==0||qq->ty->tag==4) use[mp[it]].push_back(qq);
+                                if(cktag(qq)) use[mp[it]].push_back(qq);
                                 break;
                                 //block 处理
                             }
@@ -387,7 +408,7 @@ void make_def_use(vector<RawBasicBlockP> bbbuffer){
                                 break;
                             }
                             default:{
-                                cout << "unknown kind: " << y->value.tag << endl;
+                                cerr << "unknown kind: " << y->value.tag << endl;
                                 assert(false); 
                             }
                         }
@@ -929,6 +950,7 @@ void HardwareManager::spill(vector<RawBasicBlockP> &bbbuffer,int id,vector<RawVa
             alloc->ty = (RawTypeP)ty;
             alloc->value.tag = RVT_ALLOC;
             alloc->name="qqq";
+            alloc->identType=IDENT_VAR;
             aloc=alloc;
 
             //store

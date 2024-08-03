@@ -1153,7 +1153,7 @@ void generateASM(RawProgramme *&programme)
             }
             while (1)
             {
-                // cout<<func->name<<endl;
+            //    cout<<func->name<<endl;
                 int x = hardware.struct_graph(buf, cnt, cuf);
                 if (x)
                     break;
