@@ -165,8 +165,7 @@ void check(RawValueP y,map<RawValueP,int>&vdef){
                     // }
                     vdef[y]=1;
                     midl.push_back(y);
-                  }
-                  else{
+                  } else{
                     auto x= y->value.tag; 
                         switch(x){
                             case RVT_FLOAT:{
@@ -627,6 +626,13 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
  
         for(auto it:INST){
         int cnt=mp[it];
+        // cout<<cnt<<":"<<endl;
+        // cout<<"IN:";
+        // for(auto it:in[cnt]) cout<<mp[it]<<" ";
+        //         cout<<endl;
+        //         cout<<"OUT:";
+        //         for(auto it:out[cnt]) cout<<mp[it]<<" ";
+        //         cout<<endl;
         for(auto u1:in[cnt]){
             for(auto v1:in[cnt])if(u1!=v1){
                 if(vis[{u1,v1}]) continue;
@@ -645,7 +651,15 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
                 vis[{u1,v1}]=vis[{v1,u1}]=1;
                }
             }
-        
+        if(it->value.tag == RVT_GET_ELEMENT || it->value.tag == RVT_GET_PTR) {
+            int u = registerManager.vp[id][it];
+            for(auto use : use[mp[it]]){
+                int v = registerManager.vp[id][use];
+                registerManager.g[u].push_back(mp[use]);
+                registerManager.g[v].push_back(u);
+                vis[{it,use}]=vis[{use,it}]=1;
+            }
+        }
     }
 
     // cout<<tot<<endl;
@@ -1015,8 +1029,8 @@ void HardwareManager::InitallocReg(vector<RawBasicBlockP> &bbbuffer,int id,vecto
         //  for(int i=1;i<=m;i++){
         //     RawValueP ee=registerManager.rvp[id][i];
         //     int e=mp[ee];
-        //     cout<<e<<":";
-        //     cout<<registerManager.g[i].size()<<" ";
+        //     cout<<e<<":  ";
+        //     cout<<"valuekind: " << ee->value.tag <<" confict:";
         //     for(auto it:registerManager.g[i]){
         //         cout<<it<<" ";
         //     }

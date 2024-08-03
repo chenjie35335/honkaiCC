@@ -531,7 +531,7 @@ void Visit(const RawGetElement &data, const RawValueP &value, int id)
         cout << "  li  " << "t0" << ", " << elementLen << endl;
         cout << "  mul " << IndexReg << ", " << IndexReg << ", " << "t0" << endl;
     }
-    cout << "  add  " << ptrReg << ", " << srcAddrReg << ", " << IndexReg << endl;
+    cout << "  add  " << ptrReg << ", " << srcAddrReg << ", " << IndexReg << endl << endl;
 }
 
 // 这个Value是重点，如果value已经被分配了寄存器，直接返回
