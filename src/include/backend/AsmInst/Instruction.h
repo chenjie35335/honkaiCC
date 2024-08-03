@@ -34,7 +34,9 @@ enum Type{
             RISCV_FLTS, //flt.s指令
             RISCV_FEQS, //feq.s指令
             RISCV_BNEZ, //bneq指令
-            RISCV_J     //j指令
+            RISCV_J,     //j指令
+            RISCV_SD,     //sd指令
+            RISCV_LD,     //ld指令
         };
 //个人感觉还是应该单独来看方便一点
 class AsmInst {//首先我要确定一下inst里面有什么，首先是指令的种类
@@ -66,7 +68,11 @@ class AsmInst {//首先我要确定一下inst里面有什么，首先是指令�
      //这里可能和标准指令的格式不太一样
     static AsmInst * CreateLa(uint32_t rd,string label);//创建La指令
     static AsmInst * CreateLw(uint32_t rd,uint32_t rs1,int imm);//创建lw指令
-    static AsmInst * CreateSw(uint32_t rd,uint32_t rs1,int imm);//创建sw指令
+    static AsmInst * CreateLw(uint32_t rd,string label);
+    static AsmInst * CreateLd(uint32_t rd, uint32_t rs1, int imm); //创建ld指令
+    static AsmInst * CreateSw(uint32_t rd,uint32_t rs1,int imm);
+    static AsmInst *CreateSd(uint32_t rd, uint32_t rs1, int imm);
+    // 创建sw指令
     static AsmInst * CreateLi(uint32_t rd,int imm);//创建li指令
     static AsmInst * CreateMv(uint32_t rd,int rs1);//创建mv指令
     static AsmInst * CreateAddi(uint32_t rd, uint32_t rs1, int imm);//创建addi指令

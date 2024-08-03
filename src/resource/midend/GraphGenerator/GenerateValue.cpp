@@ -108,8 +108,8 @@ void generateRawValue(int32_t number)
         auto bb = getTempBasicBlock();
         RawValue * value = generateNumber(number);
         if(bb != nullptr) {
-        auto &insts = bb->inst;
-        insts.push_back(value);
+            auto &insts = bb->inst;
+            insts.push_back(value);
         }
         signTable.insertNumber(number,value);
 }

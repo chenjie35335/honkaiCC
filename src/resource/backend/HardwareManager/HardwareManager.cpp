@@ -2,11 +2,13 @@
 #include "../../../include/backend/hardware/HardwareManager.h"
 #include "../../../include/midend/IR/ValueKind.h"
 #include "../../../include/midend/ValueTable/SignTable.h"
+#include "../../../include/backend/InstAlloc/InstAlloc.h"
+#include "../../../include/backend/AsmInst/Instruction.h"
 #include <random>
 #include<bits/stdc++.h>
 using namespace std;
 extern HardwareManager hardware;
-
+extern InstAlloc instAlloc;
 int checkuse(RawValue * y,RawValueP xx,int op);
 int ValueArea::getTargetOffset(const RawValueP &value) const
 {
@@ -143,7 +145,6 @@ void HardwareManager::LoadFromMemory(const RawValueP &value,int id)
 }
 bool cktag(RawValueP value){
     if(!value->ty) return false;
-    if(!(value->ty->tag)) return false;
     if(value->ty->tag == RTT_UNIT) return false;
     else if(value->ty->tag == RTT_FUNCTION) return false;
     else if(value->ty->tag == RTT_POINTER) {
@@ -541,7 +542,7 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
             else if(flg==RVT_RETURN){
                 ;
             }
-                else if(j!=INST.end()&&flg!=RVT_RETURN)
+            else if(j!=INST.end()&&flg!=RVT_RETURN)
                 nxt[x].push_back(*(j));
         }
 
@@ -1226,6 +1227,13 @@ void RegisterArea::LoadRegister(int reg)
         cout << "  add t0, sp, t0" << endl;
         cout << "  ld  " << RegisterManager::regs[reg] << ", " << 0 << "(t0)" << endl;
     }
+    if(tempOffset <= 2047) {
+        instAlloc.tempFunction->saveRegister.push_back(AsmInst::CreateLd(reg,SP,offset));
+    } else {
+        instAlloc.tempFunction->saveRegister.push_back(AsmInst::CreateLi(T0,offset));
+        instAlloc.tempFunction->saveRegister.push_back(AsmInst::CreateAdd(T0,SP,T0));
+        instAlloc.tempFunction->saveRegister.push_back(AsmInst::CreateLd(reg,T0,0));
+    }
 }
 
 //fregs
@@ -1262,6 +1270,13 @@ void RegisterArea::SaveRegister(int reg)
         cout << "  li  t0," << RegOffset << endl;
         cout << "  add t0, sp, t0" << endl;
         cout << "  sd  " << RegisterManager::regs[reg] << ", " << 0 << "(t0)" << endl; // 这个方法虽然蠢但是是正确的
+    }
+    if(tempOffset <= 2047) {
+        instAlloc.tempFunction->saveRegister.push_back(AsmInst::CreateSd(reg,SP,RegOffset));
+    } else {
+        instAlloc.tempFunction->saveRegister.push_back(AsmInst::CreateLi(T0,RegOffset));
+        instAlloc.tempFunction->saveRegister.push_back(AsmInst::CreateAdd(T0,SP,T0));
+        instAlloc.tempFunction->saveRegister.push_back(AsmInst::CreateSd(reg,T0,0));
     }
 }
 

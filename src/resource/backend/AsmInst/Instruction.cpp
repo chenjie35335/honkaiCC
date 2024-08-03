@@ -1,6 +1,7 @@
 #include "../../../include/backend/AsmInst/Instruction.h"
 #include "../../../include/backend/hardware/HardwareManager.h"
 #include <cassert>
+#include "Instruction.h"
 
 
 AsmInst *AsmInst::CreateAdd(uint32_t rd, uint32_t rs1, uint32_t rs2){
@@ -45,6 +46,21 @@ AsmInst * AsmInst::CreateLw(uint32_t rd,uint32_t rs1,int imm){
 
 AsmInst * AsmInst::CreateSw(uint32_t rd,uint32_t rs1,int imm){
     AsmInst *inst = new AsmInst(RISCV_LW,rs1,0,rd,imm,0,0,0,0,"");
+    return inst;
+}
+
+AsmInst * AsmInst::CreateSd(uint32_t rd,uint32_t rs1,int imm){
+    AsmInst *inst = new AsmInst(RISCV_SD,rs1,0,rd,imm,0,0,0,0,"");
+    return inst;
+}
+
+AsmInst * AsmInst::CreateLd(uint32_t rd,uint32_t rs1,int imm){
+    AsmInst *inst = new AsmInst(RISCV_LD,rs1,0,rd,imm,0,0,0,0,"");
+    return inst;
+}
+
+AsmInst *AsmInst::CreateLw(uint32_t rd,string label) {
+    AsmInst *inst = new AsmInst(RISCV_LW,0,0,rd,0,0.0,0,0,0,label);
     return inst;
 }
 
@@ -179,9 +195,13 @@ ostream & operator << (ostream &os,const AsmInst &inst){
         case RISCV_MV:
             os << "\t" << "mv " << rd << ", " << rs1 << endl;
             break;
-        case RISCV_LW:
-            os << "\t" << "lw " << rd << ", " << inst.imm << "(" << rs1 << ")" << endl;
+        case RISCV_LW:{
+            if(inst.rs1 != 0)
+                os << "\t" << "lw " << rd << ", " << inst.imm << "(" << rs1 << ")" << endl;
+            else 
+                os << "\t" << "lw" << rd << ", " << inst.label << endl;
             break;
+        }
         case RISCV_SW:
             os << "\t" << "sw " << rd << ", " << inst.imm << "(" << rs1 << ")" << endl;
             break;

@@ -38,12 +38,12 @@ void Visit(const RawLoad &data, const RawValueP &value, int id)
     {
         hardware.AllocRegister(value, id);
         string TargetReg = hardware.GetRegister(value, id);
-        cout << "  la  " << TargetReg << ", " << src->name << endl;
+        // cout << "  la  " << TargetReg << ", " << src->name << endl;
 
-        if (value->name != NULL && value->name == "WWw")
-            cout << "  ld  " << TargetReg << ", " << 0 << '(' << TargetReg << ')' << endl;
-        else
-            cout << "  lw  " << TargetReg << ", " << 0 << '(' << TargetReg << ')' << endl;
+        // if (value->name != NULL && value->name == "WWw")
+        //     cout << "  ld  " << TargetReg << ", " << src->name << endl;
+        // else
+        cout << "  lw  " << TargetReg << ", " << src->name << endl;
     }
     else if (hardware.IsMemory(src))
     {
@@ -66,9 +66,6 @@ void Visit(const RawLoad &data, const RawValueP &value, int id)
             else
                 cout << "  lw   " << TargetReg << ", " << srcAddress << "(sp)" << endl;
         }
-        // if(hardware.registerManager.sadd[value]){
-        //         cout << "  add " << TargetReg<< ", sp ," << TargetReg << endl;
-        //     }
     }
     else if (src->value.tag == RVT_GET_ELEMENT || src->value.tag == RVT_GET_PTR)
     {
@@ -286,7 +283,6 @@ void Visit(const RawBinary &data, const RawValueP &value, int id)
     case RBO_AND:
         cout << "  and  " << ValueRegister << ", " << LhsRegister << ", " << RhsRegister << endl;
         break;
-    // float
     // 浮点寄存器的选择策略需要改
     case RBO_FADD:
         cout << "  fadd.s  " << ValueRegister << ", " << LhsRegister << ", " << RhsRegister << endl;
@@ -301,10 +297,10 @@ void Visit(const RawBinary &data, const RawValueP &value, int id)
         cout << "  fdiv.s  " << ValueRegister << ", " << LhsRegister << ", " << RhsRegister << endl;
         break;
     // s表示单精度，我们只用实现float
-    case RBO_FGE: // no
+    case RBO_FGE:
         cout << "  fge.s  " << ValueRegister << ", " << LhsRegister << ", " << RhsRegister << endl;
         break;
-    case RBO_FGT: // no
+    case RBO_FGT:
         cout << "  fgt.s  " << ValueRegister << ", " << LhsRegister << ", " << RhsRegister << endl;
         break;
     case RBO_FLE:
@@ -313,7 +309,7 @@ void Visit(const RawBinary &data, const RawValueP &value, int id)
     case RBO_FLT:
         cout << "  flt.s  " << ValueRegister << ", " << LhsRegister << ", " << RhsRegister << endl;
         break;
-    case RBO_NOT_FEQ: // no
+    case RBO_NOT_FEQ:
         cout << "  fneq.s  " << ValueRegister << ", " << LhsRegister << ", " << RhsRegister << endl;
         break;
     case RBO_FEQ:
