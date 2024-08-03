@@ -111,6 +111,7 @@ void generateRawValue(int32_t number)
             auto &insts = bb->inst;
             insts.push_back(value);
         }
+        //
         signTable.insertNumber(number,value);
 }
 
