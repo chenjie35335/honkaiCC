@@ -272,7 +272,7 @@ void check(RawValueP y,map<RawValueP,int>&vdef){
 const int M=50005,N=25;
 vector<RawValueP> def[M],use[M];
 map<RawValueP,int> mp;
-vector<RawValueP> INST;
+list<RawValueP> INST;
      int cnt=0;
 void make_def_use(vector<RawBasicBlockP> bbbuffer){
     for(auto bb:bbbuffer){
@@ -302,52 +302,20 @@ void make_def_use(vector<RawBasicBlockP> bbbuffer){
                             }
                             case RVT_LOAD:{
                                 auto qq=(y->value.load.src);
-                                if(qq->ty!=NULL){
-                                    if(cktag(qq)) use[mp[it]].push_back(qq);
-                                    if(!mp[qq]){
-                                        mp[qq]=++cnt;
-                                        INST.push_back(qq);
-                                        def[cnt].clear();use[cnt].clear();
-                                        def[mp[it]].push_back(qq);
-                                    }
-                                }
-                                
+                                if(cktag(qq)) use[mp[it]].push_back(qq);
                                 break;
                             }
                             case RVT_STORE:{
                                 auto qq=(y->value.store.value);    
                                 auto qqq=(y->value.store.dest);
-                                if(qq->ty!=NULL){
-                                    if(cktag(qq)) use[mp[it]].push_back(qq);
-                                    if(!mp[qq]){
-                                        mp[qq]=++cnt;
-                                        INST.push_back(qq);
-                                        def[cnt].clear();use[cnt].clear();
-                                        def[mp[it]].push_back(qq);
-                                    }
-                                }
-                                
-                                if(qqq->ty!=NULL){
-                                if(!mp[qqq]){
-                                        mp[qqq]=++cnt;
-                                        INST.push_back(qqq);
-                                        def[cnt].clear();use[cnt].clear();
-                                        def[mp[it]].push_back(qqq);
-                                    }
+                                if(cktag(qq)) use[mp[it]].push_back(qq);
                                 if(cktag(qqq)) use[mp[it]].push_back(qqq);
-                                }
                                 break;
                             }
                             case RVT_RETURN:{
                                 auto qq=(y->value.ret.value);
-                                if(qq!=NULL&&qq->ty!=NULL){
-                                if(cktag(qq)) use[mp[it]].push_back(qq);
-                                if(!mp[qq]){
-                                        mp[qq]=++cnt;
-                                        INST.push_back(qq);
-                                        def[cnt].clear();use[cnt].clear();
-                                        def[mp[it]].push_back(qq);
-                                    }
+                                if(qq!=NULL){
+                                    if(cktag(qq)) use[mp[it]].push_back(qq);
                                 }
                                 break;
                             }
@@ -369,54 +337,26 @@ void make_def_use(vector<RawBasicBlockP> bbbuffer){
                             }
                             case RVT_CALL:{
                                 for(auto itt:y->value.call.args){
-                                    use[mp[it]].push_back(itt);
+                                    if(cktag(itt)) use[mp[it]].push_back(itt);
                                 }
                                 break;
                             }
                             case RVT_GET_PTR:{
                                 auto qq=(y->value.getptr.index);
                                 auto qqq=(y->value.getptr.src);
-                                use[mp[it]].push_back(qq);
-                                use[mp[it]].push_back(qqq);
-                                if(!mp[qq]){
-                                        mp[qq]=++cnt;
-                                        INST.push_back(qq);
-                                        def[cnt].clear();use[cnt].clear();
-                                        def[mp[it]].push_back(qq);
-                                    }
-                                if(!mp[qqq]){
-                                        mp[qqq]=++cnt;
-                                        INST.push_back(qqq);
-                                        def[cnt].clear();use[cnt].clear();
-                                        def[mp[it]].push_back(qqq);
-                                    }
+                                if(cktag(qq)) use[mp[it]].push_back(qq);
+                                if(cktag(qqq)) use[mp[it]].push_back(qqq);
                                 break;
                             }
                             case RVT_GET_ELEMENT:{
                                 auto qq=(y->value.getelement.src);
                                 auto qqq=(y->value.getelement.index);
-                                 use[mp[it]].push_back(qq);
-                                 use[mp[it]].push_back(qqq); 
-                                 if(!mp[qq]){
-                                        mp[qq]=++cnt;
-                                        INST.push_back(qq);
-                                        def[cnt].clear();use[cnt].clear();
-                                        def[mp[it]].push_back(qq);
-                                    }
-                                 if(!mp[qqq]){
-                                        mp[qqq]=++cnt;
-                                        INST.push_back(qqq);
-                                        def[cnt].clear();use[cnt].clear();
-                                        def[mp[it]].push_back(qqq);
-                                    }
-                                break;
-                            }
-                            case RVT_AGGREGATE:{
+                                if(cktag(qq)) use[mp[it]].push_back(qq);
+                                if(cktag(qqq)) use[mp[it]].push_back(qqq); 
                                 break;
                             }
                             default:{
-                                cerr << "unknown kind: " << y->value.tag << endl;
-                                assert(false); 
+                                break;
                             }
                         }
         }
@@ -441,61 +381,167 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
     vector<RawValueP> in[M],out[M],lin[M],lout[M];
     mp.clear();
     vector<RawValueP> nxt[M];
-    int ko=0;
-    RawValueP yy;
     cnt=0;
-    for(auto it:cuf){
+    for(auto it:cuf){//这一步的工作就是要创建inst
         if(it->value.funcArgs.index>=8) break;
-  //      cout<<it->value.funcArgs.index<<endl;
         cnt++;
         INST.push_back(it);
         mp[it]=cnt;
         def[cnt].clear();use[cnt].clear();
         def[cnt].push_back(it);
     }
-    // cout<<"!!!"<<endl;
-    // int res=0;
 
     for(auto bb:bbbuffer){
         auto &insts=bb->inst;
-        for(auto it=insts.begin();it!=insts.end();it++){
-            if(!ko){
-                ko=1;yy=*it;
+        for(auto inst : insts){
+            auto Type = inst->value.tag;
+            switch(Type) {
+                            case RVT_ALLOC:{
+                                mp[inst]=++cnt;
+                                INST.push_back(inst);
+                                def[cnt].clear();use[cnt].clear();
+                                break;
+                            }
+                            case RVT_LOAD:{
+                                auto src=(inst->value.load.src);
+                                if(!mp[src]){
+                                    mp[src]=++cnt;
+                                    if(src->value.tag == RVT_GLOBAL)
+                                        INST.push_front(src);
+                                    else 
+                                        INST.push_back(src);
+                                    def[cnt].clear();use[cnt].clear();
+                                }
+                                mp[inst]=++cnt;
+                                INST.push_back(inst);
+                                def[cnt].clear();use[cnt].clear();
+                                break;
+                            }
+                            case RVT_STORE:{
+                                auto value=(inst->value.store.value);    
+                                auto dest=(inst->value.store.dest);
+                                if(!mp[value]){
+                                        mp[value]=++cnt;
+                                        INST.push_back(value);
+                                        def[cnt].clear();use[cnt].clear();
+                                }
+                                if(!mp[dest]){
+                                        mp[dest]=++cnt;
+                                        if(dest->value.tag == RVT_GLOBAL)
+                                            INST.push_front(dest);
+                                        else 
+                                            INST.push_back(dest);
+                                        def[cnt].clear();use[cnt].clear();
+                                }
+                                mp[inst]=++cnt;
+                                INST.push_back(inst);
+                                def[cnt].clear();use[cnt].clear();
+                                break;
+                            }
+                            case RVT_RETURN:{
+                                auto ret=(inst->value.ret.value);
+                                if(ret!=NULL){
+                                if(!mp[ret]){
+                                        mp[ret]=++cnt;
+                                        INST.push_back(ret);
+                                        def[cnt].clear();use[cnt].clear();
+                                    }
+                                }
+                                mp[inst]=++cnt;
+                                INST.push_back(inst);
+                                def[cnt].clear();use[cnt].clear();
+                                break;
+                            }
+                            case RVT_BINARY:{
+                                auto lhs=(inst->value.binary.lhs);
+                                auto rhs=(inst->value.binary.rhs);
+                                if(!mp[lhs]){
+                                        mp[lhs]=++cnt;
+                                        INST.push_back(lhs);
+                                        def[cnt].clear();use[cnt].clear();
+                                }
+                                if(!mp[rhs]){
+                                        mp[rhs]=++cnt;
+                                        INST.push_back(rhs);
+                                        def[cnt].clear();use[cnt].clear();
+                                }
+                                mp[inst]=++cnt;
+                                INST.push_back(inst);
+                                def[cnt].clear();use[cnt].clear();
+                                break;
+                            }
+                            case RVT_BRANCH:{
+                                auto cond=(inst->value.branch.cond);
+                                if(!mp[cond]){
+                                        mp[cond]=++cnt;
+                                        INST.push_back(cond);
+                                        def[cnt].clear();use[cnt].clear();
+                                }
+                                mp[inst]=++cnt;
+                                INST.push_back(inst);
+                                def[cnt].clear();use[cnt].clear();
+                                break;
+                                //block 处理
+                            }
+                            case RVT_JUMP:{
+                                mp[inst]=++cnt;
+                                INST.push_back(inst);
+                                def[cnt].clear();use[cnt].clear();
+                                break;
+                            }
+                            case RVT_CALL:{
+                                for(auto arg:inst->value.call.args){
+                                     if(!mp[arg]){
+                                        mp[arg]=++cnt;
+                                        INST.push_back(arg);
+                                        def[cnt].clear();use[cnt].clear();
+                                    }
+                                }
+                                mp[inst]=++cnt;
+                                INST.push_back(inst);
+                                def[cnt].clear();use[cnt].clear();
+                                break;
+                            }
+                            case RVT_GET_PTR:{
+                                auto index=(inst->value.getptr.index);
+                                auto src=(inst->value.getptr.src);
+                                if(!mp[index]){
+                                        mp[index]=++cnt;
+                                        INST.push_back(index);
+                                        def[cnt].clear();use[cnt].clear();
+                                    }
+                                if(!mp[src]){
+                                        mp[src]=++cnt;
+                                        if(src->value.tag == RVT_GLOBAL)
+                                            INST.push_front(src);
+                                        else 
+                                            INST.push_back(src);
+                                        def[cnt].clear();use[cnt].clear();
+                                    }
+                                break;
+                            }
+                            case RVT_GET_ELEMENT:{
+                                auto index=(inst->value.getelement.index);
+                                auto src=(inst->value.getelement.src);
+                                if(!mp[index]){
+                                        mp[index]=++cnt;
+                                        INST.push_back(index);
+                                        def[cnt].clear();use[cnt].clear();
+                                    }
+                                if(!mp[src]){
+                                        mp[src]=++cnt;
+                                        if(src->value.tag == RVT_GLOBAL)
+                                            INST.push_front(src);
+                                        else 
+                                            INST.push_back(src);
+                                        def[cnt].clear();use[cnt].clear();
+                                    }
+                                break;
+                            }
+                            default:{
+                                break; 
+                            }
             }
-            ++cnt;
-            //     if((*it)->value.tag==RVT_GET_ELEMENT){
-            //         auto qq=(*it)->value.getelement.src;
-            //         auto qqq=(*it)->value.getelement.index;
-            //         mp[qq]=cnt;INST.push_back(qq);
-            //         def[cnt].clear();use[cnt].clear();
-            //         if(qq->ty->tag==0||qq->ty->tag==4)
-            //         def[cnt].push_back(qq);
-            //         cnt++;
-            //         mp[qqq]=cnt;INST.push_back(qqq);
-            //         def[cnt].clear();use[cnt].clear();
-            //          if(qqq->ty->tag==0||qqq->ty->tag==4)
-            //         def[cnt].push_back(qqq);
-            //         cnt++;
-            // }
-
-            // if((*it)->value.tag==RVT_GET_PTR){
-            //         auto qq=(*it)->value.getptr.src;
-            //         auto qqq=(*it)->value.getptr.index;
-            //         mp[qq]=cnt;INST.push_back(qq);
-            //         def[cnt].clear();use[cnt].clear();
-            //          if(qq->ty->tag==0||qq->ty->tag==4)
-            //         def[cnt].push_back(qq);
-            //         cnt++;
-            //         mp[qqq]=cnt;INST.push_back(qqq);
-            //         def[cnt].clear();use[cnt].clear();
-            //          if(qqq->ty->tag==0||qqq->ty->tag==4)
-            //         def[cnt].push_back(qqq);
-            //         cnt++;
-            // }
-
-            mp[*it]=cnt;
-            INST.push_back(*it);
-            def[cnt].clear();use[cnt].clear();
         }
     }
     make_def_use(bbbuffer);
@@ -699,84 +745,6 @@ int checkuse(RawValue * y,RawValueP xx,int op){
         if(it==xx) return 2;
     }
     return 0;
-    //  uint32_t ee=(y->ty->tag);
-    //             if(ee==RTT_INT32){
-    //                 if((RawValueP)y==xx){
-    //                     return op;
-    //                 }
-    //               }
-                  
-    //                 uint32_t e=(y->value.tag);
-    //                 // cout<<e<<endl;
-    //                     switch(e){
-    //                         case RVT_INTEGER:{
-    //                             return 0;
-    //                         }
-    //                         case RVT_ALLOC:{
-    //                             return 0;
-    //                         }
-    //                         case RVT_LOAD:{
-    //                             return checkuse((RawValue*)y->value.load.src,xx,2);
-    //                         }
-    //                         case RVT_STORE:{
-    //                             return checkuse((RawValue*)y->value.store.value,xx,2)+checkuse((RawValue*)y->value.store.dest,xx,2);
-    //                         }
-    //                         case RVT_BRANCH:{
-    //                             return checkuse((RawValue*)y->value.branch.cond,xx,2);
-    //                         }
-    //                         case RVT_RETURN:{
-    //                             return checkuse((RawValue*)y->value.ret.value,xx,2);
-    //                         }
-    //                         case RVT_BINARY:{
-    //                             auto qq=(y->value.binary.lhs);
-    //                             auto qqq=(y->value.binary.rhs);
-    //                             int sum=0;
-    //                             sum=checkuse((RawValue *)qqq,xx,2)+checkuse((RawValue *)qq,xx,2);
-    //                             return sum;
-    //                         }
-    //                         case RVT_JUMP:{
-    //                             //块内处理
-    //                             // list<RawValue *> lst=(y->value.jump.target->inst);
-    //                             // solve(lst,xx);
-    //                             return 0;
-    //                         }
-    //                         case RVT_CALL:{
-    //                             RawFunctionP f=y->value.call.callee;
-    //                             int sum=0;
-    //                             for(auto it:(f->params)){
-    //                                 sum+=checkuse(it,xx,2);
-    //                             }
-    //                             return sum;
-    //                             // //func内处理：如何处理？
-                                
-                                
-    //                             // // for(auto it:(f->values)) check(it,vdef);
-    //                             // list<RawBasicBlock *> lst=(f->basicblock);
-    //                             // for(auto bb:lst){
-    //                             //     for(auto it:(bb->inst))
-    //                             //     solve((bb->inst),xx);
-    //                             // }
-    //                             // //vec是否处理,如何处理？暂时假定不处理
-                                
-    //                         }
-    //                         case RVT_FUNC_ARGS:{
-    //                             return 0;
-    //                         }
-    //                         // case RVT_GET_ELEMENT:{
-    //                         //     auto qq=(y->value.getelement.src);
-    //                         //     auto qqq=(y->value.getelement.index);
-    //                         //     int sum=checkuse((RawValue *)qq,xx,1)+checkuse((RawValue *)qqq,xx,2);
-    //                         //     return sum;
-    //                         // }
-    //                         // case RVT_VALUECOPY:{
-    //                         //     auto qq=(y->value.valueCop.target);
-    //                         //     return checkuse((RawValue *)qq,xx,1);
-    //                         // }
-    //                         default:{
-    //                             cout<<"checkusemiss"<<e<<endl;
-    //                             exit(0);
-    //                         }
-    //                     }
 }
 
 

@@ -107,10 +107,10 @@ void generateRawValue(int32_t number)
 {
         auto bb = getTempBasicBlock();
         RawValue * value = generateNumber(number);
-        if(bb != nullptr) {
-            auto &insts = bb->inst;
-            insts.push_back(value);
-        }
+        // if(bb != nullptr) {
+        //     auto &insts = bb->inst;
+        //     insts.push_back(value);
+        // }
         //
         signTable.insertNumber(number,value);
 }
@@ -131,10 +131,10 @@ void generateRawValue(float number)
 {
         auto bb = getTempBasicBlock();
         RawValue * value = generateFloat(number);
-        if(bb != nullptr) {
-        auto &insts = bb->inst;
-        insts.push_back(value);
-        }
+        // if(bb != nullptr) {
+        // auto &insts = bb->inst;
+        // insts.push_back(value);
+        // }
         //后面可能会产生很多bug，有些可以复用重载，有些得重新命名
         signTable.insertFnumber(number,value);
 }
