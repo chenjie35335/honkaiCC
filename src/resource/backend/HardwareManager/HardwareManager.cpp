@@ -968,7 +968,7 @@ void HardwareManager::spill(vector<RawBasicBlockP> &bbbuffer,int id,vector<RawVa
             alloc->identType=IDENT_VAR;
             alloc->identType = IDENT_VAR;
             aloc=alloc;
-
+            it->inst.insert(p,alloc);
             //store
             auto &instss = it->inst;
             RawValue *store = new RawValue();

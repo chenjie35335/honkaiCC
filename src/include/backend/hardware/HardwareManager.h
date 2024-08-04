@@ -62,6 +62,7 @@ public:
         //     tempOffset += len;
         //     return StackManager.at(value);
         // }
+            if(StackManager.find(value) != StackManager.end()) return StackManager.at(value);
             StackManager.insert(pair<RawValueP, int>(value, tempOffset));
             int len = GetLen(value);
             tempOffset += len;

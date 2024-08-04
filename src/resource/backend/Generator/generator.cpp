@@ -128,12 +128,15 @@ void Visit(const RawStore &data, const RawValueP &value, int id)
     const auto &src = data.value;
     const auto &dest = data.dest;
     // cout<< "store to "<< (dest->name)<<endl;
-    if (dest->value.tag == RVT_ALLOC && !malc[dest])
-    {
-        // cout << "allocating" << endl;
-        hardware.StackAlloc(dest);
+    // if (dest->value.tag == RVT_ALLOC && !malc[dest])
+    // {
+    //     // cout << "allocating" << endl;
+    //     hardware.StackAlloc(dest);
+    // }
+    if(src->value.tag == RVT_GLOBAL && src->identType != IDENT_VAR) {//直接store 非variable类型的全局变量，说明肯定是spill
+        auto reg = hardware.GetRegister(src,id);
+        cout << "  la  " << reg << ", " << src->name << endl;
     }
-
     if (src->value.tag == RVT_FUNC_ARGS && src->value.funcArgs.index >= 8)
     {
         int idd = src->value.funcArgs.index;
@@ -143,7 +146,7 @@ void Visit(const RawStore &data, const RawValueP &value, int id)
         cout << "  ld  " << regg << ", " << offsets << "(sp)" << endl;
     }
 
-        if (dest->value.tag == RVT_GLOBAL)
+        if (dest->value.tag == RVT_GLOBAL)//这个Dest是不会分配寄存器的
         {
             Visit(src, id);
             //        hardware.addLockRegister(src);

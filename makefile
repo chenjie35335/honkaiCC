@@ -143,14 +143,14 @@ koopa-test:
 	./build/compiler -koopa -o hello.koopa  hello.c
 	koopac hello.koopa | llc --filetype=obj -o hello.o
 	clang hello.o -L $$CDE_LIBRARY_PATH/native -lsysy -o hello
-	./hello
+	./hello < hello.in
 
 riscv-test:
 	./build/compiler -S -o hello.S hello.c 
 	clang hello.S -c -o hello.o -target riscv64-unknown-linux-elf -march=rv64im -mabi=lp64
 	ld.lld hello.o -L $$CDE_LIBRARY_PATH/riscv64 -lsys -o hello
 	riscv64-linux-gnu-objdump -d hello > hello.obj
-	qemu-riscv64-static hello 
+	qemu-riscv64-static hello < hello.in 
 
 gdb:
 	gdb --args ./build/compiler -riscv -o hello.S  hello.c
@@ -160,7 +160,7 @@ all:
 	sudo -S make
 
 riscv-debug:
-	qemu-riscv64-static -g 1234 hello &
+	qemu-riscv64-static -g 1234 hello < hello.in &
 	gdb-multiarch hello
 
 -include $(DEPS)
