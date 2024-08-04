@@ -38,46 +38,51 @@ void Visit(const RawLoad &data, const RawValueP &value, int id)
     {
         hardware.AllocRegister(value, id);
         string TargetReg = hardware.GetRegister(value, id);
-        // cout << "  la  " << TargetReg << ", " << src->name << endl;
-
-        // if (value->name != NULL && value->name == "WWw")
-        //     cout << "  ld  " << TargetReg << ", " << src->name << endl;
-        // else
-        cout << "  lw  " << TargetReg << ", " << src->name << endl;
+        cout << "  lw  " << TargetReg << ", " << src->name << endl;//目前global这样只有int型，所以不需要考虑其他的
     }
-    else if (hardware.IsMemory(src))
+    else if (src->value.tag == RVT_ALLOC)
     {
         hardware.AllocRegister(value, id);
         string TargetReg = hardware.GetRegister(value, id);
-        int srcAddress = hardware.getTargetOffset(src); // 这里有点好，直接跳过了visit过程
+        int srcAddress = hardware.getTargetOffset(src); 
+        auto PointerType = src->ty->pointer.base->tag;
         if (srcAddress > 2047)
         {
             cout << "  li   " << "t0, " << srcAddress << endl;
             cout << "  add  " << "t0, sp, t0" << endl;
             if (value->name != NULL && value->name == "WWw")
                 cout << "  ld  " << TargetReg << ", " << 0 << "(t0)" << endl;
-            else
+            else if(PointerType == RTT_INT32)
                 cout << "  lw  " << TargetReg << ", " << 0 << "(t0)" << endl;
+            else if(PointerType == RTT_FLOAT)
+                cout << "  flw  " << TargetReg << ", " << 0 << "(t0)" << endl;
+            else
+                cout << "  ld  " << TargetReg << ", " << 0 << "(t0)" << endl;
         }
         else
         {
             if (value->name != NULL && value->name == "WWw")
                 cout << "  ld   " << TargetReg << ", " << srcAddress << "(sp)" << endl;
-            else
+            else if(PointerType == RTT_INT32)
                 cout << "  lw   " << TargetReg << ", " << srcAddress << "(sp)" << endl;
+            else if(PointerType == RTT_FLOAT)
+                cout << "  flw   " << TargetReg << ", " << srcAddress << "(sp)" << endl;
+            else 
+                cout << "  ld   " << TargetReg << ", " << srcAddress << "(sp)" << endl;
         }
     }
     else if (src->value.tag == RVT_GET_ELEMENT || src->value.tag == RVT_GET_PTR || src->value.tag == RVT_LOAD)
     {
-        //        hardware.addLockRegister(src);
+        auto PointerType = src->ty->pointer.base->tag;
         hardware.AllocRegister(value, id);
         string TargetReg = hardware.GetRegister(value, id);
         string ElementReg = hardware.GetRegister(src, id);
-        if (value->name != NULL && value->name == "WWw")
-            cout << "  ld  " << TargetReg << ", " << 0 << '(' << ElementReg << ')' << endl;
-        else
+        if (PointerType == RTT_INT32)//getelementptr不需要考虑这个问题，因为不可能是WWw,只有可能是2
             cout << "  lw  " << TargetReg << ", " << 0 << '(' << ElementReg << ')' << endl;
-        // hardware.LeaseLockRegister(src);
+        else if(PointerType == RTT_FLOAT)
+            cout << "  flw  " << TargetReg << ", " << 0 << '(' << ElementReg << ')' << endl;
+        else
+            cout << "  ld  " << TargetReg << ", " << 0 << '(' << ElementReg << ')' << endl;
     }
     else
     {
@@ -132,18 +137,10 @@ void Visit(const RawStore &data, const RawValueP &value, int id)
     if (src->value.tag == RVT_FUNC_ARGS && src->value.funcArgs.index >= 8)
     {
         int idd = src->value.funcArgs.index;
-        // if (FF[idd] != -1)
-        // {
         int stackLen = hardware.getStackSize();
         int offsets = stackLen + (idd - 8) * 8;
         string regg = hardware.GetRegister(src, id);
-        if (value->name != NULL && value->name == "qqq")
-            cout << "  ld  " << regg << ", " << offsets << "(sp)" << endl;
-        else
-            cout << "  lw  " << regg << ", " << offsets << "(sp)" << endl;
-            // hardware.StackAlloc(src, offsets);
-            // FF[idd] = -1;
-        // }
+        cout << "  ld  " << regg << ", " << offsets << "(sp)" << endl;
     }
 
         if (dest->value.tag == RVT_GLOBAL)
@@ -153,13 +150,9 @@ void Visit(const RawStore &data, const RawValueP &value, int id)
             hardware.AllocRegister(dest, id);
             // hardware.LeaseLockRegister(src);
             string SrcReg = hardware.GetRegister(src, id);
-            string DestReg = hardware.GetRegister(dest, id);
+            //string DestReg = hardware.GetRegister(dest, id);
             string regg = hardware.GetRegister(src, id);
-            cout << "  la  " << DestReg << ", " << dest->name << endl;
-            if (dest->name != NULL && dest->name == "qqq")
-                cout << "  sd  " << SrcReg << ", " << 0 << '(' << DestReg << ')' << endl;
-            else
-                cout << "  sw  " << SrcReg << ", " << 0 << '(' << DestReg << ')' << endl;
+            cout << "  sw  " << SrcReg << ", " << dest->name << ", t0" << endl;
             // 首先全局变量会被当成寄存器使用吗？
         }
         else if (dest->value.tag == RVT_ALLOC)
@@ -168,34 +161,45 @@ void Visit(const RawStore &data, const RawValueP &value, int id)
 
             string SrcReg = hardware.GetRegister(src, id);
             int srcAddress = hardware.getTargetOffset(dest);
-
+            auto PointerType = dest->ty->pointer.base->tag;
             if (srcAddress > 2047)
             {
                 cout << "  li   " << "t0, " << srcAddress << endl;
                 cout << "  add  " << "t0, sp, t0" << endl;
-                if (dest->name != NULL && dest->name == "qqq")
+                if (value->name != NULL && value->name == "qqq")
                     cout << "  sd  " << SrcReg << ", " << 0 << "(t0)" << endl;
-                else
+                else if(PointerType == RTT_INT32)
                     cout << "  sw  " << SrcReg << ", " << 0 << "(t0)" << endl;
+                else if(PointerType == RTT_FLOAT)
+                    cout << "  fsw  " << SrcReg << ", " << 0 << "(t0)" << endl;
+                else
+                    cout << "  sd  " << SrcReg << ", " << 0 << "(t0)" << endl;
             }
             else
             {
-                if (dest->name != NULL && dest->name == "qqq")
-                    cout << "  sd  " << SrcReg << ", " << srcAddress << "(sp)" << endl;
-                else
-                    cout << "  sw  " << SrcReg << ", " << srcAddress << "(sp)" << endl;
+                if (value->name != NULL && value->name == "qqq")
+                    cout << "  sd   " << SrcReg << ", " << srcAddress << "(sp)" << endl;
+                else if(PointerType == RTT_INT32)
+                    cout << "  sw   " << SrcReg << ", " << srcAddress << "(sp)" << endl;
+                else if(PointerType == RTT_FLOAT)
+                    cout << "  fsw   " << SrcReg << ", " << srcAddress << "(sp)" << endl;
+                else 
+                    cout << "  sd   " << SrcReg << ", " << srcAddress << "(sp)" << endl;
             }
         }
         else if (dest->value.tag == RVT_GET_ELEMENT || dest->value.tag == RVT_GET_PTR || dest->value.tag == RVT_LOAD)
         {
             //      hardware.addLockRegister(dest);
             Visit(src, id);
+            auto PointerType = dest->ty->pointer.base->tag;
             string SrcReg = hardware.GetRegister(src, id);
             string ElementReg = hardware.GetRegister(dest, id);
-            if (dest->name != NULL && dest->name == "qqq")
-                cout << "  sd  " << SrcReg << ", " << 0 << '(' << ElementReg << ')' << endl;
-            else
+            if (PointerType == RTT_INT32)//getelementptr不需要考虑这个问题，因为不可能是WWw,只有可能是2
                 cout << "  sw  " << SrcReg << ", " << 0 << '(' << ElementReg << ')' << endl;
+            else if(PointerType == RTT_FLOAT)
+                cout << "  fsw  " << SrcReg << ", " << 0 << '(' << ElementReg << ')' << endl;
+            else
+                cout << "  sd  " << SrcReg << ", " << 0 << '(' << ElementReg << ')' << endl;
         }
         else {
             cerr << "dest's Ty Kind: " << dest->value.tag << endl;
@@ -628,6 +632,7 @@ void Visit(const RawValueP &value, int id)
         // cout << "alloc" << endl;
         hardware.StackAlloc(value);
         if(value->identType != IDENT_VAR) {
+            hardware.AllocRegister(value,id);
             auto offset = hardware.getTargetOffset(value);
             auto reg = hardware.GetRegister(value, id);
             if(offset > 2047) {
