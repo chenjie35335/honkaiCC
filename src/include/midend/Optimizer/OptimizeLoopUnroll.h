@@ -7,14 +7,30 @@
 #include <unordered_set>
 #include "../IR/Programme.h"
 #include "../IR/BasicBlock.h"
+enum class LoopType {
+    NotJudge = -1,
+    LoopNoneEnd,
+    LoopValueEnd,
+    LoopVarEnd
+};
 class natureloop{
     public:
+    LoopType loopType;
     RawBasicBlock * head;//循环头
     unordered_set<RawBasicBlock *> body;//循环体
+    map<RawValue*,int> loopIncreaseValue;//自增变量
     natureloop(RawBasicBlock* head){
         this->head=head;
+        loopType = LoopType::NotJudge;
     }
+    //计算循环节点集合
     void cal_loop(RawBasicBlock * start,RawBasicBlock * end);
+    //判断循环类型
+    void determineLoopType();
+    //计算循环自增变量
+    void cal_loopIncreaseValue();
+    //固定次数的循环展开
+    void unrollingValueLoop();
 };
 class LoopUnrolling{
     public:

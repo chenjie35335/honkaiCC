@@ -45,9 +45,9 @@ int main(int argc, const char *argv[]) {
       GeneratorDT(irGraph,0);
       //  循环优化需要基于支配树
     //  OptimizeLoop(irGraph);
-    OptimizeLoopUnroll(irGraph);
-      // OptimizeMem2Reg(irGraph);
-      //GeneratorIRTxt(irGraph,true);
+      OptimizeMem2Reg(irGraph);
+      OptimizeLoopUnroll(irGraph);
+      GeneratorIRTxt(irGraph,true);
       //mem2regTop(irGraph);
       //GeneratorIRTxt(irGraph,true);
       //DCE(irGraph);
@@ -71,7 +71,7 @@ int main(int argc, const char *argv[]) {
   } 
   else if(strcmp(mode,"-koopa") == 0) {
     // OptimizeFuncInline(irGraph);
-    GeneratorIRTxt(irGraph,false);
+    // GeneratorIRTxt(irGraph,false);
   }
   else if(strcmp(mode,"-cfg") == 0){
     // OptimizeFuncInline(irGraph);

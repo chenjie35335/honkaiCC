@@ -53,6 +53,49 @@ void LoopUnrolling::find_loops(){
     //     cout<<endl;
     // }
 }
+void natureloop::determineLoopType(){
+    if(body.size()>2){
+        loopType = LoopType::LoopNoneEnd;
+        return;
+    }
+    if(head->inst.back()->value.tag!=RVT_BRANCH){
+        assert(!"循环条件错误");
+    }
+    if(head->inst.back()->value.branch.cond->value.tag==RVT_INTEGER){
+        loopType = LoopType::LoopNoneEnd;
+        // cout<<"死循环"<<endl;
+        return;
+    }
+    RawValue* BranchCondValue = (RawValue*)head->inst.back()->value.branch.cond;
+    if(BranchCondValue->value.tag!=RVT_BINARY){
+        assert(!"循环条件不是比较条件");
+    }
+    switch (BranchCondValue->value.binary.op)
+    {
+        case RBO_EQ:
+        case RBO_GE:
+        case RBO_GT:
+        case RBO_LE:
+        case RBO_LT:
+        case RBO_NOT_EQ:
+            break;
+        default:{
+            assert(!"非关系比较条件");
+        }
+    }
+    RawValue* lhs = (RawValue*)BranchCondValue->value.binary.lhs;
+    RawValue* rhs = (RawValue*)BranchCondValue->value.binary.rhs;
+    if(loopIncreaseValue.count(lhs)==1&&rhs->value.tag==RVT_INTEGER){
+        loopType = LoopType::LoopValueEnd;
+        return;
+    }
+    // cout<<"lhs:";
+    // cout<<BranchCondValue->value.binary.lhs->value.tag<<endl;
+    // cout<<"rhs:";
+    // cout<<BranchCondValue->value.binary.rhs->value.tag<<endl;
+    // cout<<"dadad"<<endl;
+
+}
 void natureloop::cal_loop(RawBasicBlock * start,RawBasicBlock * end){
     body.insert(start);
     body.insert(end);
@@ -72,6 +115,123 @@ void natureloop::cal_loop(RawBasicBlock * start,RawBasicBlock * end){
         }
     }
 }
+void natureloop::cal_loopIncreaseValue(){
+    map<RawValue*,int> firstloop;firstloop.clear();
+    for(auto bb:body){
+        // cout<<bb->name<<endl;
+        for(auto phi:bb->phi){
+            RawValue* inst =(RawValue*)phi;
+            if(inst->value.phi.phi.size()==2){
+                firstloop[inst] = inst->value.phi.phi[0].second->value.integer.value;
+            }
+        }
+        for(auto inst:bb->inst){
+            // cout<<"指令类型:"<<inst->value.tag<<endl;
+            switch (inst->value.tag)
+            {
+            case RVT_INTEGER:{
+                firstloop[inst] = inst->value.integer.value;
+                // cout<<firstloop[inst]<<endl;
+                break;
+            }
+            case RVT_BINARY:{
+                RawValue* lhs = (RawValue*)inst->value.binary.lhs;
+                RawValue* rhs = (RawValue*)inst->value.binary.rhs;
+                if(firstloop.find(lhs)==firstloop.end()||firstloop.find(rhs)==firstloop.end())
+                {
+                    break;
+                }
+                switch (inst->value.binary.op)
+                {
+                    case RBO_ADD:{
+                        firstloop[inst] = firstloop[lhs]+firstloop[rhs];
+                        break;
+                    }
+                    case RBO_SUB:{
+                        firstloop[inst] = firstloop[lhs]-firstloop[rhs];
+                        break;
+                    }
+                    default:
+                        break;
+                }
+                break;
+            }
+            default:
+                break;
+            }
+        }
+    }
+    // cout<<"first"<<endl;
+    // for(auto it:firstloop){
+    //     RawValue* val = it.first;
+    //     if(val->value.tag==RVT_PHI)
+    //     {
+    //         cout<<val->value.phi.target->name<<"="<<it.second<<endl;
+    //     }
+    // }
+    map<RawValue*,int> secondloop;
+    for(auto bb:body){
+        // cout<<bb->name<<endl;
+        for(auto inst:bb->inst){
+            for(auto phi:bb->phi){
+                RawValue* inst =(RawValue*)phi;
+                if(inst->value.phi.phi.size()==2){
+                    secondloop[inst] = firstloop[inst->value.phi.phi[1].second];
+                }
+            }
+            switch (inst->value.tag)
+            {
+            case RVT_INTEGER:{
+                secondloop[inst] = inst->value.integer.value;
+                break;
+            }
+            case RVT_BINARY:{
+                RawValue* lhs = (RawValue*)inst->value.binary.lhs;
+                RawValue* rhs = (RawValue*)inst->value.binary.rhs;
+                if(secondloop.find(lhs)==secondloop.end()&&secondloop.find(rhs)==secondloop.end())
+                {
+                    break;
+                }
+                switch (inst->value.binary.op)
+                {
+                case RBO_ADD:{
+                    secondloop[inst] = secondloop[lhs]+secondloop[rhs];
+                    break;
+                }
+                case RBO_SUB:{
+                    secondloop[inst] = secondloop[lhs]-secondloop[rhs];
+                    break;
+                }
+                default:
+                    break;
+                }
+                break;
+            }
+            default:
+                break;
+            }
+        }
+    }
+    // cout<<"second"<<endl;
+    // for(auto it:secondloop){
+    //     RawValue* val = it.first;
+    //     if(val->value.tag==RVT_PHI)
+    //     {
+    //         cout<<val->value.phi.target->name<<"="<<it.second<<endl;
+    //     }
+    // }
+    // cout<<"自增"<<endl;
+    for(auto it:secondloop){
+        RawValue* val = it.first;
+        if(val->value.tag==RVT_PHI&&firstloop.find(val)!=firstloop.end()){
+            loopIncreaseValue[val] = secondloop[val]-firstloop[val];
+            // cout<<val->value.phi.target->name<<"自增"<<loopIncreaseValue[val]<<endl;
+        }
+    }
+}
+void natureloop::unrollingValueLoop(){
+
+}
 //循环优化
 void OptimizeLoopUnroll(RawProgramme *IR){
     cout<<"循环展开优化"<<endl;
@@ -83,7 +243,16 @@ void OptimizeLoopUnroll(RawProgramme *IR){
             loopUnroll.cal_domians();
             loopUnroll.find_loops();
             for(auto loop:loopUnroll.Loops){
-                cout<<(loop->head->inst.back()->value.tag==RVT_BRANCH)<<endl;
+                cout<<"计算循环增量"<<endl;
+                loop->cal_loopIncreaseValue();
+                cout<<"计算循环类型"<<endl;
+                loop->determineLoopType();
+                if(LoopType::NotJudge==loop->loopType){
+                    assert(!"未判断循环类型");
+                }
+                else if(LoopType::LoopValueEnd==loop->loopType){
+                    loop->unrollingValueLoop();
+                }
             }
         }
     }
