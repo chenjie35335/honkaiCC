@@ -430,23 +430,30 @@ void UnaryOpAST::generateGraph(string &sign) const
     float floatNumber = 0.0;
     string ZeroSign = to_string(0);
     string FloatZeroSign = to_string(0.0);
-    generateRawValue(0);
-    generateRawValue(floatNumber);
-    getMidVarValue(zero, ZeroSign);
-    getMidVarValue(FloatZero, FloatZeroSign);
     getMidVarValue(exp, sign);
     alloc_now++;
     sign = "%" + to_string(alloc_now);
     if (op == '-')
       if(exp->ty->tag == RTT_FLOAT){
+        generateRawValue(floatNumber);
+        getMidVarValue(FloatZero, FloatZeroSign);
         generateRawValue(sign, FloatZero, exp, RBO_FSUB);
-      }else 
+      } else {
+        generateRawValue(0);
+        getMidVarValue(zero, ZeroSign);
         generateRawValue(sign,zero, exp, RBO_SUB);
+      }
     else
-      if(exp->ty->tag == RTT_FLOAT)
-       generateRawValue(sign, FloatZero, exp, RBO_FEQ);
-      else 
+      if(exp->ty->tag == RTT_FLOAT){
+         generateRawValue(floatNumber);
+        getMidVarValue(FloatZero, FloatZeroSign);
+        generateRawValue(sign, FloatZero, exp, RBO_FEQ);
+      }
+      else {
+        generateRawValue(0);
+        getMidVarValue(zero, ZeroSign);
        generateRawValue(sign,zero,exp,RBO_EQ);
+      }
     break;
   }
   default:

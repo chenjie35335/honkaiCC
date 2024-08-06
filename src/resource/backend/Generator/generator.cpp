@@ -592,6 +592,7 @@ void Visit(const RawValueP &value, int id)
     }
     case RVT_INTEGER:
     {
+        cout << "integer value: " << value->value.integer.value << endl; 
         const auto &integer = kind.integer.value;
         // if(integer == 0) {
         //     hardware.registerManager.vis[id][hardware.registerManager.vp[id][value]]=31;
@@ -610,17 +611,17 @@ void Visit(const RawValueP &value, int id)
     case RVT_FLOAT:
     {
         const auto &floatNumber = kind.floatNumber.value;
-        if (floatNumber >= 0 && floatNumber <= 0)
-        { // 判断浮点数为0，看起来很蠢
-            hardware.AssignRegister(value, 0);
-        }
-        else
-        {
-            hardware.AllocFRegister(value);
-            string reg = hardware.GetRegister(value, id);
-            // 浮点数的load操作很复杂，这里先不处理
-            cout << "  li   " << reg << ", " << floatNumber << endl;
-        }
+        // if (floatNumber >= 0 && floatNumber <= 0)
+        // { // 判断浮点数为0，看起来很蠢
+        //     hardware.AssignRegister(value, 0);
+        // }
+        // else
+        // {
+        //     hardware.AllocFRegister(value);
+        //     string reg = hardware.GetRegister(value, id);
+        //     // 浮点数的load操作很复杂，这里先不处理
+        //     cout << "  li   " << reg << ", " << floatNumber << endl;
+        // }
         break;
     }
     case RVT_BINARY:

@@ -824,7 +824,7 @@ void ArrInit(RawValueP src, RawValueP target) {
             auto AddrTag = Addr->ty->pointer.base->tag;
             auto SrcTag = element->ty->tag;
             if(AddrTag != SrcTag) {
-                cerr << "Addr = " << AddrTag << ", ElementTag = " << SrcTag << endl; 
+                //cerr << "Addr = " << AddrTag << ", ElementTag = " << SrcTag << endl; 
                 generateConvert(element,sign);
                 RawValueP ElemCov = signTable.getMidVar(sign);
                 generateRawValue(ElemCov,Addr);

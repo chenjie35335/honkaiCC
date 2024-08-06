@@ -107,6 +107,10 @@ void generateRawValue(int32_t number);
 
 void generateRawValue(float number);
 
+RawValue * generateNumber(int32_t number);
+
+RawValue * generateFloat(float number);
+
 RawValueP generateZero();
 
 void generateRawValue(RawValueP &src, RawValueP &dest);
