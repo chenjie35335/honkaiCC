@@ -592,7 +592,7 @@ void Visit(const RawValueP &value, int id)
     }
     case RVT_INTEGER:
     {
-        cout << "integer value: " << value->value.integer.value << endl; 
+        // cout << "integer value: " << value->value.integer.value << endl; 
         const auto &integer = kind.integer.value;
         // if(integer == 0) {
         //     hardware.registerManager.vis[id][hardware.registerManager.vp[id][value]]=31;
