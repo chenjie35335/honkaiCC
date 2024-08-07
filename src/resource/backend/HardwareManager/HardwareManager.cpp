@@ -5,6 +5,7 @@
 #include <cstring>
 #include <random>
 #include <iostream>
+#include <set>
 using namespace std;
 extern HardwareManager hardware;
 
@@ -61,6 +62,8 @@ void calculateSize(int &ArgsLen, int &LocalLen, int &ReserveLen, const RawFuncti
 {
     bool has_call;
     auto &params = function->params; // 给所有的参数分配空间
+    set<RawValue *> global;
+    global.clear();
     //LocalLen += 8*50;//这50个是固定给全局变量分配的空间
     for (auto bb : function->basicblock)
     {
@@ -83,10 +86,21 @@ void calculateSize(int &ArgsLen, int &LocalLen, int &ReserveLen, const RawFuncti
                 // cout << "call's size" << value->value.call.args.size() << endl;
                 ArgsLen = max(ArgsLen, int(value->value.call.args.size() - 8)) * 8;
             }
-            else if(value->value.tag == RVT_STORE) 
+            if(value->value.tag == RVT_STORE) 
             {
                 auto storeValue = value->value.store.dest;
-                if(storeValue->value.tag == RVT_GLOBAL) LocalLen += 8;//这个是给全局变量分配的
+                if(storeValue->value.tag == RVT_GLOBAL && (global.find((RawValue *)storeValue) == global.end()) ) {
+                    global.insert((RawValue *)storeValue);
+                    LocalLen += 8;
+                }//这个是给全局变量分配的
+            }
+            if(value->value.tag == RVT_LOAD) 
+            {
+                auto loadSrc = value->value.load.src;
+                if(loadSrc->value.tag == RVT_GLOBAL && (global.find((RawValue *)loadSrc) == global.end())) {
+                    global.insert((RawValue *)loadSrc);
+                    LocalLen += 8;
+                }
             }
         }
     }
@@ -214,12 +228,12 @@ void HardwareManager::StoreReg(int RandSelected,int type)
             break;
     if(pair == look.end()) return;
     auto value = pair->first;
+    look.erase(value);
+    if(value->value.tag == RVT_ALLOC || value->value.tag == RVT_GLOBAL || value->value.tag == RVT_INTEGER || value->value.tag == RVT_FLOAT) return;
     if (IsMemory(value))
         TargetOffset = getTargetOffset(value);
     else
         TargetOffset = StackAlloc(value);
-    look.erase(value);
-    if(value->value.tag == RVT_ALLOC || value->value.tag == RVT_GLOBAL) return;
     if(type == RTT_FLOAT) {
         TargetReg = RegisterManager::fregs[RandSelected];
         if(TargetOffset > 2047) {

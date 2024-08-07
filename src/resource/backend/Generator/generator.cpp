@@ -168,6 +168,8 @@ void Visit(const RawBinary &data,const RawValueP &value) {
     RhsRegister = hardware.GetRegister(rhs);
     //value
     ValueRegister = hardware.GetRegister(value);
+
+
     switch(op) {
         case RBO_ADD:
             cout << "  addw  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
@@ -193,24 +195,16 @@ void Visit(const RawBinary &data,const RawValueP &value) {
             cout << "  remw  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
             break;
         case RBO_LT:
-            // cout << "  sext.w  " << LhsRegister << ", " << LhsRegister << endl;
-            // cout << "  sext.w  " << RhsRegister << ", " << RhsRegister << endl;
             cout << "  slt  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
             break;
         case RBO_GT:
-            // cout << "  sext.w  " << LhsRegister << ", " << LhsRegister << endl;
-            // cout << "  sext.w  " << RhsRegister << ", " << RhsRegister << endl;
             cout << "  slt  " <<ValueRegister<<", "<< RhsRegister << ", " << LhsRegister <<endl;
             break;
         case RBO_GE:
-            // cout << "  sext.w  " << LhsRegister << ", " << LhsRegister << endl;
-            // cout << "  sext.w  " << RhsRegister << ", " << RhsRegister << endl;
             cout << "  slt  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
             cout << "  seqz " << ValueRegister <<", "<< ValueRegister  <<endl;
             break;
         case RBO_LE:
-            // cout << "  sext.w  " << LhsRegister << ", " << LhsRegister << endl;
-            // cout << "  sext.w  " << RhsRegister << ", " << RhsRegister << endl;
             cout << "  sgt  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
             cout << "  seqz " << ValueRegister <<", "<< ValueRegister  <<endl;
             break;   
@@ -313,6 +307,7 @@ void Visit(const RawCall &data,const RawValueP &value) {
          hardware.StoreReg(RegisterManager::callerFSave[i],RTT_FLOAT);
      }
     cout<<"  call "<<data.callee->name<<endl;
+    if(value->ty->tag != RTT_UNIT) {
     hardware.AllocRegister(value);
     hardware.StackAlloc(value);
     const char *retReg = hardware.GetRegister(value);
@@ -320,6 +315,7 @@ void Visit(const RawCall &data,const RawValueP &value) {
         cout << "  fmv.s  " << retReg << ", fa0" << endl;
     else
         cout << "  mv  " << retReg << ", a0" << endl;
+    }
 }
 //这里不需要分配寄存器，直接默认在a的几个寄存器中，读出来后直接分配栈空间
 void Visit(const RawFuncArgs &data,const RawValueP &value) {
@@ -392,7 +388,7 @@ void Visit(const RawGetPtr &data, const RawValueP &value) {
     const char *ptrReg = hardware.GetRegister(value);
     if(elementLen == 4) {
         cout << "  slli " << ptrReg << ", " << IndexReg << ", " << 2 << endl;
-    } else {
+    } else{
         cout << "  li  " << ptrReg << ", " << elementLen << endl;
         cout << "  mul " << ptrReg << ", " << IndexReg << ", " << ptrReg << endl;
     }
@@ -560,9 +556,9 @@ void Visit(const RawValueP &value) {
         for(int i = 0; i < 12;i++) {
             hardware.LoadRegister(RegisterManager::calleeSave[i]);
         }
-        for(int i = 0; i < 12;i++) {
-            hardware.LoadFRegister(RegisterManager::calleeFSave[i]);
-        }
+        // for(int i = 0; i < 12;i++) {
+        //     hardware.LoadFRegister(RegisterManager::calleeFSave[i]);
+        // }
         int StackSize = hardware.getStackSize();
         if(StackSize <= 2047) {
         cout << "  addi sp, sp, " << StackSize  <<  endl;
@@ -582,7 +578,7 @@ void Visit(const RawValueP &value) {
             const char *reg = hardware.GetRegister(value);
             cout << "  li   "  <<  reg  << ", "  << integer << endl;
         }
-        //cout << endl;
+        cout << endl;
         break;
     }
     case RVT_FLOAT:{
@@ -728,9 +724,9 @@ void Visit(const RawFunctionP &func)
          for(int i =0 ; i < 12;i++) {
             hardware.SaveRegister(RegisterManager::calleeSave[i]);
          }
-         for(int i = 0; i < 12;i++) {
-            hardware.SaveFRegister(RegisterManager::calleeFSave[i]);
-         }
+        //  for(int i = 0; i < 12;i++) {
+        //     hardware.SaveFRegister(RegisterManager::calleeFSave[i]);
+        //  }
         for(auto param : params)
          Visit(param);
         auto entryBB = *bbs.begin();
@@ -751,7 +747,8 @@ void generateASM(RawProgramme *& programme) {
     for(auto func : funcs)
         Visit(func);
 }
-
+//就是我们发现一个问题：我们的这个integer节点就是单次使用的，因此可能没有必要说两个不同
+//对于binary来说不需要，但是对于getelemptr需要，但是需要也没必要说要spill,因为他的生命周期就一个
 
 
 
