@@ -432,15 +432,19 @@ int eq(vector<RawValueP> x,vector<RawValueP> y){
     return 0;
 }
 int OK=0;
+vector<RawValueP> nxt[500005],pre[500005];
+map<RawValueP,int> havespilled;
 int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector<RawValue*> &cuf){
     for(int i=0;i<500000;i++){
         registerManager.g[i].clear();
+        nxt[i].clear();
+        pre[i].clear();
     }
     INST.clear();
     registerManager.n=0;
     vector<RawValueP> in[M],out[M],lin[M],lout[M];
     mp.clear();
-    vector<RawValueP> nxt[M];
+    
     int ko=0;
     RawValueP yy;
     cnt=0;
@@ -510,14 +514,6 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
     // }
     // int count=8;
         for(auto it=INST.begin();it!=INST.end();it++){
-                // cout<<mp[*it]<<":"<<((*it)->ty->tag)<<endl;
-                // cout<<"DEF:";
-                // for(auto it:def[mp[*it]]) cout<<mp[it]<<" ";
-                // cout<<endl;
-                // cout<<"USE:";
-                // for(auto it:use[mp[*it]]) cout<<mp[it]<<" ";
-                // cout<<endl;
-                // cout<<"!!!"<<endl;
             auto j=it;
             j++;
             int x=mp[*it];
@@ -526,6 +522,7 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
             if(flg==RVT_JUMP){
                 auto bbb=(*it)->value.jump.target;
                 nxt[x].push_back(*(bbb->inst.begin()));
+                pre[mp[*(bbb->inst.begin())]].push_back(*it);
             }
             else if(flg==RVT_BRANCH){
                 auto X=(*it)->value.branch.cond;
@@ -535,6 +532,8 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
                 auto e2=b2->inst.begin();
                 nxt[x].push_back(*e1);
                 nxt[x].push_back(*e2);
+                pre[mp[*e1]].push_back(*it);
+                pre[mp[*e2]].push_back(*it);
             }
             // else if(flg==RVT_CALL){
             //     auto x1=(*it)->value.call.callee;
@@ -550,8 +549,9 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
             }
             else if(j!=INST.end()&&flg!=RVT_RETURN)
                 nxt[x].push_back(*(j));
+                pre[mp[*j]].push_back(*it);
+        
         }
-
     cnt=0;
     //扫描IR 假設bbbufer是存放基本快的vector
     int changes=1;
@@ -653,7 +653,9 @@ int HardwareManager::struct_graph(vector<RawBasicBlockP> &bbbuffer,int id,vector
             }
         if(it->value.tag == RVT_GET_ELEMENT || it->value.tag == RVT_GET_PTR) {
             int u = registerManager.vp[id][it];
+            if(havespilled[it]) continue;
             for(auto use : use[mp[it]]){
+                if(havespilled[use]) continue;
                 int v = registerManager.vp[id][use];
                 registerManager.g[u].push_back(v);
                 registerManager.g[v].push_back(u);
@@ -890,6 +892,7 @@ void HardwareManager::spill(vector<RawBasicBlockP> &bbbuffer,int id,vector<RawVa
     //找到所有修改值所在位置，如果是左值则在后加store，右值则在前加load，然后将指令修改为新值
     //checkuse找到其是左值1还是右值2，不存在即0
     RawValueP pvue=registerManager.rvp[id][pos];
+    havespilled[pvue]=1;
     // cout<<mx<<endl;
     // cout<<pvue->value.tag<<endl;
     // cout<<pvue->ty->tag<<endl;
@@ -942,9 +945,41 @@ void HardwareManager::spill(vector<RawBasicBlockP> &bbbuffer,int id,vector<RawVa
     // }
      //打标记
     int CNT=0,WOK=0;
+    // map<RawValueP,int> hvis;
+    map<RawValue*,RawValue*> usealc;
+    // map<RawValueP,int> hvs;
+
+    // for(auto itt:bbbuffer){
+    //     RawBasicBlock* it =(RawBasicBlock*)itt;
+    //     for(auto j=(it->inst).begin();j!=(it->inst).end();j++){
+    //         hvs[*j]=1;
+    //     }
+    // }
+    // for(auto itt:bbbuffer){
+    //     RawBasicBlock* it =(RawBasicBlock*)itt;
+    //     for(auto j=(it->inst).begin();j!=(it->inst).end();j++){
+    //             auto x=*j;
+    //             RawValue* y=(RawValue*)pre[mp[x]][0];
+    //                 while(!hvs[y]){
+    //                 y=(RawValue*)pre[mp[y]][0];
+    //                 }
+    //                 nxt[mp[y]].push_back(x);
+    //         }
+    //     }
+
     for(auto itt:bbbuffer){
         RawBasicBlock* it =(RawBasicBlock*)itt;
         for(auto j=(it->inst).begin();j!=(it->inst).end();j++){
+            // hvis[*j]=1;
+            // q.push(*j);
+            // while(q.size()){
+            //     RawValueP x=q.front();q.pop();
+            //     hvis[x]=1;
+                
+            //     for(auto itt:nxt[mp[x]]){
+            //         q.push(itt);
+            //     }
+            // }
         int pOK=0;
             auto x=*j;
             auto p=j;
@@ -982,15 +1017,37 @@ void HardwareManager::spill(vector<RawBasicBlockP> &bbbuffer,int id,vector<RawVa
             it->inst.insert(p,store);
             store->addr=alloc;
             pOK=1;
+            for(auto it:nxt[mp[*j]]){
+                usealc[(RawValue*)it]=alloc;
+            }
             j++;
             }
+            else{
+                if(usealc[x]!=NULL)
+                aloc=usealc[x];
+                for(auto it:nxt[mp[*j]])if(usealc[x]!=NULL&&!usealc[(RawValue*)it]){
+                usealc[(RawValue*)it]=usealc[x];
+            }
+            }
            if(!pOK&&checkuse(x,pvue,2)==2){
+            if(usealc[x]!=NULL)
+             aloc=usealc[x];
+             
                 if(CNT==0){
                     WOK=1;
                     cout<<pvue->value.tag<<"uninit!"<<endl;
                     cout<<pvue->ty->tag<<endl;
                     cout<<pvue->name<<endl;
                 }
+            //     if(aloc==NULL){
+            //     cout<<"!!!"<<x->value.tag<<endl;
+            //    RawValue* y=(RawValue*)pre[mp[x]][0];
+            //         while(usealc[y]==NULL){
+            //             y=(RawValue*)pre[mp[y]][0];
+            //       }
+            //       cout<<y->value.tag<<endl;
+            //     exit(0);
+            //  }
                 //r load
             auto &insts = it->inst;
             RawValue * load = new RawValue();
@@ -1025,17 +1082,6 @@ void HardwareManager::InitallocReg(vector<RawBasicBlockP> &bbbuffer,int id,vecto
          for(int i=1;i<=m;i++){
             registerManager.vis[id][i]=0;
          }
-
-        //  for(int i=1;i<=m;i++){
-        //     RawValueP ee=registerManager.rvp[id][i];
-        //     int e=mp[ee];
-        //     cout<<e<<":";
-        //     cout<<registerManager.g[i].size()<<" ";
-        //     for(auto it:registerManager.g[i]){
-        //         cout<<it<<" ";
-        //     }
-        //     cout<<endl;
-        // }
         
         for(int i=1;i<=m;i++){
             in_rank.push_back({registerManager.g[i].size(),i});
