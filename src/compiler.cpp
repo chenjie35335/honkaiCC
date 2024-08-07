@@ -16,9 +16,9 @@ int main(int argc, const char *argv[]) {
   // compiler0 -riscv1 hello.c2 -o3 hello.S4
   assert(argc == 5 || argc == 6);
   auto mode = argv[1];
-  auto input = argv[4];
-  auto OutMode = argv[2];
-  auto output = argv[3];
+  auto input = argv[2];
+  auto OutMode = argv[3];
+  auto output = argv[4];
   auto optMode = (argc == 6) ? argv[5]:nullptr;
   assert(strcmp(OutMode,"-o") == 0);
 

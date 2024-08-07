@@ -110,26 +110,26 @@ clean:
 docker:
 	docker run -it \
 	-v $(TOP_DIR):/root/compiler \
-	stormy/compiler:autotest bash
+	maxxing/compiler-dev bash
 
 docker-func:
 	docker run -it \
 	-v $(TOP_DIR):/root/compiler \
 	-v $(FUNCTION):/opt/bin/testcases/functional \
 	-v $(HIDDEN_FUNCTION):/opt/bin/testcases/hidden_functional \
-	stormy/compiler:autotest bash
+	maxxing/compiler-dev bash
 
 docker-perf:
 	docker run -it \
 	-v $(TOP_DIR):/root/compiler \
 	-v $(PERFORMANCE):/opt/bin/testcases/performance \
 	-v $(FINAL_PERFORMANCE):/opt/bin/testcases/final_performance \
-	stormy/compiler:autotest bash
+	maxxing/compiler-dev bash
 
 debug:
 	docker run -it -v $(TOP_DIR):/root/compiler \
   	--cap-add=SYS_PTRACE --security-opt seccomp=unconfined \
-  	stormy/compiler:autotest bash
+  	maxxing/compiler-dev bash
 
 test:
 	make clean
