@@ -3,7 +3,9 @@
 #include <cassert>
 #include <iostream>
 #include <map>
+#include <list>
 #include <stack>
+#include  <algorithm>
 #include <unordered_set>
 #include "../IR/Programme.h"
 #include "../IR/BasicBlock.h"
@@ -15,6 +17,7 @@ enum class LoopType {
 };
 class natureloop{
     public:
+    RawFunction* func;
     LoopType loopType;
     RawBasicBlock * head;//循环头
     unordered_set<RawBasicBlock *> body;//循环体
@@ -31,6 +34,8 @@ class natureloop{
     void cal_loopIncreaseValue();
     //固定次数的循环展开
     void unrollingValueLoop();
+    //计算展开次数
+    int loopTimes(RawValue* condVal,RawValue* cond);
 };
 class LoopUnrolling{
     public:
