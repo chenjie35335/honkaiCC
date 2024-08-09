@@ -9,6 +9,7 @@
 #include <unordered_set>
 #include "../IR/Programme.h"
 #include "../IR/BasicBlock.h"
+#define UNROLLFACTOR 2
 enum class LoopType {
     NotJudge = -1,
     LoopNoneEnd,
@@ -34,6 +35,8 @@ class natureloop{
     void cal_loopIncreaseValue();
     //固定次数的循环展开
     void unrollingValueLoop();
+    //根据循环因子展开
+    void unrollingVarLoop(int unRollingFactor);
     //计算展开次数
     int loopTimes(RawValue* condVal,RawValue* cond);
 };

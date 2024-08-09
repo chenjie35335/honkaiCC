@@ -86,11 +86,18 @@ void natureloop::determineLoopType(){
     }
     RawValue* lhs = (RawValue*)BranchCondValue->value.binary.lhs;
     RawValue* rhs = (RawValue*)BranchCondValue->value.binary.rhs;
-    if(loopIncreaseValue.count(lhs)==1
-        &&lhs->value.phi.phi[0].second->value.tag==RVT_INTEGER
-        &&rhs->value.tag==RVT_INTEGER){
-        loopType = LoopType::LoopValueEnd;
-        return;
+    if(loopIncreaseValue.count(lhs)==1){
+        if(lhs->value.tag==RVT_PHI
+            &&lhs->value.phi.phi[0].second->value.tag==RVT_INTEGER
+            &&rhs->value.tag==RVT_INTEGER){
+            loopType = LoopType::LoopValueEnd;
+            return;
+        }
+        if(rhs->value.tag==RVT_BINARY||rhs->value.tag==RVT_PHI)
+        {
+            loopType = LoopType::LoopVarEnd;
+            return;
+        }
     }
     // cout<<"lhs:";
     // cout<<BranchCondValue->value.binary.lhs->value.tag<<endl;
@@ -226,7 +233,11 @@ void natureloop::cal_loopIncreaseValue(){
     // cout<<"自增"<<endl;
     for(auto it:secondloop){
         RawValue* val = it.first;
-        if(val->value.tag==RVT_PHI&&firstloop.find(val)!=firstloop.end()){
+        // if(val->value.tag==RVT_PHI&&firstloop.find(val)!=firstloop.end()){
+        //     loopIncreaseValue[val] = secondloop[val]-firstloop[val];
+        //     // cout<<val->value.phi.target->name<<"自增"<<loopIncreaseValue[val]<<endl;
+        // }
+        if(firstloop.find(val)!=firstloop.end()){
             loopIncreaseValue[val] = secondloop[val]-firstloop[val];
             // cout<<val->value.phi.target->name<<"自增"<<loopIncreaseValue[val]<<endl;
         }
@@ -343,6 +354,9 @@ void natureloop::unrollingValueLoop(){
     }
     
 }
+void natureloop::unrollingVarLoop(int unRollingFactor){
+
+}
 int natureloop::loopTimes(RawValue* condVal,RawValue* cond){
     int start = condVal->value.phi.phi[0].second->value.integer.value;
     int delta = loopIncreaseValue[condVal];
@@ -404,6 +418,8 @@ void OptimizeLoopUnroll(RawProgramme *IR){
                 }
                 else if(LoopType::LoopValueEnd==loop->loopType){
                     loop->unrollingValueLoop();
+                }else if(LoopType::LoopVarEnd==loop->loopType){
+                    loop->unrollingVarLoop(UNROLLFACTOR);
                 }
             }
         }

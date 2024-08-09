@@ -47,7 +47,7 @@ int main(int argc, const char *argv[]) {
     //  OptimizeLoop(irGraph);
       OptimizeMem2Reg(irGraph);
       OptimizeLoopUnroll(irGraph);
-      // GeneratorIRTxt(irGraph,true);
+      GeneratorIRTxt(irGraph,true);
       //mem2regTop(irGraph);
       //GeneratorIRTxt(irGraph,true);
       //DCE(irGraph);
@@ -62,7 +62,7 @@ int main(int argc, const char *argv[]) {
       // OptimizeGCSE(irGraph);
       // OptimizeLCSE(irGraph);
       //GeneratorIRTxt(irGraph,true);
-      exitSSA(irGraph);
+      // exitSSA(irGraph);
   // }
   if(strcmp(mode,"-riscv") == 0 || strcmp(mode,"-S") == 0) {
     // OptimizeFuncInline(irGraph);
@@ -71,7 +71,7 @@ int main(int argc, const char *argv[]) {
   } 
   else if(strcmp(mode,"-koopa") == 0) {
     // OptimizeFuncInline(irGraph);
-    GeneratorIRTxt(irGraph,false);
+    // GeneratorIRTxt(irGraph,false);
   }
   else if(strcmp(mode,"-cfg") == 0){
     // OptimizeFuncInline(irGraph);
