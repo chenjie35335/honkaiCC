@@ -272,7 +272,7 @@ void natureloop::unrollingValueLoop(){
     head->inst.back()->value.jump.target = onebody;
     //修正循环体的基本块跳转关系
     onebody->inst.back()->value.jump.target = urollingBlock;
-    //赋值value
+    //复制value
     // 初始化
     map<RawValue*,RawValue*> oTn;oTn.clear();
     oTn[loopIncVal] = loopIncVal->value.phi.phi[1].second;
@@ -370,6 +370,124 @@ void natureloop::unrollingVarLoop(int unRollingFactor){
     auto it = std::find(func->basicblock.begin(), func->basicblock.end(), head);
     func->basicblock.insert(it,urollingHead);
     func->basicblock.insert(it,urollingBody);
+    //复制value
+    cout<<"复制value"<<endl;
+    map<RawValue*,RawValue*> oTn;oTn.clear();
+    for(auto bb:body){
+        RawBasicBlock* needInsertValueBlock;
+        if(bb==head){
+            needInsertValueBlock=urollingHead;
+        }else if(bb==onebody){
+            needInsertValueBlock=urollingBody;
+        }
+        for(auto p:bb->phi){
+            RawValue* newPhi = new RawValue(p);
+            newPhi->value.phi.target = p->value.phi.target;
+            newPhi->value.phi.phi = p->value.phi.phi;
+            needInsertValueBlock->phi.push_back(newPhi);
+        }
+        for(auto inst:bb->inst){
+            switch (inst->value.tag)
+            {
+            case RVT_INTEGER:{
+                RawValue* intVal = new RawValue(inst);
+                intVal->value.integer.value=inst->value.integer.value;
+                needInsertValueBlock->inst.push_back(intVal);
+                oTn[inst] = intVal;
+                break;
+            }
+            case RVT_FLOAT:{
+                RawValue* floatVal = new RawValue(inst);
+                floatVal->value.floatNumber.value=inst->value.floatNumber.value;
+                needInsertValueBlock->inst.push_back(floatVal);
+                oTn[inst] = floatVal;
+                break;
+            }
+            case RVT_ALLOC:{
+                RawValue* allocVal = new RawValue(inst);
+                needInsertValueBlock->inst.push_back(allocVal);
+                oTn[inst] = allocVal;
+                break;
+            }
+            case RVT_BINARY:{
+                RawValue* nbinary = new RawValue(inst);
+                nbinary->value.binary.op = inst->value.binary.op;
+                if(oTn.find((RawValue*)inst->value.binary.lhs)==oTn.end()){
+                    nbinary->value.binary.lhs = inst->value.binary.lhs;
+                }else{
+                    nbinary->value.binary.lhs = oTn[(RawValue*)inst->value.binary.lhs];
+                }
+                if(oTn.find((RawValue*)inst->value.binary.rhs)==oTn.end()){
+                    nbinary->value.binary.rhs = inst->value.binary.rhs;
+                }else{
+                    nbinary->value.binary.rhs = oTn[(RawValue*)inst->value.binary.rhs];
+                }
+                oTn[inst]=nbinary;
+                needInsertValueBlock->inst.push_back(nbinary);
+                break;
+            }
+            case RVT_CALL:{
+                RawValue* ncall = new RawValue(inst);
+                ncall->value.call.callee = inst->value.call.callee;
+                for(int i=0;i<inst->value.call.args.size();i++){
+                    if(oTn.find((RawValue*)inst->value.call.args[i])==oTn.end()){
+                        ncall->value.call.args.push_back(inst->value.call.args[i]);
+                    }else{
+                        ncall->value.call.args.push_back(oTn[(RawValue*)inst->value.call.args[i]]);
+                    }
+                }
+                oTn[inst]=ncall;
+                needInsertValueBlock->inst.push_back(ncall);
+                break;
+            }
+            case RVT_CONVERT:{
+                RawValue* nConvert = new RawValue(inst);
+                nConvert->value.Convert.src = inst->value.Convert.src;
+                oTn[inst]=nConvert;
+                needInsertValueBlock->inst.push_back(nConvert);
+                break;
+            }
+            case RVT_BRANCH:{
+                RawValue* nbranch = new RawValue(inst);
+                if(oTn.find((RawValue*)inst->value.branch.cond)==oTn.end()){
+                    nbranch->value.branch.cond = inst->value.branch.cond;
+                }else{
+                    nbranch->value.branch.cond = oTn[(RawValue*)inst->value.branch.cond];
+                }
+                nbranch->value.branch.true_bb = inst->value.branch.true_bb;
+                nbranch->value.branch.false_bb = inst->value.branch.false_bb;
+                needInsertValueBlock->inst.push_back(nbranch);
+                break;
+            }
+            case RVT_JUMP:{
+                RawValue* njump = new RawValue(inst);
+                njump->value.jump.target = inst->value.jump.target;
+                oTn[inst]=njump;
+                needInsertValueBlock->inst.push_back(njump);
+                break;
+            }
+            default:
+                break;
+            }
+        }
+    }
+    //修改跳转目标
+    for(auto pbb:head->pbbs){
+        RawValue* bjValue = pbb->inst.back();
+        if(bjValue->value.tag==RVT_JUMP){
+            bjValue->value.jump.target=urollingHead;
+
+        }else if(bjValue->value.tag==RVT_BRANCH){
+            if(bjValue->value.branch.true_bb==head){
+                bjValue->value.branch.true_bb=urollingHead;
+            }else{
+                bjValue->value.branch.false_bb=urollingHead;
+            }
+        }
+    }
+    urollingHead->inst.back()->value.branch.true_bb = urollingBody;
+    urollingHead->inst.back()->value.branch.false_bb = head;
+    urollingBody->inst.back()->value.jump.target = urollingHead;
 }
 int natureloop::loopTimes(RawValue* condVal,RawValue* cond){
     int start = condVal->value.phi.phi[0].second->value.integer.value;
