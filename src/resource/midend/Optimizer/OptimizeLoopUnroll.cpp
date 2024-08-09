@@ -93,8 +93,7 @@ void natureloop::determineLoopType(){
             loopType = LoopType::LoopValueEnd;
             return;
         }
-        if(rhs->value.tag==RVT_BINARY||rhs->value.tag==RVT_PHI)
-        {
+        else{
             loopType = LoopType::LoopVarEnd;
             return;
         }
@@ -355,7 +354,22 @@ void natureloop::unrollingValueLoop(){
     
 }
 void natureloop::unrollingVarLoop(int unRollingFactor){
-
+    //查找循化体基本块
+    RawBasicBlock* onebody = (RawBasicBlock*)head->inst.back()->value.branch.true_bb;
+    //初始化展开的head基本块
+    RawBasicBlock* urollingHead = new RawBasicBlock();
+    size_t bufSize = strlen(head->name) + 15;
+    urollingHead->name = new char[bufSize];
+    snprintf((char *)urollingHead->name, bufSize, "%s_%s", head->name, "urolling");
+    //初始化展开的body基本块
+    RawBasicBlock* urollingBody = new RawBasicBlock();
+    bufSize = strlen(onebody->name) + 15;
+    urollingBody->name = new char[bufSize];
+    snprintf((char *)urollingBody->name, bufSize, "%s_%s", onebody->name, "urolling");
+    //插入新基本块
+    auto it = std::find(func->basicblock.begin(), func->basicblock.end(), head);
+    func->basicblock.insert(it,urollingHead);
+    func->basicblock.insert(it,urollingBody);
 }
 int natureloop::loopTimes(RawValue* condVal,RawValue* cond){
     int start = condVal->value.phi.phi[0].second->value.integer.value;
