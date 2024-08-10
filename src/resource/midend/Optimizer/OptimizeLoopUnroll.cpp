@@ -367,11 +367,10 @@ void natureloop::unrollingVarLoop(int unRollingFactor){
     urollingBody->name = new char[bufSize];
     snprintf((char *)urollingBody->name, bufSize, "%s_%s", onebody->name, "urolling");
     //插入新基本块
-    auto it = std::find(func->basicblock.begin(), func->basicblock.end(), head);
-    func->basicblock.insert(it,urollingHead);
-    func->basicblock.insert(it,urollingBody);
+    auto NewBlockIt = std::find(func->basicblock.begin(), func->basicblock.end(), head);
+    func->basicblock.insert(NewBlockIt,urollingHead);
+    func->basicblock.insert(NewBlockIt,urollingBody);
     //复制value
-    cout<<"复制value"<<endl;
     map<RawValue*,RawValue*> oTn;oTn.clear();
     for(auto bb:body){
         RawBasicBlock* needInsertValueBlock;
@@ -379,12 +378,6 @@ void natureloop::unrollingVarLoop(int unRollingFactor){
             needInsertValueBlock=urollingHead;
         }else if(bb==onebody){
             needInsertValueBlock=urollingBody;
-        }
-        for(auto p:bb->phi){
-            RawValue* newPhi = new RawValue(p);
-            newPhi->value.phi.target = p->value.phi.target;
-            newPhi->value.phi.phi = p->value.phi.phi;
-            needInsertValueBlock->phi.push_back(newPhi);
         }
         for(auto inst:bb->inst){
             switch (inst->value.tag)
@@ -442,7 +435,11 @@ void natureloop::unrollingVarLoop(int unRollingFactor){
             }
             case RVT_CONVERT:{
                 RawValue* nConvert = new RawValue(inst);
-                nConvert->value.Convert.src = inst->value.Convert.src;
+                if(oTn.find((RawValue*)nConvert->value.Convert.src)==oTn.end()){
+                    nConvert->value.Convert.src = inst->value.Convert.src;
+                }else{
+                    nConvert->value.Convert.src = oTn[(RawValue*)inst->value.Convert.src];
+                }
                 oTn[inst]=nConvert;
                 needInsertValueBlock->inst.push_back(nConvert);
                 break;
@@ -473,6 +470,8 @@ void natureloop::unrollingVarLoop(int unRollingFactor){
     }
     //修改跳转目标
     for(auto pbb:head->pbbs){
+        if(pbb==onebody)
+            continue;
         RawValue* bjValue = pbb->inst.back();
         if(bjValue->value.tag==RVT_JUMP){
             bjValue->value.jump.target=urollingHead;
@@ -488,6 +487,131 @@ void natureloop::unrollingVarLoop(int unRollingFactor){
     urollingHead->inst.back()->value.branch.true_bb = urollingBody;
     urollingHead->inst.back()->value.branch.false_bb = head;
     urollingBody->inst.back()->value.jump.target = urollingHead;
+    //循环展开value
+    //清除残留
+    // auto clearIt = oTn.begin();
+    // while (clearIt!=oTn.end())
+    // {
+    //     if(clearIt->second->value.tag==RVT_INTEGER||clearIt->second->value.tag==RVT_FLOAT){
+    //         ++clearIt;
+    //         continue;
+    //     }
+    //     clearIt = oTn.erase(clearIt);
+    // }
+    // oTn.clear();
+    // oTn[loopIncVal] = loopIncVal->value.phi.phi[1].second;
+    unRollingFactor--;
+    while (unRollingFactor--)
+    {
+        for(auto inst:onebody->inst){
+            switch (inst->value.tag)
+            {
+            case RVT_BINARY:{
+                RawValue* nbinary = new RawValue(inst);
+                nbinary->value.binary.op = inst->value.binary.op;
+                if(oTn.find((RawValue*)inst->value.binary.lhs)==oTn.end()){
+                    if(inst->value.binary.lhs->value.tag==RVT_PHI){
+                        // cout<<"PHI:"<<endl;
+                        // cout<<inst->value.binary.lhs->value.phi.target->name<<endl;
+                        for(auto bv:inst->value.binary.lhs->value.phi.phi){
+                            if(oTn.find(bv.second)!=oTn.end()){
+                                // cout<<"asdadasd"<<endl;
+                                nbinary->value.binary.lhs=oTn[bv.second];
+                                break;
+                            }
+                        }
+                    }else{
+                        nbinary->value.binary.lhs = inst->value.binary.lhs;
+                    }
+                }else{
+                    nbinary->value.binary.lhs = oTn[(RawValue*)inst->value.binary.lhs];
+                }
+
+                if(oTn.find((RawValue*)inst->value.binary.rhs)==oTn.end()){
+                    nbinary->value.binary.rhs = inst->value.binary.rhs;
+                }else{
+                    nbinary->value.binary.rhs = oTn[(RawValue*)inst->value.binary.rhs];
+                }
+                oTn[inst]=nbinary;
+                urollingBody->inst.insert(--urollingBody->inst.end(),nbinary);
+                // if(inst==loopIncVal->value.phi.phi[1].second){
+                //     oTn[loopIncVal]=nbinary;
+                // }
+
+                break;
+            }
+            case RVT_CALL:{
+                RawValue* ncall = new RawValue(inst);
+                ncall->value.call.callee = inst->value.call.callee;
+                for(int i=0;i<inst->value.call.args.size();i++){
+                    if(oTn.find((RawValue*)inst->value.call.args[i])==oTn.end()){
+                        ncall->value.call.args.push_back(inst->value.call.args[i]);
+                    }else{
+                        ncall->value.call.args.push_back(oTn[(RawValue*)inst->value.call.args[i]]);
+                    }
+                }
+                oTn[inst]=ncall;
+                urollingBody->inst.insert(--urollingBody->inst.end(),ncall);
+                break;
+            }
+            case RVT_CONVERT:{
+                RawValue* nConvert = new RawValue(inst);
+                if(oTn.find((RawValue*)inst->value.Convert.src)==oTn.end()){
+                    nConvert->value.Convert.src = inst->value.Convert.src;
+                }else{
+                    nConvert->value.Convert.src = oTn[(RawValue*)inst->value.Convert.src];
+                }
+                oTn[inst]=nConvert;
+                urollingBody->inst.insert(--urollingBody->inst.end(),nConvert);
+                break;
+            }
+            default:
+                break;
+            }
+        }
+    }
+    //修正phi函数
+    map<RawValue*,RawValue*>PTNewP;
+    for(auto bb:body){
+        RawBasicBlock* needInsertValueBlock;
+        if(bb==head){
+            needInsertValueBlock=urollingHead;
+        }else if(bb==onebody){
+            needInsertValueBlock=urollingBody;
+        }
+        for(auto p:bb->phi){
+            RawValue* newPhi = new RawValue(p);
+            PTNewP[p]=newPhi;
+            newPhi->value.phi.target = p->value.phi.target;
+            for(auto &it:p->value.phi.phi){
+                std::pair<RawBasicBlock*, RawValue*> newPhiVal=it;
+                if(it.first==head){
+                    newPhiVal.first=urollingHead;
+                }else if(it.first==onebody){
+                    newPhiVal.first=urollingBody;
+                }
+                if(oTn.find(it.second)!=oTn.end()){
+                    newPhiVal.second=oTn[it.second];
+                }
+                newPhi->value.phi.phi.push_back(newPhiVal);
+            }
+            needInsertValueBlock->phi.push_back(newPhi);
+        }
+    }
+    for(auto bb:body){
+        for(auto p:bb->phi){
+            for(auto it=p->value.phi.phi.begin();it!=p->value.phi.phi.end();){
+                if(it->first==head||it->first==onebody){
+                    it++;
+                    continue;
+                }else{
+                    it=p->value.phi.phi.erase(it);
+                }
+            }
+            std::pair<RawBasicBlock*, RawValue*> newPhiVal={urollingHead,PTNewP[p]};
+            p->value.phi.phi.push_back(newPhiVal);
+        }
+    }
 }
 int natureloop::loopTimes(RawValue* condVal,RawValue* cond){
     int start = condVal->value.phi.phi[0].second->value.integer.value;

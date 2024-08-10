@@ -9,7 +9,7 @@
 #include <unordered_set>
 #include "../IR/Programme.h"
 #include "../IR/BasicBlock.h"
-#define UNROLLFACTOR 2
+#define UNROLLFACTOR 4
 enum class LoopType {
     NotJudge = -1,
     LoopNoneEnd,
