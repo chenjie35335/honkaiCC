@@ -14,6 +14,7 @@ void BlockEliminate(RawProgramme *&programme);
 void InstMerge(RawProgramme *&programmer);
 void MarkUseDef(RawProgramme *&programmer);
 
+extern void OptimizeLoopUnroll(RawProgramme *IR);
 int main(int argc, const char *argv[]) {
   // 解析命令行参数. 测试脚本/评测平台要求你的编译器能接收如下参数:
   // compiler0 -S1 -o2 输出文件3 输入文件4
@@ -54,8 +55,9 @@ int main(int argc, const char *argv[]) {
        //renameValue(irGraph);
       //  循环优化需要基于支配树
     //  OptimizeLoop(irGraph);
-       OptimizeMem2Reg(irGraph);
-       //GeneratorIRTxt(irGraph,true);
+      OptimizeMem2Reg(irGraph);
+      OptimizeLoopUnroll(irGraph);
+      GeneratorIRTxt(irGraph,true);
       //mem2regTop(irGraph);
       //GeneratorIRTxt(irGraph,true);
       //DCE(irGraph);
@@ -83,8 +85,8 @@ int main(int argc, const char *argv[]) {
   }
   else if(strcmp(mode,"-cfg") == 0){
     // OptimizeFuncInline(irGraph);
-    // GeneratorDT(irGraph,3);控制流图
-    GeneratorDT(irGraph,2);//支配树
+    GeneratorDT(irGraph,3);//控制流图
+    // GeneratorDT(irGraph,2);//支配树
   }
   else if(strcmp(mode,"-astT") == 0){
     Generator_ast(ast,1);
