@@ -1,19 +1,18 @@
 #include "include/common.h"
 #include <chrono>
 using namespace std;
-
+//唯一的办法就是刚进入的时候修改一下，然后还原的时候只能手动保证use和def关系
 extern FILE *yyin;
 extern int yyparse(unique_ptr<BaseAST> &ast);
 extern void backend(RawProgramme *& programme);
-extern void DCE(RawProgramme *&programme);
-extern void ConstCombine(RawProgramme *&prgramme);
+extern void InsertNumber(RawProgramme *& programme);
 extern void OptimizeMem2Reg(RawProgramme *&programme);
 void OptimizeGCSE(RawProgramme *programme);
 void OptimizeSCCP(RawProgramme *&programme);
 void BlockEliminate(RawProgramme *&programme);
 void InstMerge(RawProgramme *&programmer);
 void MarkUseDef(RawProgramme *&programmer);
-
+//明天下午之前如果解决不了这个问题认定为抢救失败
 extern void OptimizeLoopUnroll(RawProgramme *IR);
 int main(int argc, const char *argv[]) {
   // 解析命令行参数. 测试脚本/评测平台要求你的编译器能接收如下参数:
@@ -44,20 +43,21 @@ int main(int argc, const char *argv[]) {
   auto end_time = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
   std::cerr << "程序运行时间: " << duration.count() << " 微秒" << std::endl;
+  InsertNumber(irGraph);
+  MarkUseDef(irGraph);
   //InstMerge(irGraph);
   if(optMode != nullptr && strcmp(optMode,"-O1") == 0) {
       //GeneratorIRTxt(irGraph,false);
       //OptimizeFuncInline(irGraph);
-       MarkUseDef(irGraph);
-       GeneratorDT(irGraph,0);
+      GeneratorDT(irGraph,0);
       // GeneratorDT(irGraph,3);
-       //AddPhi(irGraph);
-       //renameValue(irGraph);
+      //AddPhi(irGraph);
+      //renameValue(irGraph);
       //  循环优化需要基于支配树
     //  OptimizeLoop(irGraph);
-      OptimizeMem2Reg(irGraph);
-      OptimizeLoopUnroll(irGraph);
-      GeneratorIRTxt(irGraph,true);
+      // OptimizeMem2Reg(irGraph);
+      // OptimizeLoopUnroll(irGraph);
+      // GeneratorIRTxt(irGraph,true);
       //mem2regTop(irGraph);
       //GeneratorIRTxt(irGraph,true);
       //DCE(irGraph);
@@ -74,12 +74,11 @@ int main(int argc, const char *argv[]) {
   start_time = std::chrono::high_resolution_clock::now();
   cerr << "start domain tree" << endl;
   if(strcmp(mode,"-riscv") == 0 || strcmp(mode,"-S") == 0) {
-    GeneratorDT(irGraph,0);
     auto end_time = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
     std::cerr << "程序运行时间: " << duration.count() << " 微秒" << std::endl;
     backend(irGraph);
-  } 
+  }
   else if(strcmp(mode,"-koopa") == 0) {
      GeneratorIRTxt(irGraph,false);
   }

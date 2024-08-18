@@ -6,6 +6,7 @@
 #include <cassert>
 #include <cstring>
 #include <iostream>
+#include <algorithm>
 int32_t convert(float number)
 {
     union {
@@ -16,6 +17,12 @@ int32_t convert(float number)
     return u.i;
 }
 
+bool IsNeed(RawValue *value) {
+    value->dictIt++;
+    if(value->dictIt == value->dict.end()) return false;
+    else return true;
+}
+
 HardwareManager hardware;
 //处理load运算，由于我们在类型那里处理的调整，这里可能需要多加一个分类讨论
 void Visit(const RawLoad &data, const RawValueP &value) {
@@ -23,46 +30,54 @@ void Visit(const RawLoad &data, const RawValueP &value) {
     const auto &src = data.src;
     auto srcPointerTy = src->ty->pointer.base;
     if(src->value.tag == RVT_GLOBAL) {
-        hardware.AllocRegister(value);
-        const char *TargetReg = hardware.GetRegister(value);
+        int ValueReg = hardware.AllocRegister(hardware.ValueToIndex[(RawValue *)value],value->ty->tag);
+        const char *ValueRegister = hardware.GetRegister(ValueReg,value->ty->tag);
+        if(value->dict.empty()) hardware.FreeRegister(ValueReg,value->ty->tag);
+        else hardware.AlterNext(ValueReg,value->ty->tag,*value->dictIt);
         if(srcPointerTy->tag == RTT_FLOAT)
-            cout << "  flw  " << TargetReg << ", " << src->name << ", t0" <<  endl;
+            cout << "  flw  " << ValueRegister << ", " << src->name << ", t0" <<  endl;
         else {
-            cout << "  lw  " << TargetReg << ", " << src->name << endl;
+            cout << "  lw  " << ValueRegister << ", " << src->name << endl;
         }
     } else if(src->value.tag == RVT_ALLOC){
-        hardware.AllocRegister(value);
-        const char *TargetReg = hardware.GetRegister(value);
+        int ValueReg = hardware.AllocRegister(hardware.ValueToIndex[(RawValue *)value],value->ty->tag);
+        const char *ValueRegister = hardware.GetRegister(ValueReg,value->ty->tag);
+        if(value->dict.empty()) hardware.FreeRegister(ValueReg,value->ty->tag);
+        else hardware.AlterNext(ValueReg,value->ty->tag,*value->dictIt);
         int srcAddress = hardware.getTargetOffset(src); //这里有点好，直接跳过了visit过程
         if(srcAddress > 2047) {
             cout << "  li   " << "t0, " << srcAddress << endl;
             cout << "  add  " << "t0, sp, t0" << endl;
             if(srcPointerTy->tag == RTT_INT32)
-                cout << "  lw  " <<  TargetReg << ", " << 0 << "(t0)" << endl;
+                cout << "  lw  " <<  ValueRegister << ", " << 0 << "(t0)" << endl;
             else if(srcPointerTy->tag == RTT_FLOAT) 
-                cout << "  flw  " <<  TargetReg << ", " << 0 << "(t0)" << endl;
+                cout << "  flw  " <<  ValueRegister << ", " << 0 << "(t0)" << endl;
             else 
-                cout << "  ld  " <<  TargetReg << ", " << 0 << "(t0)" << endl; 
+                cout << "  ld  " <<  ValueRegister << ", " << 0 << "(t0)" << endl; 
         } else {
             if(srcPointerTy->tag == RTT_INT32)
-                cout << "  lw   " << TargetReg << ", " << srcAddress << "(sp)" << endl;
+                cout << "  lw   " << ValueRegister << ", " << srcAddress << "(sp)" << endl;
             else if(srcPointerTy->tag == RTT_FLOAT) 
-                cout << "  flw  " <<  TargetReg << ", " << srcAddress << "(sp)" << endl;
+                cout << "  flw  " <<  ValueRegister << ", " << srcAddress << "(sp)" << endl;
             else 
-                cout << "  ld  " <<  TargetReg << ", " << srcAddress << "(sp)" << endl; 
+                cout << "  ld  " <<  ValueRegister << ", " << srcAddress << "(sp)" << endl; 
             }
         } else if(src->value.tag == RVT_GET_ELEMENT || src->value.tag == RVT_GET_PTR){
-            Visit(src);
-            hardware.addLockRegister(src);
-            hardware.AllocRegister(value);
-            const char *TargetReg = hardware.GetRegister(value);
-            const char *ElementReg = hardware.GetRegister(src);
+            int SrcReg = hardware.Ensure(hardware.ValueToIndex[(RawValue *)src],src->ty->tag);
+            if(!IsNeed((RawValue *)src)) hardware.FreeRegister(SrcReg,src->ty->tag);
+            else {
+                hardware.AlterNext(SrcReg,src->ty->tag,*src->dictIt);
+            }
+            int ValueReg = hardware.AllocRegister(hardware.ValueToIndex[(RawValue *)value],value->ty->tag);
+            const char *ValueRegister = hardware.GetRegister(ValueReg,value->ty->tag);
+            const char *ElementReg = hardware.GetRegister(ValueReg,src->ty->tag);
+            if(value->dict.empty()) hardware.FreeRegister(SrcReg,value->ty->tag);
+            else hardware.AlterNext(ValueReg,value->ty->tag,*value->dictIt);
             auto ValueTag = value->ty->tag;
             if(ValueTag == RTT_FLOAT)
-                cout << "  flw  " << TargetReg << ", " << 0 << '(' << ElementReg << ')' << endl;
+                cout << "  flw  " << ValueReg << ", " << 0 << '(' << ElementReg << ')' << endl;
             else  
-                cout << "  lw  " << TargetReg << ", " << 0 << '(' << ElementReg << ')' << endl;
-            hardware.LeaseLockRegister(src);
+                cout << "  lw  " << ValueReg << ", " << 0 << '(' << ElementReg << ')' << endl;
     } else assert(0);
 }
 
@@ -95,9 +110,7 @@ void Visit(const RawStore &data, const RawValueP &value) {
     const auto &dest= data.dest;
     if(dest->value.tag == RVT_GLOBAL) {
         Visit(src);
-        hardware.addLockRegister(src);
         hardware.AllocRegister(dest);
-        hardware.LeaseLockRegister(src);
         const char *SrcReg = hardware.GetRegister(src);
         const char * DestReg = hardware.GetRegister(dest);
         if(src->ty->tag == RTT_FLOAT) 
@@ -129,9 +142,7 @@ void Visit(const RawStore &data, const RawValueP &value) {
                 cout << "  sd  " <<  SrcReg << ", " << srcAddress << "(sp)" << endl; 
             }
     } else if(dest->value.tag == RVT_GET_ELEMENT || dest->value.tag == RVT_GET_PTR) {
-        hardware.addLockRegister(dest);
         Visit(src);
-        hardware.LeaseLockRegister(dest);
         const char *SrcReg = hardware.GetRegister(src);
         const char *ElementReg = hardware.GetRegister(dest);
         auto srcTag = src->ty->tag;
@@ -142,34 +153,38 @@ void Visit(const RawStore &data, const RawValueP &value) {
     } else assert(0);
 }
 
+
 //处理二进制运算
 void Visit(const RawBinary &data,const RawValueP &value) {
     const auto &lhs = data.lhs;
     const auto &rhs = data.rhs;
     const auto &op  = data.op;
-    Visit(lhs);
-    hardware.addLockRegister(lhs);
-
-    Visit(rhs);
-    hardware.addLockRegister(rhs);
-
-    hardware.AllocRegister(value);
-
-    //release
-    hardware.LeaseLockRegister(lhs);
-    hardware.LeaseLockRegister(rhs);
-    //这里需要根据类型判断他是在哪个寄存器里面
     const char *LhsRegister;
     const char *RhsRegister;
     const char *ValueRegister;
+    int LhsReg = hardware.Ensure(hardware.ValueToIndex[(RawValue *)lhs],lhs->ty->tag);
+    int RhsReg = hardware.Ensure(hardware.ValueToIndex[(RawValue *)rhs],rhs->ty->tag);
+    if(!IsNeed((RawValue *)lhs)) hardware.FreeRegister(LhsReg,lhs->ty->tag);
+    else {
+        hardware.AlterNext(LhsReg,lhs->ty->tag,*lhs->dictIt);
+    }
+    if(!IsNeed((RawValue *)rhs)) hardware.FreeRegister(RhsReg,rhs->ty->tag);
+    else {
+        hardware.AlterNext(RhsReg,rhs->ty->tag,*rhs->dictIt);
+    }
+    int ValueReg = hardware.AllocRegister(hardware.ValueToIndex[(RawValue *)value],value->ty->tag);
+
+    //这里需要根据类型判断他是在哪个寄存器里面
+
     //lhs
-    LhsRegister = hardware.GetRegister(lhs);
+    LhsRegister = hardware.GetRegister(LhsReg,lhs->ty->tag);
     //rhs
-    RhsRegister = hardware.GetRegister(rhs);
+    RhsRegister = hardware.GetRegister(RhsReg,rhs->ty->tag);
     //value
-    ValueRegister = hardware.GetRegister(value);
+    ValueRegister = hardware.GetRegister(ValueReg,value->ty->tag);
 
-
+    if(value->dict.empty()) hardware.FreeRegister(ValueReg,value->ty->tag);
+    else hardware.AlterNext(ValueReg,value->ty->tag,*value->dictIt);
     switch(op) {
         case RBO_ADD:
             cout << "  addw  " <<ValueRegister<<", "<< LhsRegister << ", " << RhsRegister <<endl;
@@ -255,8 +270,13 @@ void Visit(const RawBinary &data,const RawValueP &value) {
 
 //处理branch指令
 void Visit(const RawBranch &data, const RawValueP &value){
-    Visit(data.cond);
-    string CondRegister = hardware.GetRegister(data.cond);
+    auto cond = (RawValue *)data.cond;
+    int CondReg = hardware.Ensure(hardware.ValueToIndex[(RawValue *)cond],cond->ty->tag);
+    if(!IsNeed((RawValue *)cond)) hardware.FreeRegister(CondReg,cond->ty->tag);
+    else {
+        hardware.AlterNext(CondReg,cond->ty->tag,*cond->dictIt);
+    }
+    const char * CondRegister = hardware.GetRegister(CondReg,cond->ty->tag);
     string TrueBB = data.true_bb->name;
     string FalseBB = data.false_bb->name;
     cout << "  bnez  " << CondRegister << ", " << TrueBB << endl;
@@ -277,7 +297,7 @@ void Visit(const RawCall &data,const RawValueP &value) {
         Visit(ptr);
         if(i < 8) {
             const char *reg = hardware.GetRegister(ptr);
-            hardware.StoreReg(10+i,ptr->ty->tag);
+            hardware.spill(10+i,ptr->ty->tag);
             if(ptr->ty->tag == RTT_FLOAT)
                 cout << "  fmv.s  " << RegisterManager::fregs[10+i] << ", " << reg << endl;
             else 
@@ -377,14 +397,10 @@ void Visit(const RawGetPtr &data, const RawValueP &value) {
     const char *srcAddrReg;
     Visit(src);
     srcAddrReg = hardware.GetRegister(src);
-    hardware.addLockRegister(src);
     Visit(index);
-    hardware.addLockRegister(index);
     const char *IndexReg = hardware.GetRegister(index);
     int elementLen = calBaseLen(src);
     hardware.AllocRegister(value);
-    hardware.LeaseLockRegister(src);
-    hardware.LeaseLockRegister(index);
     const char *ptrReg = hardware.GetRegister(value);
     if(elementLen == 4) {
         cout << "  slli " << ptrReg << ", " << IndexReg << ", " << 2 << endl;
@@ -419,17 +435,13 @@ void Visit(const RawGetElement &data,const RawValueP &value) {
         Visit(src);
         srcAddrReg = hardware.GetRegister(src);
      }
-     hardware.addLockRegister(src);
     //  cout << "visit index" << endl;
      Visit(index);
-     hardware.addLockRegister(index);
      const char *IndexReg = hardware.GetRegister(index);
      //这个地方应该乘的是单个元素的长度，这里先解决的是一维数组的问题
      //cout << "calptrlen = " << calPtrLen(src) << ", elementlen" << (src->ty->data.array.len) << endl;
      int elementLen = calBaseLen(src)/(src->ty->pointer.base->array.len);
      hardware.AllocRegister(value);
-     hardware.LeaseLockRegister(src);
-     hardware.LeaseLockRegister(index);
      const char *ptrReg = hardware.GetRegister(value);
      if(elementLen == 4) {
         cout << "  slli " << ptrReg << ", " << IndexReg << ", " << 2 << endl;
@@ -448,20 +460,12 @@ void Visit(const RawTriple &data,const RawValueP &value)
     const auto &hs3 = data.hs3;
     const auto &op  = data.op;
     Visit(hs1);
-    hardware.addLockRegister(hs1);
 
     Visit(hs2);
-    hardware.addLockRegister(hs2);
 
     Visit(hs3);
-    hardware.addLockRegister(hs3);
 
     hardware.AllocRegister(value);
-
-    //release
-    hardware.LeaseLockRegister(hs1);
-    hardware.LeaseLockRegister(hs2);
-    hardware.LeaseLockRegister(hs3);
     //这里需要根据类型判断他是在哪个寄存器里面
     const char *hs1Register;
     const char *hs2Register;
@@ -507,24 +511,19 @@ void Visit(const RawConvert &data, const RawValueP &value)
         const char *srcReg;
         Visit(data.src);
         srcReg = hardware.GetRegister(data.src);
-        hardware.addLockRegister(data.src);
         hardware.AllocRegister(value);
-        hardware.LeaseLockRegister(data.src);
         const char *TReg = hardware.GetRegister(value);
         cout<<"  fcvt.s.w " << TReg << ", " << srcReg << ", " << "rtz" << endl;
     } else if(SrcType == RTT_FLOAT) {
         const char*srcReg;
         Visit(data.src);
         srcReg = hardware.GetRegister(data.src);
-        hardware.addLockRegister(data.src);
         hardware.AllocRegister(value);
-        hardware.LeaseLockRegister(data.src);
         const char *TReg = hardware.GetRegister(value);
         cout<< "  fcvt.w.s " << TReg << ", "<< srcReg << ", " << "rtz" << endl;
     }
 }
-
-
+//对于dict如果我们发现dict是end,说明之后不会被使用了，如果不是的话就继续往前
 //这个Value是重点，如果value已经被分配了寄存器，直接返回
 //如果存在内存当中，调用loadreg后直接返回
 //如果这个处于未分配时，这时应该是遍历的时候访问的，分配内存和寄存器
@@ -532,19 +531,12 @@ void Visit(const RawConvert &data, const RawValueP &value)
 //现在可能需要做一个约定：凡是遇到全局变量或者函数参数
 void Visit(const RawValueP &value) {    
     const auto& kind = value->value;
-    if(hardware.IsRegister(value)) {
-        return;
-    }  else if(hardware.IsMemory(value)) {
-        hardware.LoadFromMemory(value);
-        return;
-    }
-    else {
     switch(kind.tag) {
     case RVT_RETURN: {
         const auto& ret = kind.ret.value; 
         if(ret != nullptr) {
-        Visit(ret);
-        const char *RetRegister = hardware.GetRegister(ret);
+        int RetReg = hardware.Ensure(hardware.ValueToIndex[(RawValue *)ret],ret->ty->tag);
+        const char *RetRegister = RegisterManager::fregs[RetReg];
         if(ret->ty->tag != RTT_FLOAT && strcmp(RetRegister,"a0")) {
             cout << "  mv   a0, "<< RetRegister << endl;
         }
@@ -572,32 +564,27 @@ void Visit(const RawValueP &value) {
     case RVT_INTEGER: {
         const auto& integer = kind.integer.value;
         if(integer == 0) {
-            hardware.AssignRegister(value,0);
-        } else {
-            hardware.AllocRegister(value);
-            const char *reg = hardware.GetRegister(value);
+            hardware.AssignRegister(hardware.ValueToIndex[(RawValue *)value],0,RTT_INT32);
+        } else {//
+            int AllocReg = hardware.AllocRegister(hardware.ValueToIndex[(RawValue *)value],RTT_INT32);
+            const char *reg = hardware.GetRegister(AllocReg,RTT_INT32);
             cout << "  li   "  <<  reg  << ", "  << integer << endl;
+            if(value->dict.empty()) hardware.FreeRegister(AllocReg,RTT_INT32);
+            else hardware.AlterNext(AllocReg,RTT_INT32,*value->dictIt);
         }
+        
         cout << endl;
         break;
     }
     case RVT_FLOAT:{
         const auto& floatNumber = kind.floatNumber.value;
-        hardware.AllocRegister(value);
-        const char *reg = hardware.GetRegister(value);
+        int AllocReg = hardware.AllocRegister(hardware.ValueToIndex[(RawValue *)value],RTT_FLOAT);
+        const char *reg = hardware.GetRegister(AllocReg,RTT_FLOAT);
         int32_t str = convert(floatNumber);
         cout << "  li  " << "t0 " << ", " << str << endl;
         cout << "  fmv.w.x " <<  reg << ", " << "t0" << endl;
-        // if(floatNumber >= 0 && floatNumber <= 0) { //判断浮点数为0，看起来很蠢
-            // hardware.AssignRegister(value,0);
-        // } else {
-            // hardware.AllocFRegister(value);
-            // const char *reg = hardware.GetFRegister(value);
-            //浮点数的load操作很复杂，这里先不处理
-            // int32_t str = convert(floatNumber);
-            // Visit(str);
-            // cout << "  lui  "  <<  reg  << ", "  << "LC" << LC_Number[current_LC] << endl;
-        // }
+        if(value->dict.empty()) hardware.FreeRegister(AllocReg,RTT_FLOAT);
+        else hardware.AlterNext(AllocReg,RTT_FLOAT,*value->dictIt);
         break;
     }
     case RVT_BINARY: {
@@ -607,7 +594,7 @@ void Visit(const RawValueP &value) {
         break;
     }
     case RVT_ALLOC: {
-        hardware.StackAlloc(value); 
+        hardware.StackAlloc(value);
         break;
     }
     case RVT_LOAD: {
@@ -679,6 +666,86 @@ void Visit(const RawValueP &value) {
     }
 }
     //cout <<"End Visit kind" << kind.tag << endl;
+
+
+void MarkDict(RawBasicBlock *bb) {
+    auto &insts = bb->inst;
+    for(auto it = insts.rbegin(); it != insts.rend(); ++it){
+        auto inst = *it;
+        auto BBindex = hardware.ValueToIndex[inst];
+        auto tag = inst->value.tag;
+        switch (tag)
+        {
+        case RVT_RETURN://src的use
+        {
+            auto src = (RawValue *)inst->value.ret.value;
+            if(src) {
+                src->dict.push_front(BBindex);
+            }
+            break;
+        }
+        case RVT_BINARY://lhs,rhs的use ，inst的def
+        {
+            auto lhs = (RawValue *)inst->value.binary.lhs;
+            auto rhs = (RawValue *) inst->value.binary.rhs;
+            lhs->dict.push_front(BBindex);
+            rhs->dict.push_front(BBindex);
+            break;
+        }
+        case RVT_STORE://src的use,dest的def
+        {
+            auto src = (RawValue *) inst->value.store.value;
+            auto dest = (RawValue *) inst->value.store.dest;
+            src->dict.push_front(BBindex);
+            if(dest->value.tag == RVT_GET_ELEMENT || dest->value.tag == RVT_GET_PTR) {
+                dest->dict.push_front(BBindex);
+            }
+            break;
+        }
+        case RVT_BRANCH://cond的use
+        {
+            auto cond = (RawValue *)inst->value.branch.cond;
+            cond->dict.push_front(BBindex);
+            break;
+        }
+        case RVT_CALL://call的def,param的use
+        {
+            auto &params = inst->value.call.args;
+            for(auto param : params) {
+                param->dict.push_front(BBindex);
+            }
+            break;
+        }
+        case RVT_GET_PTR://这个唯一有用的就是index的use,其他没用
+        //貌似src也有点用了,都是
+        {
+            auto index = (RawValue *) inst->value.getptr.index;
+            auto src = (RawValue *)inst->value.getptr.src;
+            index->dict.push_front(BBindex);
+            src->dict.push_front(BBindex);
+            break;
+        }
+        case RVT_GET_ELEMENT:
+        {
+            auto index = (RawValue *) inst->value.getelement.index;
+            auto src = (RawValue *)inst->value.getelement.src;
+            index->dict.push_front(BBindex);
+            src->dict.push_front(BBindex);
+            break;
+        }
+        case RVT_CONVERT://目前没用上,先暂时不考虑
+        {
+            auto src = (RawValue *)inst->value.Convert.src;
+            src->dict.push_front(BBindex);
+            break;
+        }
+        default:
+           break;
+        }
+    }
+    for(auto inst : insts) {
+        inst->dictIt = inst->dict.begin();
+    }
 }
 
 // Visit RawBlock
@@ -688,18 +755,56 @@ void Visit(const RawBasicBlockP &bb){
      cout << bb->name << ":" << endl;
      }
      auto &insts = bb->inst;
+     hardware.registerManager.init();
+     int index = 1;
+     for(auto inst : insts) {
+        hardware.IndexToValue[index] = inst;
+        hardware.ValueToIndex[inst] = index;
+        index++;
+     }
+     MarkDict((RawBasicBlock *)bb);
      for(auto inst : insts)
-     Visit(inst);
-} 
+        Visit(inst);
+}
 
-void Visit_bb(const RawBasicBlockP &bb) {
-    hardware.registerManager.PushNewLook();
-    Visit(bb);
-    auto &domains = bb->domains;
-    for(auto domain : domains) {
-        Visit_bb(domain);
+void CalLiveOut(RawFunction *function) {
+    for(auto bb:function->basicblock){//初始化为空
+        bb->liveIn.clear();
+        bb->liveOut.clear();
+        bb->TLiveIn.clear();
+        bb->TLiveOut.clear();
     }
-    hardware.registerManager.PopLook();
+    while(1){
+        //遍历每个基本块
+        for(auto bb:function->basicblock){
+            // _in[n]=in[n]; _out[n]=out[n];
+            bb->TLiveIn=bb->liveIn;
+            bb->TLiveOut=bb->liveOut;
+            //out[n]-def[n]
+            unordered_set<RawValue*> difference_set,union_set;
+            set_difference(bb->liveOut.begin(), bb->liveOut.end(), bb->defs.begin(), bb->defs.end(),std::inserter(difference_set, difference_set.end()));
+            //in[n]=use[n]U(out[n]-def[n])
+            set_union(difference_set.begin(), difference_set.end(), bb->uses.begin(), bb->uses.end(),std::inserter(union_set, union_set.end()));
+            bb->liveIn = union_set;
+            //out[n] = U_in[s] 所有后继的入口活跃集合的并集
+            union_set.clear();
+            for(auto fbb:bb->fbbs){
+                set_union(union_set.begin(), union_set.end(), fbb->liveIn.begin(), fbb->liveIn.end(),std::inserter(union_set, union_set.end()));
+                //union_set.merge(fbb->liveIn);
+            }
+            bb->liveOut = union_set;
+        }
+        int count = 0;
+        for(auto bb:function->basicblock){
+            if(bb->liveOut==bb->TLiveOut){
+                if(bb->liveIn==bb->TLiveIn){
+                    count++;
+                }
+            }
+        }
+        if(count==function->basicblock.size())
+            return;
+    }
 }
 
 // Visit RawFunction
@@ -710,6 +815,7 @@ void Visit(const RawFunctionP &func)
         int bbsLen = bbs.size();
         //cerr << "bbsLen " << bbsLen << endl;
         if(bbsLen != 0) {
+         CalLiveOut((RawFunction *)func);
          hardware.init(func);
          printf("  .globl %s\n",func->name);
          printf("%s:\n",func->name);
@@ -729,10 +835,8 @@ void Visit(const RawFunctionP &func)
         //  }
         for(auto param : params)
          Visit(param);
-        auto entryBB = *bbs.begin();
-        Visit_bb(entryBB);
-        // for(auto bb : bbs)
-        //  Visit(bb);
+        for(auto bb : bbs)
+         Visit(bb);
         cout << endl;
         }
 }

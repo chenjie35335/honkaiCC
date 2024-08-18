@@ -7,7 +7,7 @@
 #include <unordered_map>
 using namespace std;
 // 关心三个事情： basicblock上的use def value的定值点，使用点和定值基本块
-
+// 这里的use def还是需要修改，现在只关心需要分配寄存器的部分，其他的一概不管
 void MarkUseDef(RawBasicBlock *&bb)
 {
     auto &insts = bb->inst;
@@ -43,10 +43,6 @@ void MarkUseDef(RawBasicBlock *&bb)
         }
         case RVT_LOAD://src的use，inst的def
         {
-            auto src = (RawValue *)inst->value.load.src;
-            src->usePoints.push_back(inst);
-            src->usebbs.push_back(bb);
-            bb->uses.insert(src);
             inst->defPoints.push_back(inst);
             inst->defbbs.push_back(bb);
             bb->defs.insert(inst);
@@ -63,11 +59,6 @@ void MarkUseDef(RawBasicBlock *&bb)
                 dest->usePoints.push_back(inst);
                 dest->usebbs.push_back(bb);
                 bb->uses.insert(dest);
-            }
-            else {
-                dest->defPoints.push_back(inst);
-                dest->defbbs.push_back(bb);
-                bb->defs.insert(dest);
             }
             break;
         }
@@ -87,9 +78,11 @@ void MarkUseDef(RawBasicBlock *&bb)
                 param->usebbs.push_back(bb);
                 bb->uses.insert(param);
             }
-            inst->defPoints.push_back(inst);
-            inst->defbbs.push_back(bb);
-            bb->defs.insert(inst);
+            if(inst->ty->tag != RTT_UNIT) {
+                inst->defPoints.push_back(inst);
+                inst->defbbs.push_back(bb);
+                bb->defs.insert(inst);
+            }
             break;
         }
         case RVT_GET_PTR://这个唯一有用的就是index的use,其他没用
@@ -103,6 +96,9 @@ void MarkUseDef(RawBasicBlock *&bb)
             src->usePoints.push_back(inst);
             src->usebbs.push_back(bb);
             bb->uses.insert(src);
+            inst->defPoints.push_back(inst);
+            inst->defbbs.push_back(bb);
+            bb->defs.insert(inst);
             break;
         }
         case RVT_GET_ELEMENT:
@@ -115,6 +111,9 @@ void MarkUseDef(RawBasicBlock *&bb)
             src->usePoints.push_back(inst);
             src->usebbs.push_back(bb);
             bb->uses.insert(src);
+            inst->defPoints.push_back(inst);
+            inst->defbbs.push_back(bb);
+            bb->defs.insert(inst);
             break;
         }
         case RVT_PHI:
@@ -133,8 +132,45 @@ void MarkUseDef(RawBasicBlock *&bb)
         }
         case RVT_CONVERT://目前没用上,先暂时不考虑
         {
-           
+            auto src = (RawValue *)inst->value.Convert.src;
+            src->usePoints.push_back(inst);
+            src->usebbs.push_back(bb);
+            bb->uses.insert(src);
+            inst->defPoints.push_back(inst);
+            inst->defbbs.push_back(bb);
+            bb->defs.insert(inst);
             break;
+        }
+        case RVT_INTEGER: {
+            inst->defPoints.push_back(inst);
+            inst->defbbs.push_back(bb);
+            bb->defs.insert(inst);
+            break;
+        }
+        case RVT_FLOAT: {
+            inst->defPoints.push_back(inst);
+            inst->defbbs.push_back(bb);
+            bb->defs.insert(inst);
+            break;
+        }
+        case RVT_FUNC_ARGS: {
+            inst->defPoints.push_back(inst);
+            inst->defbbs.push_back(bb);
+            bb->defs.insert(inst);
+            break;
+        }
+        case RVT_GLOBAL: {
+            inst->defPoints.push_back(inst);
+            inst->defbbs.push_back(bb);
+            bb->defs.insert(inst);
+            break;
+        }
+        case RVT_ALLOC: {
+            if(inst->identType != IDENT_VAR) {
+                inst->defPoints.push_back(inst);
+                inst->defbbs.push_back(bb);
+                bb->defs.insert(inst);
+            }
         }
         default:
            break;

@@ -36,6 +36,14 @@ class RawBasicBlock{
     unordered_set<RawValueP> NessPhi;
 /// function phi for this basicblock
     list<RawValue *> phi;
+/// basicblock liveout
+    unordered_set<RawValue *> liveOut;
+/// basicblock livein
+    unordered_set<RawValue *> liveIn;
+/// temp BasicBlock livein
+    unordered_set<RawValue *> TLiveIn;
+/// temp BasicBlock liveout
+    unordered_set<RawValue *> TLiveOut;
 /// whether the bb is to remove
     bool isDeleted;
 /// whether the bb is executed

@@ -153,36 +153,13 @@ public:
     int GetLen(const RawValueP &value) { return localArea.GetLen(value);}
 };
 
-typedef enum {
-    FSRM_ROUND_TO_NEAREST,
-    FSRM_ROUND_TO_ZERO,
-    FSRM_ROUND_TO_POSITIVE_INFINITY,
-    FSRM_ROUND_TO_NEGATIVE_INFINITY
-} frm_mode_t;
-
-typedef struct {
-    unsigned int fp_control;
-    unsigned int fp_status;
-    unsigned int fp_tag;
-    unsigned int fp_ip;
-    unsigned int fp_cs;
-    unsigned int fp_dp;
-    unsigned int fp_ds;
-    unsigned int fp_op;
-} fsr_t;
-
 class RegisterManager
 {
 public:
     /// @brief 寄存器堆
     static const char *regs[32];
     //32位浮点
-    static const char *fregs[32];  
-    /// frm 浮点舍入模式寄存器
-    frm_mode_t frmReg;
-    /// fsr 浮点控制状态寄存器
-    fsr_t fsrReg;
-    //难点在于什么时候用这些寄存器
+    static const char *fregs[32];
     /// @brief 调用者保存寄存器
     static const int callerSave[];
     /// @brief 被调用者保存寄存器
@@ -191,124 +168,46 @@ public:
     static const int callerFSave[];
     /// @brief 被调用者保存浮点寄存器
     static const int calleeFSave[];
-    /// @brief 寄存器表
-    map<RawValueP, int> registerLook;
-    /// @brief 寄存器表栈
-    stack<map<RawValueP, int>> registerStack;
-    /// @brief 浮点寄存器表
-    map<RawValueP, int> FregisterLook; //fregs
-    /// @brief 寄存器表栈
-    stack<map<RawValueP, int>> FregisterStack;
-    /// @brief 寄存器加锁
-    bool RegisterLock[32];
-    /// @brief 浮点寄存器加锁
-    bool FRegisterLock[32];//fregs
-    /// @brief 寄存器已满
-    bool RegisterFull;
-    /// @brief 寄存器是否满的栈
-    stack<bool> registerFullStack;
-    /// @brief 浮点寄存器满
-    bool FRegisterFull; //fregs
-    /// @brief 寄存器是否满的栈
-    stack<bool> FregisterFullStack;
-    /// @brief 未满时，当前可用寄存器
-    uint32_t tempRegister;
-    /// @brief 未满时，可用寄存器栈
-    stack<uint32_t> tempRegisterStack;
-    /// @brief 未满时，当前可用浮点寄存器
-    uint32_t tempFRegister;
-    /// @brief 未满时，当前可用浮点寄存器栈
-    stack<uint32_t> tempFRegisterStack;
+    /// @brief Class中的Name域
+    int IntName[32];
+    /// @brief Class中的Next域
+    int IntNext[32];
+    /// @brief Class中的Free域
+    bool IntFree[32];
+    /// @brief Class中的空闲栈
+    stack<int> IntStack;
+    /// @brief FClass中的Name域
+    int FloatName[32];
+    /// @brief FClass中的Next域
+    int FloatNext[32];
+    /// @brief FClass中的Free域
+    bool FloatFree[32];
+    /// @brief FClass中的空闲栈
+    stack<int> FloatStack;
     /// @brief 构造函数
     RegisterManager() {}
 
-    void PushNewLook() {
-        registerStack.push(registerLook);
-        FregisterStack.push(FregisterLook);
-        registerFullStack.push(RegisterFull);
-        FregisterFullStack.push(FRegisterFull);
-        tempRegisterStack.push(tempRegister);
-        tempFRegisterStack.push(tempFRegister);
+    bool IsIntInitFree(int reg) {
+        return !((reg >= 10 && reg <= 17) || (reg < 6));
     }
 
-    void PopLook() {
-        registerLook = registerStack.top();
-        FregisterLook = FregisterStack.top();
-        RegisterFull = registerFullStack.top();
-        FRegisterFull = FregisterFullStack.top();
-        tempRegister = tempRegisterStack.top();
-        tempFRegister = tempFRegisterStack.top();
-        registerStack.pop();
-        FregisterStack.pop();
-        registerFullStack.pop();
-        FregisterFullStack.pop();
-        tempRegisterStack.pop();
-        tempFRegisterStack.pop();
+    bool IsFloatInitFree(int reg) {
+        return !(reg >= 10 && reg <= 17);
     }
-
-    const char *GetRegister(const RawValueP &value) {
-        auto tag = value->ty->tag;
-        auto &look = (tag == RTT_FLOAT) ? FregisterLook : registerLook;
-        assert(look.find(value) != look.end());
-        int loc = look.at(value);
-        return (tag == RTT_FLOAT) ? fregs[loc]:regs[loc];
-    }
-
-    bool IsRegister(const RawValueP &value){
-        auto tag = value->ty->tag;
-        auto &look = (tag == RTT_FLOAT) ? FregisterLook : registerLook;
-        return look.find(value) != look.end();
-    }
-
-    void addLockRegister(const RawValueP &value) {
-        auto tag = value->ty->tag;
-        auto &look = (tag == RTT_FLOAT) ? FregisterLook : registerLook;
-        assert(look.find(value) != look.end());
-        int loc = look[value];
-        if(tag == RTT_FLOAT)
-            FRegisterLock[loc] = true;
-        else
-            RegisterLock[loc] = true;
-    }
-
-    void LeaseLockRegister(const RawValueP &value) {
-        auto tag = value->ty->tag;
-        //cout << "tag: " << tag << endl;
-        auto &look = (tag == RTT_FLOAT) ? FregisterLook : registerLook;
-        assert(look.find(value) != look.end());
-        int loc = look.at(value);
-        if(tag == RTT_FLOAT)
-            FRegisterLock[loc] = false;
-        else
-            RegisterLock[loc] = false;
-    }
-
-    void AssignRegister(const RawValueP &value, int loc) {
-        auto tag = value->ty->tag;
-        auto &look = (tag == RTT_FLOAT) ? FregisterLook : registerLook;
-        look.insert(pair<RawValueP, int>(value, loc));
-    }
-
 
     void init() {
-        for (int i = 0; i < 32; i++){
-            RegisterLock[i] = false;
-            FRegisterLock[i] = false;
+        for(int i = 0; i < 32; i++) {
+            IntName[i] = -1;
+            IntNext[i] = -1;
+            IntFree[i] = true;
+            FloatName[i] = -1;
+            FloatNext[i] = -1;
+            FloatFree[i] = true;
+            if(IsIntInitFree(i))  IntStack.push(i);
+            if(IsFloatInitFree(i)) FloatStack.push(i);
         }
-        FRegisterFull = false;
-        RegisterFull = false;
-        tempRegister = 6;
-        tempFRegister = 0;
-        registerLook.clear();
-        FregisterLook.clear();
     }
 
-    bool IsValid(int loc,int type) { 
-        if(type == RTT_FLOAT) 
-            return ((loc >= 0 && loc < 10) || (loc > 17 && loc < 32)) && !FRegisterLock[loc] ;
-        else
-            return ((loc > 5 && loc < 10) || (loc > 17 && loc < 32)) && !RegisterLock[loc] ;
-    }
 };
 
 class HardwareManager {
@@ -317,34 +216,36 @@ class HardwareManager {
     MemoryManager memoryManager;
     /// @brief 寄存器管理
     RegisterManager registerManager;
+    /// @brief 值编号
+    map<RawValue*,int> ValueToIndex;
+    /// @brief 编号表
+    map<int, RawValue*> IndexToValue;
 
     HardwareManager() {
     }
 
+    const char *GetRegister(int reg, int tag){
+        if(tag == RTT_FLOAT) return RegisterManager::fregs[reg];
+        else return RegisterManager::regs[reg];
+    }
     //这样只需要从Local空间取即可，不需要管其他空间
     int getTargetOffset(const RawValueP &value) { return memoryManager.getTargetOffset(value); }
 
     bool IsMemory(const RawValueP &value) {return memoryManager.IsMemory(value); }
-    
-    bool IsRegister(const RawValueP &value) {return registerManager.IsRegister(value);}
 
     void init(const RawFunctionP &value);
 
-    const char *GetRegister(const RawValueP &value) { return registerManager.GetRegister(value);}
+    void AlterNext(int reg,int tag,int target);
 
-    void addLockRegister(const RawValueP &value) { registerManager.addLockRegister(value);}
+    int Ensure(int vr,int tag);
 
-    void LeaseLockRegister(const RawValueP &value) { registerManager.LeaseLockRegister(value);}
-    //分配指定寄存器
-    void AssignRegister(const RawValueP &value,int loc) {registerManager.AssignRegister(value,loc);}
+    int AllocRegister(int vr, int tag);
 
-    void LoadFromMemory(const RawValueP &value) ;
+    int AssignRegister(int vr, int reg, int tag);
 
-    void AllocRegister(const RawValueP &value);
+    void FreeRegister(int reg, int tag);
 
-    void StoreReg(int RandSelected,int type);
-
-    bool isValid(int loc,int type) { return registerManager.IsValid(loc,type);}
+    void spill(int RandSelected,int type);
 
     int StackAlloc(const RawValueP &value) { return memoryManager.StackAlloc(value);}
 
@@ -362,7 +263,6 @@ class HardwareManager {
 
     int GetLen(const RawValueP &value) {return memoryManager.GetLen(value);}
 
-    bool IsRegisterNotAval(int reg,int tag);
 };
 
 /*

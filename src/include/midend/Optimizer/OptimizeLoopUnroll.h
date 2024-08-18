@@ -3,10 +3,13 @@
 #include <cassert>
 #include <iostream>
 #include <map>
+#include <list>
 #include <stack>
+#include  <algorithm>
 #include <unordered_set>
 #include "../IR/Programme.h"
 #include "../IR/BasicBlock.h"
+#define UNROLLFACTOR 4
 enum class LoopType {
     NotJudge = -1,
     LoopNoneEnd,
@@ -15,6 +18,7 @@ enum class LoopType {
 };
 class natureloop{
     public:
+    RawFunction* func;
     LoopType loopType;
     RawBasicBlock * head;//循环头
     unordered_set<RawBasicBlock *> body;//循环体
@@ -31,6 +35,10 @@ class natureloop{
     void cal_loopIncreaseValue();
     //固定次数的循环展开
     void unrollingValueLoop();
+    //根据循环因子展开
+    void unrollingVarLoop(int unRollingFactor);
+    //计算展开次数
+    int loopTimes(RawValue* condVal,RawValue* cond);
 };
 class LoopUnrolling{
     public:

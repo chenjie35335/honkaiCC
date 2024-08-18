@@ -56,7 +56,10 @@ class RawValue {
     uint32_t identType;
     /// count of copy
     uint32_t copyCount;
-
+    /// @brief dict基本块内使用
+    list<int> dict;
+    ///当前使用
+    list<int>::iterator dictIt;
 
     RawValue * addr;
 
@@ -67,6 +70,7 @@ class RawValue {
         this->status = BOT;
         this->identType = IDENT_UNIT;
         this->copyCount = 0;
+        dict.begin();
     }
     RawValue(RawValue*oldvalue){
         this->isDeleted = false;

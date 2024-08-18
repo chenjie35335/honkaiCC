@@ -121,7 +121,7 @@ void HardwareManager::init(const RawFunctionP &function)
     memoryManager.initLocalArea(LocalMin, LocalMax);
     int ReserveMin = LocalMax + 8, ReserveMax = ReserveMin + ReserveLen - 8;
     memoryManager.initReserveArea(ReserveMin, ReserveMax);
-    registerManager.init();
+    //registerManager.init();
 }
 
 void MemoryManager::initArgsArea(int min, int max)
@@ -154,13 +154,59 @@ void MemoryManager::initLocalArea(int min, int max)
     reserveArea.StackManager.clear();
 }
 
-void HardwareManager::LoadFromMemory(const RawValueP &value)
-{
-    // cout << "load from memory" << endl;
-    AllocRegister(value);
-    const char *reg = GetRegister(value);
-    int TargetOffset = getTargetOffset(value);
+// void HardwareManager::LoadFromMemory(const RawValueP &value)
+// {
+//     // cout << "load from memory" << endl;
+//     AllocRegister(value);
+//     const char *reg = GetRegister(value);
+//     int TargetOffset = getTargetOffset(value);
+//     if(value->ty->tag == RTT_FLOAT){
+//         if(TargetOffset > 2047) {
+//             cout << "  li   " << "t0, " << TargetOffset << endl;
+//             cout << "  add  " << "t0, sp, t0" << endl;
+//             cout << "  fld  " <<  reg << ", " << 0 << "(t0)" << endl; 
+//         } else 
+//             cout << "  fld   " << reg << ", " << TargetOffset << "(sp)" << endl;
+//     } else {
+//         if(TargetOffset > 2047) {
+//             cout << "  li   " << "t0, " << TargetOffset << endl;
+//             cout << "  add  " << "t0, sp, t0" << endl;
+//             cout << "  ld  " <<  reg << ", " << 0 << "(t0)" << endl; 
+//         } else 
+//             cout << "  ld   " << reg << ", " << TargetOffset << "(sp)" << endl;
+//     }
+    
+// }
+
+inline int MaxNext(int next[],int size) {
+    int maxi = 0; // Initialize max with the first element of the array
+    int max = next[0];
+    for (int i = 1; i < size; i++) {
+        if (next[i] > max) {
+            max = next[i];
+            maxi = i;
+        }
+    }
+    return maxi;
+}
+
+void HardwareManager::AlterNext(int reg,int tag,int target) {
+    auto &next = (tag == RTT_FLOAT) ? registerManager.FloatNext : registerManager.IntNext;
+    next[reg] = target;
+}
+//这里存在一个问题就是如果是外部的话如何处理
+//有一个比较愚蠢的方法就是说，这里不传vr而是传value
+int HardwareManager::Ensure(int vr,int tag) {
+    auto &name = (tag == RTT_FLOAT) ? registerManager.FloatName : registerManager.IntName;
+    for(int i = 0 ; i < 32;i++) {
+        if(name[i] == vr) return i;
+    }
+    int AllocReg = AllocRegister(vr, tag);
+    auto value = IndexToValue[vr];
+    if(IsMemory(value)) {
+        int TargetOffset = getTargetOffset(value);
     if(value->ty->tag == RTT_FLOAT){
+        const char *reg = RegisterManager::fregs[AllocReg];
         if(TargetOffset > 2047) {
             cout << "  li   " << "t0, " << TargetOffset << endl;
             cout << "  add  " << "t0, sp, t0" << endl;
@@ -168,6 +214,7 @@ void HardwareManager::LoadFromMemory(const RawValueP &value)
         } else 
             cout << "  fld   " << reg << ", " << TargetOffset << "(sp)" << endl;
     } else {
+        const char *reg = RegisterManager::regs[AllocReg];
         if(TargetOffset > 2047) {
             cout << "  li   " << "t0, " << TargetOffset << endl;
             cout << "  add  " << "t0, sp, t0" << endl;
@@ -175,65 +222,61 @@ void HardwareManager::LoadFromMemory(const RawValueP &value)
         } else 
             cout << "  ld   " << reg << ", " << TargetOffset << "(sp)" << endl;
     }
-    
-}
-
-bool HardwareManager::IsRegisterNotAval(int reg,int tag) {
-    if(tag == RTT_FLOAT)
-        return ((reg >= 10 && reg <= 17) || registerManager.RegisterLock[reg]) && reg < 32;
-    else
-        return ((reg >= 10 && reg <= 17) || registerManager.FRegisterLock[reg]) && reg < 32;
-}
-
-void HardwareManager::AllocRegister(const RawValueP &value)
-{
-    // cout << "alloc register for " << value->value.tag << endl;
-    auto ValueTy = value->ty->tag;
-    // cout << "value type: " << ValueTy << endl;
-    auto &look = (ValueTy == RTT_FLOAT) ? registerManager.FregisterLook : registerManager.registerLook;
-    auto &full = (ValueTy == RTT_FLOAT) ? registerManager.FRegisterFull : registerManager.RegisterFull;
-    auto &tempRegister = (ValueTy == RTT_FLOAT) ? registerManager.tempFRegister : registerManager.tempRegister;
-    if(look.find(value) != look.end())  return;
-    if (full) {
-        int RandSelected;
-        auto it = look.begin();
-        do{
-            RandSelected = it->second;
-            it++;
-        } while(!isValid(RandSelected,value->ty->tag) && it != look.end());
-        StoreReg(RandSelected,ValueTy);
-        look[value] = RandSelected;
-    } else {
-        uint32_t &RegLoc = tempRegister;
-        look[value] = RegLoc;
-        // cout << "alloc register " << RegLoc << RegisterManager::regs[RegLoc] << endl;
-        do {
-            RegLoc++;
-        } while (IsRegisterNotAval(RegLoc,value->ty->tag));
-        if (RegLoc == 32)
-            full = true;
     }
+    return AllocReg;
+}
+
+void HardwareManager::FreeRegister(int reg,int tag) {
+    auto &name = (tag == RTT_FLOAT) ? registerManager.FloatName : registerManager.IntName;
+    auto &stack = (tag == RTT_FLOAT) ? registerManager.FloatStack : registerManager.IntStack;
+    auto &next = (tag == RTT_FLOAT) ? registerManager.FloatNext : registerManager.IntNext;
+    auto &free = (tag == RTT_FLOAT) ? registerManager.FloatFree : registerManager.IntFree;
+    name[reg] = -1;
+    next[reg] = -1;
+    free[reg] = true;
+}
+
+int HardwareManager::AllocRegister(int vr, int tag)
+{
+    auto &name = (tag == RTT_FLOAT) ? registerManager.FloatName : registerManager.IntName;
+    auto &stack = (tag == RTT_FLOAT) ? registerManager.FloatStack : registerManager.IntStack;
+    auto &next = (tag == RTT_FLOAT) ? registerManager.FloatNext : registerManager.IntNext;
+    auto &free = (tag == RTT_FLOAT) ? registerManager.FloatFree : registerManager.IntFree;
+    int AllocReg = 0;
+    if(!stack.empty()) {
+        AllocReg = stack.top(); stack.pop();
+    } else {
+        int spillReg = MaxNext(next,32);
+        spill(spillReg,tag);
+        AllocReg = spillReg;
+    }
+    name[AllocReg] = vr;
+    next[AllocReg] = -1;
+    free[AllocReg] = false;
+    return AllocReg;
 }
 
 
-void HardwareManager::StoreReg(int RandSelected,int type)
+int HardwareManager::AssignRegister(int vr,int reg,int tag) {
+    auto &name = (tag == RTT_FLOAT) ? registerManager.FloatName : registerManager.IntName;
+    auto &next = (tag == RTT_FLOAT) ? registerManager.FloatNext : registerManager.IntNext;
+    auto &free = (tag == RTT_FLOAT) ? registerManager.FloatFree : registerManager.IntFree;
+    name[reg] = vr;
+    next[reg] = -1;
+    free[reg] = false;
+    return reg;
+}
+
+void HardwareManager::spill(int RandSelected,int type)
 {
     //cout << "spill reg" << RandSelected << endl;
-    auto &look = (type == RTT_FLOAT) ? registerManager.FregisterLook : registerManager.registerLook;
-    const char *TargetReg;
+    auto &name = (type == RTT_FLOAT) ? registerManager.FloatName : registerManager.IntName;
+    int vr = name[RandSelected];
+    auto value = IndexToValue[vr];
     int TargetOffset;
-    auto pair = look.begin();
-    for (;pair != look.end();pair++)
-        if (pair->second == RandSelected)
-            break;
-    if(pair == look.end()) return;
-    auto value = pair->first;
-    look.erase(value);
-    if(value->value.tag == RVT_ALLOC || value->value.tag == RVT_GLOBAL || value->value.tag == RVT_INTEGER || value->value.tag == RVT_FLOAT) return;
-    if (IsMemory(value))
-        TargetOffset = getTargetOffset(value);
-    else
-        TargetOffset = StackAlloc(value);
+    const char *TargetReg;
+    if (IsMemory(value))    TargetOffset = getTargetOffset(value);
+    else   TargetOffset = StackAlloc(value);
     if(type == RTT_FLOAT) {
         TargetReg = RegisterManager::fregs[RandSelected];
         if(TargetOffset > 2047) {
