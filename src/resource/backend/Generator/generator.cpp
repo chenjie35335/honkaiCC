@@ -6,6 +6,7 @@
 #include <cassert>
 #include <cstring>
 #include <iostream>
+int TempFuncRet = 0;
 int32_t convert(float number)
 {
     union {
@@ -320,7 +321,7 @@ void Visit(const RawCall &data,const RawValueP &value) {
 //这里不需要分配寄存器，直接默认在a的几个寄存器中，读出来后直接分配栈空间
 void Visit(const RawFuncArgs &data,const RawValueP &value) {
     int index = data.index;
-    hardware.StackAlloc(value);
+    //hardware.StackAlloc(value);
     if(index < 8) 
         hardware.AssignRegister(value,10+index);//这里直接分配a寄存器
     else {
@@ -545,20 +546,28 @@ void Visit(const RawValueP &value) {
         if(ret != nullptr) {
         Visit(ret);
         const char *RetRegister = hardware.GetRegister(ret);
-        if(ret->ty->tag != RTT_FLOAT && strcmp(RetRegister,"a0")) {
+        if(ret->ty->tag != RTT_FLOAT && TempFuncRet != RTT_FLOAT) {
             cout << "  mv   a0, "<< RetRegister << endl;
         }
-        if(ret->ty->tag == RTT_FLOAT && strcmp(RetRegister,"fa0")) {
+        if(ret->ty->tag != RTT_FLOAT && TempFuncRet == RTT_FLOAT) {
+            cout << "  mv   a0, " << RetRegister << endl;
+            cout << "  fcvt.s.w  fa0, a0" << endl;
+        }
+        if(ret->ty->tag == RTT_FLOAT && TempFuncRet == RTT_FLOAT) {
             cout << "  fmv.s   fa0, "<< RetRegister << endl;
+        }
+        if(ret->ty->tag == RTT_FLOAT && TempFuncRet != RTT_FLOAT) {
+            cout << "  fmv.s   fa0, "<< RetRegister << endl;
+            cout << "  fcvt.w.s  a0, fa0" << endl;
         }
         }
         hardware.LoadRegister(1);
         for(int i = 0; i < 12;i++) {
             hardware.LoadRegister(RegisterManager::calleeSave[i]);
         }
-        // for(int i = 0; i < 12;i++) {
-        //     hardware.LoadFRegister(RegisterManager::calleeFSave[i]);
-        // }
+        for(int i = 0; i < 12;i++) {
+            hardware.LoadFRegister(RegisterManager::calleeFSave[i]);
+        }
         int StackSize = hardware.getStackSize();
         if(StackSize <= 2047) {
         cout << "  addi sp, sp, " << StackSize  <<  endl;
@@ -709,6 +718,7 @@ void Visit(const RawFunctionP &func)
         auto &params = func->params;
         int bbsLen = bbs.size();
         //cerr << "bbsLen " << bbsLen << endl;
+        TempFuncRet = func->ty->function.ret->tag;
         if(bbsLen != 0) {
          hardware.init(func);
          printf("  .globl %s\n",func->name);
@@ -724,9 +734,9 @@ void Visit(const RawFunctionP &func)
          for(int i =0 ; i < 12;i++) {
             hardware.SaveRegister(RegisterManager::calleeSave[i]);
          }
-        //  for(int i = 0; i < 12;i++) {
-        //     hardware.SaveFRegister(RegisterManager::calleeFSave[i]);
-        //  }
+         for(int i = 0; i < 12;i++) {
+            hardware.SaveFRegister(RegisterManager::calleeFSave[i]);
+         }
         for(auto param : params)
          Visit(param);
         auto entryBB = *bbs.begin();

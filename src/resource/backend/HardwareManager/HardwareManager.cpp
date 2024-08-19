@@ -83,8 +83,8 @@ void calculateSize(int &ArgsLen, int &LocalLen, int &ReserveLen, const RawFuncti
             if (value->value.tag == RVT_CALL)
             {
                 has_call = true;
-                // cout << "call's size" << value->value.call.args.size() << endl;
-                ArgsLen = max(ArgsLen, int(value->value.call.args.size() - 8)) * 8;
+                if(value->value.call.args.size() > 8)
+                    ArgsLen = max(ArgsLen/8, int(value->value.call.args.size() - 8)) * 8;
             }
             if(value->value.tag == RVT_STORE) 
             {
@@ -105,7 +105,7 @@ void calculateSize(int &ArgsLen, int &LocalLen, int &ReserveLen, const RawFuncti
         }
     }
     ReserveLen = 26 * 8; // 无论有没有，这个我们都保存一下返回地址
-    // cout << "Args=" <<  ArgsLen << ",Local=" << LocalLen << ",Reserve=" << ReserveLen << endl;
+    //cout << "Args=" <<  ArgsLen << ",Local=" << LocalLen << ",Reserve=" << ReserveLen << endl;
 }
 
 void HardwareManager::init(const RawFunctionP &function)

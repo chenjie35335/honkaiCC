@@ -120,7 +120,7 @@ void GenerateGetFloat(){
 void GenerateGetFArray(){
     RawFunction *getfarray;
     string name = "getfarray";
-    generateRawFunction(getfarray,name.c_str(),FUNCTYPE_FLOAT);
+    generateRawFunction(getfarray,name.c_str(),FUNCTYPE_INT);
     RawType *ty = new RawType();
     ty->tag = RTT_FUNCTION;
     auto &params = getfarray->ty->function.params;
