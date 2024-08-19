@@ -109,18 +109,26 @@ void Visit(const RawStore &data, const RawValueP &value) {
     const auto &src = data.value;
     const auto &dest= data.dest;
     if(dest->value.tag == RVT_GLOBAL) {
-        Visit(src);
-        hardware.AllocRegister(dest);
-        const char *SrcReg = hardware.GetRegister(src);
-        const char * DestReg = hardware.GetRegister(dest);
+        int srcReg = hardware.Ensure(hardware.ValueToIndex[(RawValue *)src], src->ty->tag);
+        //hardware.AllocRegister(dest);
+        const char *SrcReg = hardware.GetRegister(srcReg,src->ty->tag);
+        if(!IsNeed((RawValue *)src)) hardware.FreeRegister(srcReg,src->ty->tag);
+        else {
+            hardware.AlterNext(srcReg,src->ty->tag,*src->dictIt);
+        }
+        //const char * DestReg = hardware.GetRegister(dest);
         if(src->ty->tag == RTT_FLOAT) 
-            cout << "  fsw  " << SrcReg << ", " << dest->name << ", "<< DestReg << endl;
+            cout << "  fsw  " << SrcReg << ", " << dest->name << ", t0"<< endl;
         else
-            cout << "  sw  " << SrcReg << ", " << dest->name << ", "<< DestReg << endl;
+            cout << "  sw  " << SrcReg << ", " << dest->name << ", t0" << endl;
     } else if(dest->value.tag == RVT_ALLOC){
-        Visit(src);
-        const char *SrcReg = hardware.GetRegister(src);
+        int srcReg = hardware.Ensure(hardware.ValueToIndex[(RawValue *)src], src->ty->tag);
+        const char *SrcReg = hardware.GetRegister(srcReg,src->ty->tag);
         int srcAddress = hardware.getTargetOffset(dest);
+        if(!IsNeed((RawValue *)src)) hardware.FreeRegister(srcReg,src->ty->tag);
+        else {
+            hardware.AlterNext(srcReg,src->ty->tag,*src->dictIt);
+        }
         auto destPointerTy = dest->ty->pointer.base;
         if(srcAddress > 2047) {
             cout << "  li   " << "t0, " << srcAddress << endl;
@@ -142,14 +150,28 @@ void Visit(const RawStore &data, const RawValueP &value) {
                 cout << "  sd  " <<  SrcReg << ", " << srcAddress << "(sp)" << endl; 
             }
     } else if(dest->value.tag == RVT_GET_ELEMENT || dest->value.tag == RVT_GET_PTR) {
-        Visit(src);
-        const char *SrcReg = hardware.GetRegister(src);
-        const char *ElementReg = hardware.GetRegister(dest);
+        int srcReg = hardware.Ensure(hardware.ValueToIndex[(RawValue *)src], src->ty->tag);
+        //hardware.AllocRegister(dest);
+        const char *SrcReg = hardware.GetRegister(srcReg,src->ty->tag);
+        if(!IsNeed((RawValue *)src)) hardware.FreeRegister(srcReg,src->ty->tag);
+        else {
+            hardware.AlterNext(srcReg,src->ty->tag,*src->dictIt);
+        }
+        int destReg = hardware.Ensure(hardware.ValueToIndex[(RawValue *)dest], dest->ty->tag);
+        //hardware.AllocRegister(dest);
+        const char *DestReg = hardware.GetRegister(destReg,dest->ty->tag);
+        if(!IsNeed((RawValue *)dest)) hardware.FreeRegister(destReg,dest->ty->tag);
+        else {
+            hardware.AlterNext(destReg,dest->ty->tag,*dest->dictIt);
+        }
+        // Visit(src);
+        // const char *SrcReg = hardware.GetRegister(src);
+        // const char *ElementReg = hardware.GetRegister(dest);
         auto srcTag = src->ty->tag;
         if(srcTag == RTT_FLOAT)
-            cout << "  fsw  " << SrcReg << ", " << 0 << '(' << ElementReg << ')' << endl;
+            cout << "  fsw  " << SrcReg << ", " << 0 << '(' << DestReg << ')' << endl;
         else  // int
-            cout << "  sw  " << SrcReg << ", " << 0 << '(' << ElementReg << ')' << endl;
+            cout << "  sw  " << SrcReg << ", " << 0 << '(' << DestReg << ')' << endl;
     } else assert(0);
 }
 
@@ -294,16 +316,25 @@ void Visit(const RawCall &data,const RawValueP &value) {
     auto &params = data.args;
     for(int i = 0; i < params.size(); i++) {
         auto ptr = reinterpret_cast<RawValueP>(params[i]);
-        Visit(ptr);
         if(i < 8) {
-            const char *reg = hardware.GetRegister(ptr);
-            hardware.spill(10+i,ptr->ty->tag);
+            int PtrReg = hardware.Ensure(hardware.ValueToIndex[(RawValue *)ptr], ptr->ty->tag);
+            const char *reg = hardware.GetRegister(PtrReg,ptr->ty->tag);
+            if(!IsNeed((RawValue *)ptr)) hardware.FreeRegister(PtrReg,ptr->ty->tag);
+            else {
+                hardware.AlterNext(PtrReg,ptr->ty->tag,*ptr->dictIt);
+            }
+            //hardware.spill(10+i,ptr->ty->tag);
             if(ptr->ty->tag == RTT_FLOAT)
                 cout << "  fmv.s  " << RegisterManager::fregs[10+i] << ", " << reg << endl;
             else 
                 cout << "  mv  " << RegisterManager::regs[10+i] << ", " << reg << endl;
         } else {
-            const char *reg = hardware.GetRegister(ptr);
+            int PtrReg = hardware.Ensure(hardware.ValueToIndex[(RawValue *)ptr], ptr->ty->tag);
+            const char *reg = hardware.GetRegister(PtrReg,ptr->ty->tag);
+            if(!IsNeed((RawValue *)ptr)) hardware.FreeRegister(PtrReg,ptr->ty->tag);
+            else {
+                hardware.AlterNext(PtrReg,ptr->ty->tag,*ptr->dictIt);
+            }
             int offset = (i-8)*8;
             if(offset > 2047) {
                 cout << "  li  t0, " << offset << endl;
@@ -321,16 +352,16 @@ void Visit(const RawCall &data,const RawValueP &value) {
         }
     }
      for(int i = 0;i < 7;i++) {
-         hardware.StoreReg(RegisterManager::callerSave[i],RTT_INT32);
+         hardware.spill(RegisterManager::callerSave[i],RTT_INT32);
      }
      for(int i = 0;i < 12;i++) {
-         hardware.StoreReg(RegisterManager::callerFSave[i],RTT_FLOAT);
+         hardware.spill(RegisterManager::callerFSave[i],RTT_FLOAT);
      }
     cout<<"  call "<<data.callee->name<<endl;
     if(value->ty->tag != RTT_UNIT) {
-    hardware.AllocRegister(value);
-    hardware.StackAlloc(value);
-    const char *retReg = hardware.GetRegister(value);
+    int RetReg = hardware.AllocRegister(hardware.ValueToIndex[(RawValue *)value],value->ty->tag);
+    //hardware.StackAlloc(value);
+    const char *retReg = hardware.GetRegister(RetReg,value->ty->tag);
     if(value->ty->tag == RTT_FLOAT)
         cout << "  fmv.s  " << retReg << ", fa0" << endl;
     else
@@ -342,11 +373,11 @@ void Visit(const RawFuncArgs &data,const RawValueP &value) {
     int index = data.index;
     hardware.StackAlloc(value);
     if(index < 8) 
-        hardware.AssignRegister(value,10+index);//这里直接分配a寄存器
+        hardware.AssignRegister(hardware.ValueToIndex[(RawValue *)value],10+index,value->ty->tag);//这里直接分配a寄存器
     else {
         // cout << "funcargs" << endl;
-        hardware.AllocRegister(value);
-        const char *reg = hardware.GetRegister(value);
+        int ValueReg = hardware.AllocRegister(hardware.ValueToIndex[(RawValue *) value],value->ty->tag);
+        const char *reg = hardware.GetRegister(ValueReg,value->ty->tag);
         int StackSize = hardware.getStackSize();
         int offset = StackSize+(index-8)*8;
         if(offset > 2047) {
@@ -364,7 +395,6 @@ void Visit(const RawFuncArgs &data,const RawValueP &value) {
         }
     }
 }
-
 //这里需要写一个浮点IEEE754转换函数
 
 
@@ -392,16 +422,28 @@ void Visit(const RawGlobal &data,const RawValueP &value) {
 
 void Visit(const RawGetPtr &data, const RawValueP &value) {
     //cout << "parse getptr" << endl;
-    auto src = data.src;
-    auto index = data.index;
-    const char *srcAddrReg;
-    Visit(src);
-    srcAddrReg = hardware.GetRegister(src);
-    Visit(index);
-    const char *IndexReg = hardware.GetRegister(index);
-    int elementLen = calBaseLen(src);
-    hardware.AllocRegister(value);
-    const char *ptrReg = hardware.GetRegister(value);
+         auto &src = data.src;
+     auto &index = data.index;
+     const char *srcAddrReg;
+    int SrcAddrReg = hardware.Ensure(hardware.ValueToIndex[(RawValue *)src],src->ty->tag);
+    srcAddrReg = hardware.GetRegister(SrcAddrReg,src->ty->tag);
+    int indexReg = hardware.Ensure(hardware.ValueToIndex[(RawValue *)index],index->ty->tag);
+    const char * IndexReg = hardware.GetRegister(indexReg,index->ty->tag);
+     //这个地方应该乘的是单个元素的长度，这里先解决的是一维数组的问题
+     //cout << "calptrlen = " << calPtrLen(src) << ", elementlen" << (src->ty->data.array.len) << endl;
+     int elementLen = calBaseLen(src)/(src->ty->pointer.base->array.len);
+     int ValueReg = hardware.AllocRegister(hardware.ValueToIndex[(RawValue *)value],value->ty->tag);
+     if(value->dict.empty()) hardware.FreeRegister(ValueReg,value->ty->tag);
+     else hardware.AlterNext(ValueReg,value->ty->tag,*value->dictIt);
+     if(!IsNeed((RawValue *)src)) hardware.FreeRegister(SrcAddrReg,src->ty->tag);
+     else {
+        hardware.AlterNext(SrcAddrReg,src->ty->tag,*src->dictIt);
+    }
+    if(!IsNeed((RawValue *)index)) hardware.FreeRegister(indexReg,index->ty->tag);
+    else {
+        hardware.AlterNext(indexReg,index->ty->tag,*index->dictIt);
+    }
+     const char *ptrReg = hardware.GetRegister(ValueReg,value->ty->tag);
     if(elementLen == 4) {
         cout << "  slli " << ptrReg << ", " << IndexReg << ", " << 2 << endl;
     } else{
@@ -421,28 +463,25 @@ void Visit(const RawGetElement &data,const RawValueP &value) {
      auto &src = data.src;
      auto &index = data.index;
      const char *srcAddrReg;
-     if(src->value.tag == RVT_GLOBAL) {
-        hardware.AllocRegister(src);
-        srcAddrReg = hardware.GetRegister(src);
-        cout << "  la  " << srcAddrReg << ", " << src->name << endl;
-     } else if(src->value.tag == RVT_ALLOC){//这里包含了参数值的问题
-        hardware.AllocRegister(src);
-        srcAddrReg = hardware.GetRegister(src);
-        int srcAddr = hardware.getTargetOffset(src);
-        cout << "  li  " << srcAddrReg << ", " << srcAddr << endl; 
-        cout << "  add " << srcAddrReg << ", sp, " << srcAddrReg << endl;  
-     } else if(src->value.tag == RVT_GET_ELEMENT || src->value.tag == RVT_GET_PTR){ 
-        Visit(src);
-        srcAddrReg = hardware.GetRegister(src);
-     }
-    //  cout << "visit index" << endl;
-     Visit(index);
-     const char *IndexReg = hardware.GetRegister(index);
+    int SrcAddrReg = hardware.Ensure(hardware.ValueToIndex[(RawValue *)src],src->ty->tag);
+    srcAddrReg = hardware.GetRegister(SrcAddrReg,src->ty->tag);
+    int indexReg = hardware.Ensure(hardware.ValueToIndex[(RawValue *)index],index->ty->tag);
+    const char * IndexReg = hardware.GetRegister(indexReg,index->ty->tag);
      //这个地方应该乘的是单个元素的长度，这里先解决的是一维数组的问题
      //cout << "calptrlen = " << calPtrLen(src) << ", elementlen" << (src->ty->data.array.len) << endl;
      int elementLen = calBaseLen(src)/(src->ty->pointer.base->array.len);
-     hardware.AllocRegister(value);
-     const char *ptrReg = hardware.GetRegister(value);
+     int ValueReg = hardware.AllocRegister(hardware.ValueToIndex[(RawValue *)value],value->ty->tag);
+     if(value->dict.empty()) hardware.FreeRegister(ValueReg,value->ty->tag);
+     else hardware.AlterNext(ValueReg,value->ty->tag,*value->dictIt);
+     if(!IsNeed((RawValue *)src)) hardware.FreeRegister(SrcAddrReg,src->ty->tag);
+     else {
+        hardware.AlterNext(SrcAddrReg,src->ty->tag,*src->dictIt);
+    }
+    if(!IsNeed((RawValue *)index)) hardware.FreeRegister(indexReg,index->ty->tag);
+    else {
+        hardware.AlterNext(indexReg,index->ty->tag,*index->dictIt);
+    }
+     const char *ptrReg = hardware.GetRegister(ValueReg,value->ty->tag);
      if(elementLen == 4) {
         cout << "  slli " << ptrReg << ", " << IndexReg << ", " << 2 << endl;
     } else {
@@ -459,26 +498,37 @@ void Visit(const RawTriple &data,const RawValueP &value)
     const auto &hs2 = data.hs2;
     const auto &hs3 = data.hs3;
     const auto &op  = data.op;
-    Visit(hs1);
-
-    Visit(hs2);
-
-    Visit(hs3);
-
-    hardware.AllocRegister(value);
+    int HS1Reg = hardware.Ensure(hardware.ValueToIndex[(RawValue *)hs1],hs1->ty->tag);
+    int HS2Reg = hardware.Ensure(hardware.ValueToIndex[(RawValue *)hs2],hs2->ty->tag);
+    int HS3Reg = hardware.Ensure(hardware.ValueToIndex[(RawValue *)hs3],hs3->ty->tag);
+    if(!IsNeed((RawValue *)hs1)) hardware.FreeRegister(HS1Reg,hs1->ty->tag);
+    else {
+        hardware.AlterNext(HS1Reg,hs1->ty->tag,*hs1->dictIt);
+    }
+    if(!IsNeed((RawValue *)hs2)) hardware.FreeRegister(HS2Reg,hs2->ty->tag);
+    else {
+        hardware.AlterNext(HS2Reg,hs2->ty->tag,*hs2->dictIt);
+    }
+    if(!IsNeed((RawValue *)hs3)) hardware.FreeRegister(HS3Reg,hs3->ty->tag);
+    else {
+        hardware.AlterNext(HS3Reg,hs3->ty->tag,*hs3->dictIt);
+    }
+    int ValueReg = hardware.AllocRegister(hardware.ValueToIndex[(RawValue *)value],value->ty->tag);
     //这里需要根据类型判断他是在哪个寄存器里面
     const char *hs1Register;
     const char *hs2Register;
     const char *hs3Register;
     const char *ValueRegister;
     //hs1
-    hs1Register = hardware.GetRegister(hs1);
+    hs1Register = hardware.GetRegister(HS1Reg,hs1->ty->tag);
     //hs2
-    hs2Register = hardware.GetRegister(hs2);
+    hs2Register = hardware.GetRegister(HS2Reg,hs2->ty->tag);
     //hs3
-    hs3Register = hardware.GetRegister(hs3);
+    hs3Register = hardware.GetRegister(HS3Reg,hs3->ty->tag);
     //value
-    ValueRegister = hardware.GetRegister(value);
+    ValueRegister = hardware.GetRegister(ValueReg,value->ty->tag);
+    if(value->dict.empty()) hardware.FreeRegister(ValueReg,value->ty->tag);
+    else hardware.AlterNext(ValueReg,value->ty->tag,*value->dictIt);
     switch(op) {
         case RTO_FMADD:{
             cout << "  fmadd.s  " << ValueRegister << ", " << hs1Register << ", " << hs2Register << ", " << hs3Register << endl;
@@ -506,20 +556,31 @@ void Visit(const RawConvert &data, const RawValueP &value)
     // fcvt.w.s  word to single
     // fcvt.s.w  single to word
     // convert dest, src, mode
+    auto src = (RawValue *)data.src;
     auto SrcType = data.src->ty->tag;
     if(SrcType == RTT_INT32){
-        const char *srcReg;
-        Visit(data.src);
-        srcReg = hardware.GetRegister(data.src);
-        hardware.AllocRegister(value);
-        const char *TReg = hardware.GetRegister(value);
+        int SrcReg = hardware.Ensure(hardware.ValueToIndex[(RawValue *)src],src->ty->tag);
+        const char *srcReg = hardware.GetRegister(SrcReg,src->ty->tag);
+        if(!IsNeed((RawValue *)src)) hardware.FreeRegister(SrcReg,src->ty->tag);
+        else {
+            hardware.AlterNext(SrcReg,src->ty->tag,*src->dictIt);
+        }
+        int tReg = hardware.AllocRegister(hardware.ValueToIndex[(RawValue *)value],value->ty->tag);
+        const char *TReg = hardware.GetRegister(tReg,value->ty->tag);
+        if(value->dict.empty()) hardware.FreeRegister(tReg,value->ty->tag);
+        else hardware.AlterNext(tReg,value->ty->tag,*value->dictIt);
         cout<<"  fcvt.s.w " << TReg << ", " << srcReg << ", " << "rtz" << endl;
     } else if(SrcType == RTT_FLOAT) {
-        const char*srcReg;
-        Visit(data.src);
-        srcReg = hardware.GetRegister(data.src);
-        hardware.AllocRegister(value);
-        const char *TReg = hardware.GetRegister(value);
+        int SrcReg = hardware.Ensure(hardware.ValueToIndex[(RawValue *)src],src->ty->tag);
+        const char *srcReg = hardware.GetRegister(SrcReg,src->ty->tag);
+        if(!IsNeed((RawValue *)src)) hardware.FreeRegister(SrcReg,src->ty->tag);
+        else {
+            hardware.AlterNext(SrcReg,src->ty->tag,*src->dictIt);
+        }
+        int tReg = hardware.AllocRegister(hardware.ValueToIndex[(RawValue *)value],value->ty->tag);
+        const char *TReg = hardware.GetRegister(tReg,value->ty->tag);
+        if(value->dict.empty()) hardware.FreeRegister(tReg,value->ty->tag);
+        else hardware.AlterNext(tReg,value->ty->tag,*value->dictIt);
         cout<< "  fcvt.w.s " << TReg << ", "<< srcReg << ", " << "rtz" << endl;
     }
 }
@@ -572,7 +633,6 @@ void Visit(const RawValueP &value) {
             if(value->dict.empty()) hardware.FreeRegister(AllocReg,RTT_INT32);
             else hardware.AlterNext(AllocReg,RTT_INT32,*value->dictIt);
         }
-        
         cout << endl;
         break;
     }
