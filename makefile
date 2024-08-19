@@ -163,6 +163,11 @@ riscv-debug:
 	qemu-riscv64-static -g 1234 hello &
 	gdb-multiarch hello
 
+riscv-run:
+	./build/compiler -S -o hello.S hello.c
+	riscv64-linux-gnu-gcc -o hello --static std.c hello.S
+	qemu-riscv64-static hello < hello.in > hello.out
+
 -include $(DEPS)
 
 
