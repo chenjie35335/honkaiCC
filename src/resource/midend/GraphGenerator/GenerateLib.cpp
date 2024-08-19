@@ -140,9 +140,9 @@ void GeneratePutFArray(){
     RawType *ty = new RawType();
     ty->tag = RTT_FUNCTION;
     auto &params = putfarray->ty->function.params;
-    RawType *FloatType = new RawType();
-    FloatType->tag = RTT_FLOAT;
-    params.push_back(FloatType);
+    RawType *IntType = new RawType();
+    IntType->tag = RTT_INT32;
+    params.push_back(IntType);
     RawType *PointerType = new RawType();
     PointerType->tag = RTT_POINTER;
     RawType *PointeeType = new RawType();
