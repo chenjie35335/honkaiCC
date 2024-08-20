@@ -58,7 +58,7 @@ int calAllocLen(const RawValueP &value)
     else assert(0);
 }
 // 这里需要修改
-void calculateSize(int &ArgsLen, int &LocalLen, int &ReserveLen, const RawFunctionP &function)
+void calculateSize(int &ArgsLen, int &LocalLen, int &ReserveLen, RawFunction* function)
 {
     bool has_call;
     auto &params = function->params; // 给所有的参数分配空间
@@ -72,19 +72,29 @@ void calculateSize(int &ArgsLen, int &LocalLen, int &ReserveLen, const RawFuncti
             if (value->value.tag == RVT_ALLOC)
             { // alloc 指令分配的内存,大小为4字节
                 int len = calAllocLen(value);
+                LocalLen += len + 8;
                 // cout << "save len =" << len << endl;
-                LocalLen += len + 8; // 这里给每个指针值加上一个8字节用于存储指针
+                if(value->identType != IDENT_VAR){
+                     // 这里给指针值加上一个8字节用于存储指针
+                    function->IntNumber++;
+                }
                 hardware.SaveLen(value, len);
             }
             else if (value->ty->tag != RTT_UNIT)
             { // 指令的类型不为unit, 存在返回值，分配内存
                 LocalLen += 8;//存储指针
+                if(value->ty->tag == RTT_FLOAT) function->floatNumber++;
+                else function->IntNumber++;
             }
             if (value->value.tag == RVT_CALL)
             {
                 has_call = true;
                 if(value->value.call.args.size() > 8)
                     ArgsLen = max(ArgsLen/8, int(value->value.call.args.size() - 8)) * 8;
+                for(auto param : value->value.call.args) {
+                    if(param->value.tag == RVT_FLOAT) function->floatNumber++;
+                    else if(param->value.tag == RVT_INTEGER) function->IntNumber++;
+                }
             }
             if(value->value.tag == RVT_STORE) 
             {
@@ -93,6 +103,9 @@ void calculateSize(int &ArgsLen, int &LocalLen, int &ReserveLen, const RawFuncti
                     global.insert((RawValue *)storeValue);
                     LocalLen += 8;
                 }//这个是给全局变量分配的
+                auto srcValue = value->value.store.value;
+                if(srcValue->value.tag ==RVT_FLOAT) function->floatNumber++;
+                else if(srcValue->value.tag == RVT_INTEGER) function->IntNumber++;
             }
             if(value->value.tag == RVT_LOAD) 
             {
@@ -100,6 +113,41 @@ void calculateSize(int &ArgsLen, int &LocalLen, int &ReserveLen, const RawFuncti
                 if(loadSrc->value.tag == RVT_GLOBAL && (global.find((RawValue *)loadSrc) == global.end())) {
                     global.insert((RawValue *)loadSrc);
                     LocalLen += 8;
+                }
+            }
+            if(value->value.tag == RVT_BINARY) {
+                auto lhs = (RawValue *)value->value.binary.lhs;
+                auto rhs = (RawValue *) value->value.binary.rhs;
+                if(lhs->value.tag == RVT_FLOAT) function->floatNumber++;
+                else if(lhs->value.tag == RVT_INTEGER) function->IntNumber++;
+                if(rhs->value.tag == RVT_FLOAT) function->floatNumber++;
+                else if(rhs->value.tag == RVT_INTEGER) function->IntNumber++;
+            }
+            if(value->value.tag == RVT_BRANCH) {
+                auto cond = (RawValue *) value->value.branch.cond;
+                if(cond->value.tag == RVT_FLOAT) function->floatNumber++;
+                else if(cond->value.tag == RVT_INTEGER) function->IntNumber++;
+            }
+            if(value->value.tag == RVT_GET_ELEMENT) {
+                auto index = (RawValue *) value->value.getelement.index;
+                if(index->value.tag == RVT_FLOAT) function->floatNumber++;
+                else if(index->value.tag == RVT_INTEGER) function->IntNumber++;
+            }
+            if(value->value.tag == RVT_GET_PTR) {
+                auto index = (RawValue *) value->value.getptr.index;
+                if(index->value.tag == RVT_FLOAT) function->floatNumber++;
+                else if(index->value.tag == RVT_INTEGER) function->IntNumber++;
+            }
+            if(value->value.tag == RVT_CONVERT) {
+                auto src = (RawValue *) value->value.Convert.src;
+                if(src->value.tag == RVT_FLOAT) function->floatNumber++;
+                else if(src->value.tag == RVT_INTEGER) function->IntNumber++;
+            }
+            if(value->value.tag == RVT_RETURN) {
+                auto src = (RawValue *)value->value.ret.value;
+                if(src) {
+                    if(src->value.tag == RVT_FLOAT) function->floatNumber++;
+                    else if(src->value.tag == RVT_INTEGER) function->IntNumber++;
                 }
             }
         }
@@ -111,7 +159,7 @@ void calculateSize(int &ArgsLen, int &LocalLen, int &ReserveLen, const RawFuncti
 void HardwareManager::init(const RawFunctionP &function)
 {
     int ArgsLen = 0, LocalLen = 0, ReserveLen = 0;
-    calculateSize(ArgsLen, LocalLen, ReserveLen, function);
+    calculateSize(ArgsLen, LocalLen, ReserveLen, (RawFunction*)function);
     int StackLen = ArgsLen + LocalLen + ReserveLen;
     StackLen = (StackLen + 15) / 16 * 16;
     memoryManager.initStack(StackLen);

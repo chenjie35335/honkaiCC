@@ -44,10 +44,11 @@ int main(int argc, const char *argv[]) {
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
   std::cerr << "程序运行时间: " << duration.count() << " 微秒" << std::endl;
   //InstMerge(irGraph);
+  MarkUseDef(irGraph);
   if(optMode != nullptr && strcmp(optMode,"-O1") == 0) {
       //GeneratorIRTxt(irGraph,false);
       //OptimizeFuncInline(irGraph);
-       MarkUseDef(irGraph);
+      //  MarkUseDef(irGraph);
        GeneratorDT(irGraph,0);
       // GeneratorDT(irGraph,3);
        //AddPhi(irGraph);

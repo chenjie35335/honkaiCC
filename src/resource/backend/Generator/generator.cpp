@@ -6,7 +6,11 @@
 #include <cassert>
 #include <cstring>
 #include <iostream>
+#include <algorithm>
 int TempFuncRet = 0;
+RawBasicBlock *TempBB;
+int TempFuncInt;
+int TempFuncFloat;
 int32_t convert(float number)
 {
     union {
@@ -16,7 +20,8 @@ int32_t convert(float number)
     u.f = number;
     return u.i;
 }
-
+map<RawBasicBlock*,unordered_set<RawValue*>>TactValIn,TactValOut;
+map<RawBasicBlock*,unordered_set<RawValue*>>actValIn,actValOut;
 HardwareManager hardware;
 //处理load运算，由于我们在类型那里处理的调整，这里可能需要多加一个分类讨论
 void Visit(const RawLoad &data, const RawValueP &value) {
@@ -533,6 +538,9 @@ void Visit(const RawConvert &data, const RawValueP &value)
 //现在可能需要做一个约定：凡是遇到全局变量或者函数参数
 void Visit(const RawValueP &value) {    
     const auto& kind = value->value;
+    if(kind.tag == RVT_BRANCH || kind.tag == RVT_JUMP) {
+
+    }
     if(hardware.IsRegister(value)) {
         return;
     }  else if(hardware.IsMemory(value)) {
@@ -562,11 +570,15 @@ void Visit(const RawValueP &value) {
         }
         }
         hardware.LoadRegister(1);
+        if(TempFuncInt > 2){
         for(int i = 0; i < 12;i++) {
             hardware.LoadRegister(RegisterManager::calleeSave[i]);
         }
+        }
+        if(TempFuncFloat >= 8) {
         for(int i = 0; i < 12;i++) {
             hardware.LoadFRegister(RegisterManager::calleeFSave[i]);
+        }
         }
         int StackSize = hardware.getStackSize();
         if(StackSize <= 2047) {
@@ -696,6 +708,7 @@ void Visit(const RawBasicBlockP &bb){
      cout << endl;
      cout << bb->name << ":" << endl;
      }
+     TempBB = (RawBasicBlock *) bb;
      auto &insts = bb->inst;
      for(auto inst : insts)
      Visit(inst);
@@ -710,7 +723,6 @@ void Visit_bb(const RawBasicBlockP &bb) {
     }
     hardware.registerManager.PopLook();
 }
-
 // Visit RawFunction
 void Visit(const RawFunctionP &func)
 {
@@ -718,6 +730,7 @@ void Visit(const RawFunctionP &func)
         auto &params = func->params;
         int bbsLen = bbs.size();
         //cerr << "bbsLen " << bbsLen << endl;
+        //CalculateLiveOut((RawFunction *)func);
         TempFuncRet = func->ty->function.ret->tag;
         if(bbsLen != 0) {
          hardware.init(func);
@@ -731,11 +744,19 @@ void Visit(const RawFunctionP &func)
             cout << "  add sp, sp, t0" << endl;
          }
          hardware.SaveRegister(1);
+         TempFuncInt = func->IntNumber;
+         TempFuncFloat = func->floatNumber;
+        //  cout << "int number: " << TempFuncInt << endl;
+        //  cout << "float number: " << TempFuncFloat << endl;
+         if(func->IntNumber > 2) {
          for(int i =0 ; i < 12;i++) {
             hardware.SaveRegister(RegisterManager::calleeSave[i]);
          }
+         }
+         if(func->floatNumber >= 8){
          for(int i = 0; i < 12;i++) {
             hardware.SaveFRegister(RegisterManager::calleeFSave[i]);
+         }
          }
         for(auto param : params)
          Visit(param);
@@ -759,6 +780,8 @@ void generateASM(RawProgramme *& programme) {
 }
 //就是我们发现一个问题：我们的这个integer节点就是单次使用的，因此可能没有必要说两个不同
 //对于binary来说不需要，但是对于getelemptr需要，但是需要也没必要说要spill,因为他的生命周期就一个
+//考虑到这个integer节点就是单次使用的，所以说我们可以使用以下的策略：
+//我们可以就是说每次integer使用以后就手动删除掉，不需要spill的时候删除
 
 
 

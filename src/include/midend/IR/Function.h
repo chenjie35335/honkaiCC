@@ -20,6 +20,10 @@ class RawFunction{
     list <RawBasicBlock *> basicblock;
     /// value set
     unordered_set<RawValue *> values;
+    /// 需要用到的int型变量的数量
+    int IntNumber;
+    /// 需要使用的float型变量的数量
+    int floatNumber;
 };
 typedef const RawFunction * RawFunctionP;
 /// @brief generate rawfunction data structure
@@ -32,3 +36,4 @@ void generateRawFunction(RawFunction *&function, const char *name,int type);
 void PushRawFunction(RawFunction *&function);
 
 #endif
+//考虑一个问题：就是我如何判断我需要分配的数量？

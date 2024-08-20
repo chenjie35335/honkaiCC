@@ -503,7 +503,7 @@ void OptimizeLoop(RawProgramme *IR){
             map<RawBasicBlock *,set<RawValue *>> in,out;
                 map<RawBasicBlock*,unordered_set<RawValue*>> actValIn,actValOut;//对每个函数进行活跃性分析
                 // cout<<"111111111111111"<<endl;
-                // cal_actVal(func,actValIn,actValOut);
+                cal_actVal(func,actValIn,actValOut);
                 //  cout<<"222222222222222222"<<endl;
             findBackEdges(func,natureLoops);//计算回边
             for(auto &loop:natureLoops)//每个自然循环添加前置节点
