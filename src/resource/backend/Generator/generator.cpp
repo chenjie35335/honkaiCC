@@ -570,13 +570,23 @@ void Visit(const RawValueP &value) {
         }
         }
         hardware.LoadRegister(1);
-        if(TempFuncInt > 2){
-        for(int i = 0; i < 12;i++) {
+        if(TempFuncInt >=3  && TempFuncInt <= 14){
+        for(int i = 0; i < TempFuncInt-2;i++) {
             hardware.LoadRegister(RegisterManager::calleeSave[i]);
         }
         }
-        if(TempFuncFloat >= 8) {
-        for(int i = 0; i < 12;i++) {
+        if(TempFuncInt > 14) {
+            for(int i = 0; i < 12; i++) {
+            hardware.LoadRegister(RegisterManager::calleeSave[i]);
+        }
+        }
+        if(TempFuncFloat >= 9 && TempFuncFloat <=20) {
+        for(int i = 0; i < TempFuncFloat-8;i++) {
+            hardware.LoadFRegister(RegisterManager::calleeFSave[i]);
+        }
+        }
+        if(TempFuncFloat > 20) {
+            for(int i = 0; i < 12;i++) {
             hardware.LoadFRegister(RegisterManager::calleeFSave[i]);
         }
         }
@@ -748,15 +758,25 @@ void Visit(const RawFunctionP &func)
          TempFuncFloat = func->floatNumber;
         //  cout << "int number: " << TempFuncInt << endl;
         //  cout << "float number: " << TempFuncFloat << endl;
-         if(func->IntNumber > 2) {
-         for(int i =0 ; i < 12;i++) {
+         if(func->IntNumber >= 3 && func->IntNumber <= 14 ) {
+         for(int i =0 ; i < func->IntNumber-2;i++) {
             hardware.SaveRegister(RegisterManager::calleeSave[i]);
          }
          }
-         if(func->floatNumber >= 8){
-         for(int i = 0; i < 12;i++) {
+         if(func->IntNumber > 14) {
+        for(int i =0 ; i < 12;i++) {
+            hardware.SaveRegister(RegisterManager::calleeSave[i]);
+         }
+         }
+         if(func->floatNumber >= 9 && func->floatNumber <= 20){
+         for(int i = 0; i < func->floatNumber-8;i++) {
             hardware.SaveFRegister(RegisterManager::calleeFSave[i]);
          }
+         }
+         if(func->floatNumber > 20) {
+            for(int i = 0; i < 12; i++) {
+                hardware.SaveFRegister(RegisterManager::calleeFSave[i]);
+            }
          }
         for(auto param : params)
          Visit(param);
