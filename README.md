@@ -1,8 +1,19 @@
-# SLcc
+# honkaiCC
 
-This is a compiler for Huawei Bisheng Cup.
+这是第五届华为毕昇杯优胜奖作品，通过135个功能测例，现提供所有版本
 
-## SLcc使用
+## 分支说明
+
+main分支和backnew分支是后端使用图着色的版本，比赛当中没有使用；比赛使用的版本是backold,其中backold3是最终版本。
+
+## honkaiCC使用
+
+* 编译命令
+
+```
+    build/compiler -S -o <目标文件名> <源文件名> //生成汇编
+    build/compiler -koopa -o <目标文件名> <源文件名> //生成中间代码
+```
 
 * 打开docker
 
@@ -68,60 +79,7 @@ This is a compiler for Huawei Bisheng Cup.
     autotest -riscv -s functional/hidden-functional /root/compiler  || make autotest
 ```
 
-## 本人计划
-### 后端规划
-
-### 7-3 
-    完成store{}的拆分
-### 7-4
-    完成后端的适配（调试）
-### 7-5
-    协助wjh完成函数后端
-### 7-6
-    协助wjh完成函数后端
-### 7-7
-    协助wjh完成函数后端
-### 7-8 ～ 7-13
-    协助wjh完成数组后端
-### 7-14 ～ 7-20
-    协助wjh完成浮点后端
-### 7-20 ～ 7-27
-    csj wjh完成后端的初步优化（指令指派）
-### 7-28 ～ 8-1
-    csj wjh完成部分指令集并行处理
-### 8-2 ～ 8-10
-    完全调试
-
-### 中端规划
-
-### 7-14 ～ 7-20
-    1、完成公共子表达式的删除
-    2、调试条件常数传播
-    3、调试公共子表达式
-    4、完成后端的指令适配
-    zzq：  归纳变量
-
-### 7-21 ～ 7-27
-    前半： 优化浮点
-    zzq： 尾递归消除
-
-### 7-28 ～ 8-10
-    中端集成测试，修改bug,最终目标：通过所有测例
-
-### 目前通过部分
-
-
-
-
-
-
-
-
-
-
-
-
-### 参考文档
+## 参考文档
 
 https://www.cnblogs.com/zhangleo/p/15963442.html
 
@@ -129,13 +87,6 @@ https://pku-minic.github.io/online-doc/#/
 
 https://compiler.educg.net/#/
 
+## 开发者联系方式：
 
-
-
-
-
-
-
-
-
-
+如要交流，可发送邮箱至```1042653777@qq.com```。同时仓库可能不定期有新commit，可关注。
