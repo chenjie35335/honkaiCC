@@ -4,16 +4,17 @@ using namespace std;
 
 extern FILE *yyin;
 extern int yyparse(unique_ptr<BaseAST> &ast);
-extern void backend(RawProgramme *& programme);
-extern void DCE(RawProgramme *&programme);
-extern void ConstCombine(RawProgramme *&prgramme);
-extern void OptimizeMem2Reg(RawProgramme *&programme);
-void OptimizeGCSE(RawProgramme *programme);
-void OptimizeSCCP(RawProgramme *&programme);
-void BlockEliminate(RawProgramme *&programme);
-void InstMerge(RawProgramme *&programmer);
-void MarkUseDef(RawProgramme *&programmer);
-
+extern void backend_advanced(RawProgramme *& programme);
+void OptimizeMem2Reg(RawProgramme *&programme);
+extern void OptimizeDCE(RawProgramme *&programme);
+extern void OptimizeConstCombine(RawProgramme *&prgramme);
+extern void OptimizeSCCP(RawProgramme *&programme);
+extern void MarkUseDef(RawProgramme *&programme);
+extern void OptimizeLCSE(RawProgramme *programme);
+extern void OptimizeGCSE(RawProgramme *programme);
+extern void OptimizeFuncInline(RawProgramme *IR);
+extern void OptimizeLoop(RawProgramme *IR);
+extern void OptimizeLoopUnroll(RawProgramme *IR);
 int main(int argc, const char *argv[]) {
   // 解析命令行参数. 测试脚本/评测平台要求你的编译器能接收如下参数:
   // compiler0 -S1 -o2 输出文件3 输入文件4
@@ -55,8 +56,9 @@ int main(int argc, const char *argv[]) {
        //renameValue(irGraph);
       //  循环优化需要基于支配树
     //  OptimizeLoop(irGraph);
-       OptimizeMem2Reg(irGraph);
-       //GeneratorIRTxt(irGraph,true);
+      // OptimizeMem2Reg(irGraph);
+      // OptimizeLoopUnroll(irGraph);
+      // GeneratorIRTxt(irGraph,true);
       //mem2regTop(irGraph);
       //GeneratorIRTxt(irGraph,true);
       //DCE(irGraph);
@@ -66,12 +68,10 @@ int main(int argc, const char *argv[]) {
       // ConstCombine(irGraph);
       // DCE(irGraph);
       // OptimizeGCSE(irGraph);
-      OptimizeSCCP(irGraph);
-      BlockEliminate(irGraph);
+      // OptimizeLCSE(irGraph);
+      //GeneratorIRTxt(irGraph,true);
       exitSSA(irGraph);
-  }
-  start_time = std::chrono::high_resolution_clock::now();
-  cerr << "start domain tree" << endl;
+  // }
   if(strcmp(mode,"-riscv") == 0 || strcmp(mode,"-S") == 0) {
     GeneratorDT(irGraph,0);
     auto end_time = std::chrono::high_resolution_clock::now();
@@ -84,8 +84,8 @@ int main(int argc, const char *argv[]) {
   }
   else if(strcmp(mode,"-cfg") == 0){
     // OptimizeFuncInline(irGraph);
-    // GeneratorDT(irGraph,3);控制流图
-    GeneratorDT(irGraph,2);//支配树
+    GeneratorDT(irGraph,3);//控制流图
+    // GeneratorDT(irGraph,2);//支配树
   }
   else if(strcmp(mode,"-astT") == 0){
     Generator_ast(ast,1);
