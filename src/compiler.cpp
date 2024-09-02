@@ -4,7 +4,7 @@ using namespace std;
 
 extern FILE *yyin;
 extern int yyparse(unique_ptr<BaseAST> &ast);
-extern void backend_advanced(RawProgramme *& programme);
+extern void backend(RawProgramme *& programme);
 void OptimizeMem2Reg(RawProgramme *&programme);
 extern void OptimizeDCE(RawProgramme *&programme);
 extern void OptimizeConstCombine(RawProgramme *&prgramme);
@@ -15,6 +15,8 @@ extern void OptimizeGCSE(RawProgramme *programme);
 extern void OptimizeFuncInline(RawProgramme *IR);
 extern void OptimizeLoop(RawProgramme *IR);
 extern void OptimizeLoopUnroll(RawProgramme *IR);
+extern void BlockEliminate(RawProgramme *IR);
+
 int main(int argc, const char *argv[]) {
   // 解析命令行参数. 测试脚本/评测平台要求你的编译器能接收如下参数:
   // compiler0 -S1 -o2 输出文件3 输入文件4
@@ -50,28 +52,28 @@ int main(int argc, const char *argv[]) {
       //GeneratorIRTxt(irGraph,false);
       //OptimizeFuncInline(irGraph);
       //  MarkUseDef(irGraph);
-       GeneratorDT(irGraph,0);
-      // GeneratorDT(irGraph,3);
-       //AddPhi(irGraph);
-       //renameValue(irGraph);
-      //  循环优化需要基于支配树
+    //    GeneratorDT(irGraph,0);
+    //   GeneratorDT(irGraph,3);
+    //    AddPhi(irGraph);
+    //    renameValue(irGraph);
+    //    //循环优化需要基于支配树
     //  OptimizeLoop(irGraph);
-      // OptimizeMem2Reg(irGraph);
-      // OptimizeLoopUnroll(irGraph);
-      // GeneratorIRTxt(irGraph,true);
-      //mem2regTop(irGraph);
-      //GeneratorIRTxt(irGraph,true);
-      //DCE(irGraph);
-      //GeneratorIRTxt(irGraph,true);
-      //  DCE(irGraph);
-      //GeneratorIRTxt(irGraph,true);
-      // ConstCombine(irGraph);
-      // DCE(irGraph);
-      // OptimizeGCSE(irGraph);
-      // OptimizeLCSE(irGraph);
-      //GeneratorIRTxt(irGraph,true);
-      exitSSA(irGraph);
-  // }
+    //   OptimizeMem2Reg(irGraph);
+    //   OptimizeLoopUnroll(irGraph);
+    //   GeneratorIRTxt(irGraph,true);
+    //   mem2regTop(irGraph);
+    //   GeneratorIRTxt(irGraph,true);
+    //   DCE(irGraph);
+    //   GeneratorIRTxt(irGraph,true);
+    //    DCE(irGraph);
+    //   GeneratorIRTxt(irGraph,true);
+    //   ConstCombine(irGraph);
+    //   DCE(irGraph);
+    //   OptimizeGCSE(irGraph);
+    //   OptimizeLCSE(irGraph);
+    //   GeneratorIRTxt(irGraph,true);
+    //   exitSSA(irGraph);
+  }
   if(strcmp(mode,"-riscv") == 0 || strcmp(mode,"-S") == 0) {
     GeneratorDT(irGraph,0);
     auto end_time = std::chrono::high_resolution_clock::now();
